@@ -155,7 +155,8 @@
       { name: "Золото", icon:"🪙", price:250, color:"#ffd700" },
       { name: "Pepe", icon:"🐸", price:500, color:"#32cd32" },
     ];
-function App() {
+
+    function App() {
       const [screen, setScreen] = useState("main");
       const [selectedGift, setSelectedGift] = useState(null);
       const [selectedEffect, setSelectedEffect] = useState(null);
@@ -187,14 +188,14 @@ function App() {
       return (
         <div className="app-container">
           {/* Main screen */}
-          <div className={screen ${screen==="main"?"active":""}}>
+          <div className={`screen ${screen==="main"?"active":""}`}>
             <div className="top-title">Gift Evolution 🎁</div>
             <div className="main-content">
               {/* Gift Models */}
               <div className="gift-list">
                 {GIFT_MODELS.map((g,i)=>(
                   <div key={i} 
-                       className={gift-card ${selectedGift===g?"selected":""}}
+                       className={`gift-card ${selectedGift===g?"selected":""}`}
                        onClick={()=>setSelectedGift(g)}>
                     {g}
                   </div>
@@ -205,7 +206,7 @@ function App() {
                 <div className="effect-list">
                   {EFFECTS.map((e,i)=>(
                     <div key={i} 
-                         className={effect-card ${selectedEffect===e?"selected":""}}
+                         className={`effect-card ${selectedEffect===e?"selected":""}`}
                          onClick={()=>setSelectedEffect(e)}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
                       <span style={{fontSize:"24px"}}>{e.icon}</span>
@@ -224,12 +225,12 @@ function App() {
           </div>
 
           {/* Inventory screen */}
-          <div className={screen ${screen==="inventory"?"active":""}}>
+          <div className={`screen ${screen==="inventory"?"active":""}`}>
             <div className="top-title">🎒 Инвентарь</div>
             <div className="inventory-list">
               {inventory.length===0 && <p style={{opacity:0.7}}>Пока пусто...</p>}
               {inventory.map((item,i)=>(
-                <div key={i} className="inventory-card" title={${item.rare?"Редкий":"Обычный"} - ${item.effect.name}}>
+                <div key={i} className="inventory-card" title={`${item.rare?"Редкий":"Обычный"} - ${item.effect.name}`}>
                   <span style={{fontSize:"32px"}}>{item.model}{item.rare?"💎":""}</span>
                   <div style={{fontSize:"14px"}}>{item.effect.icon} {item.effect.name}</div>
                 </div>
@@ -247,20 +248,21 @@ function App() {
 
           {/* Bottom nav */}
           <div className="bottom-nav">
-            <div className={nav-btn ${screen==="main"?"active":""}} onClick={()=>setScreen("main")}>Главная</div>
-            <div className={nav-btn ${screen==="inventory"?"active":""}} onClick={()=>setScreen("inventory")}>Инвентарь</div>
+            <div className={`nav-btn ${screen==="main"?"active":""}`} onClick={()=>setScreen("main")}>Главная</div>
+            <div className={`nav-btn ${screen==="inventory"?"active":""}`} onClick={()=>setScreen("inventory")}>Инвентарь</div>
           </div>
         </div>
       )
     }
-function FusionOverlay({effect}) {
+
+    function FusionOverlay({effect}) {
       // generate simple particles
       const [particles, setParticles] = useState([]);
       useEffect(()=>{
         const p = Array.from({length:20}, ()=>{
           const angle = Math.random()*2*Math.PI;
           const radius = 50+Math.random()*50;
-          return {x:${Math.cos(angle)*radius}px, y:${Math.sin(angle)*radius}px, color:effect.color};
+          return {x:`${Math.cos(angle)*radius}px`, y:`${Math.sin(angle)*radius}px`, color:effect.color};
         });
         setParticles(p);
       },[effect]);
