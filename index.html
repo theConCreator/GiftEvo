@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Evolution</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #0a0a0a;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .app-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 16px;
+      overflow: hidden;
+    }
+    .screen.active {
+      display: flex;
+    }
+    .top-title {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .main-content {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+    }
+    .gift-list, .effect-list, .inventory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .gift-card, .effect-card, .inventory-card {
+      width: 100px;
+      height: 100px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .gift-card.selected, .effect-card.selected {
+      border-color: #e84393;
+      box-shadow: 0 0 12px #e84393;
+    }
+    .combine-btn {
+      margin-top: 16px;
+      padding: 12px 24px;
+      background-color: #e84393;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .combine-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      background: rgba(20,20,20,0.95);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .nav-btn {
+      flex: 1;
+      text-align: center;
+      padding: 12px 0;
+      color: #aaa;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .nav-btn.active {
+      color: #e84393;
+    }
+    /* Fusion animation overlay */
+    .fusion-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      font-size: 28px;
+      color: #fff;
+    }
+    /* Effect specific particles (simplified) */
+    .particle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      opacity: 0.8;
+      animation: particleAnim 1s forwards;
+    }
+    @keyframes particleAnim {
+      0% { transform: translate(0,0) scale(1); opacity:1; }
+      100% { transform: translate(var(--x), var(--y)) scale(0.3); opacity:0; }
+    }
+    .result-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(20,20,20,0.95);
+      border: 2px solid #e84393;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      z-index: 101;
+      width: 200px;
+    }
+    .result-modal h2 {
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- React and Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const GIFT_MODELS = ["🎁","🎀","🪄","🧸","🛍️"];
+    const EFFECTS = [
+      { name: "Огонь", icon:"🔥", price:75, color:"#ff4500" },
+      { name: "Молния", icon:"⚡", price:100, color:"#ffd700" },
+      { name: "Кровь", icon:"🩸", price:125, color:"#8b0000" },
+      { name: "Чёрный", icon:"⚫", price:200, color:"#4b0082" },
+      { name: "Золото", icon:"🪙", price:250, color:"#ffd700" },
+      { name: "Pepe", icon:"🐸", price:500, color:"#32cd32" },
+    ];
+function App() {
+      const [screen, setScreen] = useState("main");
+      const [selectedGift, setSelectedGift] = useState(null);
+      const [selectedEffect, setSelectedEffect] = useState(null);
+      const [inventory, setInventory] = useState([]);
+      const [showFusion, setShowFusion] = useState(false);
+      const [fusionEffect, setFusionEffect] = useState(null);
+      const [result, setResult] = useState(null);
+
+      const handleCombine = () => {
+        if(!selectedGift || !selectedEffect) return;
+        setFusionEffect(selectedEffect);
+        setShowFusion(true);
+        // simulate fusion animation
+        setTimeout(() => {
+          setShowFusion(false);
+          const isRare = Math.random() < 0.2;
+          const giftResult = {
+            model: selectedGift,
+            effect: selectedEffect,
+            rare: isRare
+          };
+          setResult(giftResult);
+          setInventory(prev => [...prev, giftResult]);
+        },1500);
+      }
+
+      const closeResult = () => setResult(null);
+
+      return (
+        <div className="app-container">
+          {/* Main screen */}
+          <div className={screen ${screen==="main"?"active":""}}>
+            <div className="top-title">Gift Evolution 🎁</div>
+            <div className="main-content">
+              {/* Gift Models */}
+              <div className="gift-list">
+                {GIFT_MODELS.map((g,i)=>(
+                  <div key={i} 
+                       className={gift-card ${selectedGift===g?"selected":""}}
+                       onClick={()=>setSelectedGift(g)}>
+                    {g}
+                  </div>
+                ))}
+              </div>
+              {/* Effects */}
+              <div style={{display:"flex", flexDirection:"column", gap:"12px"}}>
+                <div className="effect-list">
+                  {EFFECTS.map((e,i)=>(
+                    <div key={i} 
+                         className={effect-card ${selectedEffect===e?"selected":""}}
+                         onClick={()=>setSelectedEffect(e)}>
+                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                      <span style={{fontSize:"24px"}}>{e.icon}</span>
+                      <span style={{fontSize:"16px"}}>{e.price}⭐</span>
+                    </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="combine-btn" 
+                        disabled={!(selectedGift && selectedEffect)}
+                        onClick={handleCombine}>
+                  Объединить
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Inventory screen */}
+          <div className={screen ${screen==="inventory"?"active":""}}>
+            <div className="top-title">🎒 Инвентарь</div>
+            <div className="inventory-list">
+              {inventory.length===0 && <p style={{opacity:0.7}}>Пока пусто...</p>}
+              {inventory.map((item,i)=>(
+                <div key={i} className="inventory-card" title={${item.rare?"Редкий":"Обычный"} - ${item.effect.name}}>
+                  <span style={{fontSize:"32px"}}>{item.model}{item.rare?"💎":""}</span>
+                  <div style={{fontSize:"14px"}}>{item.effect.icon} {item.effect.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fusion overlay */}
+          {showFusion && fusionEffect &&
+            <FusionOverlay effect={fusionEffect}/>
+          }
+
+          {/* Result modal */}
+          {result && <ResultModal result={result} onClose={closeResult}/>}
+
+          {/* Bottom nav */}
+          <div className="bottom-nav">
+            <div className={nav-btn ${screen==="main"?"active":""}} onClick={()=>setScreen("main")}>Главная</div>
+            <div className={nav-btn ${screen==="inventory"?"active":""}} onClick={()=>setScreen("inventory")}>Инвентарь</div>
+          </div>
+        </div>
+      )
+    }
+function FusionOverlay({effect}) {
+      // generate simple particles
+      const [particles, setParticles] = useState([]);
+      useEffect(()=>{
+        const p = Array.from({length:20}, ()=>{
+          const angle = Math.random()*2*Math.PI;
+          const radius = 50+Math.random()*50;
+          return {x:${Math.cos(angle)*radius}px, y:${Math.sin(angle)*radius}px, color:effect.color};
+        });
+        setParticles(p);
+      },[effect]);
+      return (
+        <div className="fusion-overlay">
+          {particles.map((p,i)=>(
+            <div key={i} className="particle" style={{
+              "--x":p.x,
+              "--y":p.y,
+              backgroundColor:p.color
+            }}></div>
+          ))}
+          <span>✨ Объединение {effect.icon} ✨</span>
+        </div>
+      )
+    }
+
+    function ResultModal({result,onClose}) {
+      return (
+        <div className="result-modal" onClick={onClose}>
+          <div style={{fontSize:"48px"}}>{result.model}{result.rare?"💎":""}</div>
+          <h2>{result.effect.icon} {result.effect.name}</h2>
+          <h3>{result.rare?"Редкий подарок!":"Обычный подарок"}</h3>
+          <p style={{fontSize:"12px", opacity:0.7}}>Нажмите для закрытия</p>
+        </div>
+      )
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
