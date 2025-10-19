@@ -8,10 +8,14 @@
     html, body {
       margin: 0;
       padding: 0;
-      overflow: hidden;
       height: 100%;
-      font-family: 'Inter', sans-serif;
+      width: 100%;
+      overflow: hidden;
       background: radial-gradient(circle at center, #141414, #0a0a0a);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
       color: #fff;
     }
 
@@ -20,14 +24,11 @@
       height: 720px;
       background: linear-gradient(180deg, #101010 0%, #1a1a1a 100%);
       border-radius: 20px;
-      margin: auto;
-      position: relative;
-      top: 50%;
-      transform: translateY(-50%);
       box-shadow: 0 0 25px rgba(255, 20, 147, 0.2);
-      overflow: hidden;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      position: relative;
     }
 
     .screen {
@@ -50,7 +51,6 @@
       letter-spacing: 1px;
     }
 
-    /* Main layout */
     .main-content {
       flex: 1;
       display: flex;
@@ -60,7 +60,6 @@
       overflow: hidden;
     }
 
-    /* Gifts */
     .gift-list {
       display: flex;
       flex-direction: column;
@@ -98,7 +97,6 @@
       text-align: center;
     }
 
-    /* Effects */
     .effects-bar {
       display: flex;
       flex-wrap: wrap;
@@ -115,7 +113,7 @@
       border-radius: 12px;
       padding: 8px 12px;
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
       width: 220px;
       cursor: pointer;
@@ -154,7 +152,6 @@
       cursor: not-allowed;
     }
 
-    /* Navigation bar */
     .bottom-nav {
       display: flex;
       justify-content: space-around;
@@ -177,7 +174,6 @@
       font-weight: 600;
     }
 
-    /* Fusion animation */
     .fusion-overlay {
       position: fixed;
       inset: 0;
@@ -202,8 +198,8 @@
     }
 
     @keyframes pulseGlow {
-      from { transform: scale(0.9); opacity: 0.5; }
-      to { transform: scale(1.1); opacity: 0.8; }
+      from { transform: scale(0.9); opacity:0.5; }
+      to { transform: scale(1.1); opacity:0.8; }
     }
 
     .particle {
@@ -220,7 +216,6 @@
       100% { transform: translate(var(--x), var(--y)) scale(0.4); opacity:0; }
     }
 
-    /* Result modal */
     .result-modal {
       position: fixed;
       top: 50%;
@@ -242,9 +237,6 @@
       to { transform: translate(-50%, -50%) scale(1); opacity:1; }
     }
 
-    .result-modal h2 { margin: 8px 0; }
-
-    /* Inventory styling */
     .inventory-list {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -336,7 +328,7 @@
                   <div key={i}
                        className={`effect-card ${selectedEffect===e?"selected":""}`}
                        onClick={()=>setSelectedEffect(e)}>
-                    <span>{e.icon} {e.name} {e.price}⭐️</span>
+                    {e.icon} {e.name} {e.price}⭐️
                   </div>
                 ))}
               </div>
