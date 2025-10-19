@@ -12,75 +12,148 @@
       color: #fff;
       height: 100vh;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
+
     .app-container {
-      flex: 1;
+      width: 420px;
+      height: 720px;
+      background: linear-gradient(180deg, #0d0d0d 0%, #1a1a1a 100%);
+      border-radius: 20px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
+      box-shadow: 0 0 25px rgba(255, 20, 147, 0.2);
     }
+
     .screen {
       flex: 1;
       display: none;
       flex-direction: column;
       padding: 16px;
-      overflow: hidden;
+      position: relative;
     }
+
     .screen.active {
       display: flex;
     }
+
     .top-title {
-      font-size: 28px;
-      margin-bottom: 12px;
+      font-size: 26px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
     }
+
     .main-content {
       flex: 1;
       display: flex;
-      gap: 16px;
+      justify-content: space-between;
+      align-items: flex-end;
+      position: relative;
     }
-    .gift-list, .effect-list, .inventory-list {
+
+    /* Gifts on the right side */
+    .gift-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: flex-end;
+      gap: 10px;
+      position: absolute;
+      right: 10px;
+      bottom: 120px;
     }
-    .gift-card, .effect-card, .inventory-card {
+
+    .gift-card {
       width: 100px;
       height: 100px;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 32px;
+      font-size: 36px;
       cursor: pointer;
       transition: all 0.3s ease;
-      position: relative;
     }
-    .gift-card.selected, .effect-card.selected {
+
+    .gift-card.selected {
       border-color: #e84393;
       box-shadow: 0 0 12px #e84393;
     }
+
+    .gift-card.coming-soon {
+      cursor: not-allowed;
+      opacity: 0.4;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* Effects at bottom left */
+    .effects-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: absolute;
+      bottom: 70px;
+      left: 10px;
+    }
+
+    .effect-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 95px;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+
+    .effect-card span {
+      font-size: 14px;
+      opacity: 0.85;
+    }
+
+    .effect-card.selected {
+      border-color: #e84393;
+      box-shadow: 0 0 10px #e84393;
+      transform: translateY(-3px);
+    }
+
     .combine-btn {
-      margin-top: 16px;
-      padding: 12px 24px;
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 180px;
+      padding: 12px;
+      font-size: 18px;
       background-color: #e84393;
       border: none;
       border-radius: 12px;
-      font-size: 18px;
       cursor: pointer;
       transition: 0.3s;
     }
+
     .combine-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
+
+    /* Navigation bar */
     .bottom-nav {
       display: flex;
       justify-content: space-around;
       background: rgba(20,20,20,0.95);
       border-top: 1px solid rgba(255,255,255,0.1);
     }
+
     .nav-btn {
       flex: 1;
       text-align: center;
@@ -88,11 +161,15 @@
       color: #aaa;
       cursor: pointer;
       transition: 0.3s;
+      font-size: 16px;
     }
+
     .nav-btn.active {
       color: #e84393;
+      font-weight: 600;
     }
-    /* Fusion animation overlay */
+
+    /* Fusion animation */
     .fusion-overlay {
       position: fixed;
       inset: 0;
@@ -104,7 +181,7 @@
       font-size: 28px;
       color: #fff;
     }
-    /* Effect specific particles (simplified) */
+
     .particle {
       position: absolute;
       width: 10px;
@@ -113,10 +190,12 @@
       opacity: 0.8;
       animation: particleAnim 1s forwards;
     }
+
     @keyframes particleAnim {
       0% { transform: translate(0,0) scale(1); opacity:1; }
       100% { transform: translate(var(--x), var(--y)) scale(0.3); opacity:0; }
     }
+
     .result-modal {
       position: fixed;
       top: 50%;
@@ -128,21 +207,50 @@
       padding: 24px;
       text-align: center;
       z-index: 101;
-      width: 200px;
+      width: 240px;
     }
-    .result-modal h2 {
-      margin: 8px 0;
+
+    .result-modal h2 { margin: 8px 0; }
+
+    /* Inventory styling */
+    .inventory-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      padding: 10px;
+    }
+
+    .inventory-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: 0.3s;
+    }
+
+    .inventory-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(255,255,255,0.15);
+    }
+
+    .rarity {
+      font-size: 12px;
+      opacity: 0.7;
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
-  
-  <!-- React and Babel CDN -->
+
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
+
   <script type="text/babel">
     const { useState, useEffect } = React;
 
@@ -169,7 +277,6 @@
         if(!selectedGift || !selectedEffect) return;
         setFusionEffect(selectedEffect);
         setShowFusion(true);
-        // simulate fusion animation
         setTimeout(() => {
           setShowFusion(false);
           const isRare = Math.random() < 0.2;
@@ -187,66 +294,62 @@
 
       return (
         <div className="app-container">
-          {/* Main screen */}
+          {/* MAIN SCREEN */}
           <div className={`screen ${screen==="main"?"active":""}`}>
             <div className="top-title">Gift Evolution 🎁</div>
             <div className="main-content">
-              {/* Gift Models */}
+              {/* Effects bottom-left */}
+              <div className="effects-bar">
+                {EFFECTS.map((e,i)=>(
+                  <div key={i}
+                       className={`effect-card ${selectedEffect===e?"selected":""}`}
+                       onClick={()=>setSelectedEffect(e)}>
+                    <div style={{fontSize:"24px"}}>{e.icon}</div>
+                    <span>{e.name}</span>
+                    <span style={{fontSize:"12px"}}>{e.price}⭐</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gifts right side */}
               <div className="gift-list">
                 {GIFT_MODELS.map((g,i)=>(
-                  <div key={i} 
+                  <div key={i}
                        className={`gift-card ${selectedGift===g?"selected":""}`}
                        onClick={()=>setSelectedGift(g)}>
                     {g}
                   </div>
                 ))}
+                <div className="gift-card coming-soon">Coming Soon...</div>
               </div>
-              {/* Effects */}
-              <div style={{display:"flex", flexDirection:"column", gap:"12px"}}>
-                <div className="effect-list">
-                  {EFFECTS.map((e,i)=>(
-                    <div key={i} 
-                         className={`effect-card ${selectedEffect===e?"selected":""}`}
-                         onClick={()=>setSelectedEffect(e)}>
-                    <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                      <span style={{fontSize:"24px"}}>{e.icon}</span>
-                      <span style={{fontSize:"16px"}}>{e.price}⭐</span>
-                    </div>
-                    </div>
-                  ))}
-                </div>
-                <button className="combine-btn" 
-                        disabled={!(selectedGift && selectedEffect)}
-                        onClick={handleCombine}>
-                  Объединить
-                </button>
-              </div>
+
+              <button className="combine-btn"
+                      disabled={!(selectedGift && selectedEffect)}
+                      onClick={handleCombine}>
+                Объединить
+              </button>
             </div>
           </div>
 
-          {/* Inventory screen */}
+          {/* INVENTORY SCREEN */}
           <div className={`screen ${screen==="inventory"?"active":""}`}>
             <div className="top-title">🎒 Инвентарь</div>
             <div className="inventory-list">
-              {inventory.length===0 && <p style={{opacity:0.7}}>Пока пусто...</p>}
+              {inventory.length===0 && <p style={{opacity:0.7, textAlign:"center"}}>Пока пусто...</p>}
               {inventory.map((item,i)=>(
-                <div key={i} className="inventory-card" title={`${item.rare?"Редкий":"Обычный"} - ${item.effect.name}`}>
-                  <span style={{fontSize:"32px"}}>{item.model}{item.rare?"💎":""}</span>
-                  <div style={{fontSize:"14px"}}>{item.effect.icon} {item.effect.name}</div>
+                <div key={i} className="inventory-card">
+                  <div style={{fontSize:"36px"}}>{item.model}{item.rare?"💎":""}</div>
+                  <div>{item.effect.icon} {item.effect.name}</div>
+                  <div className="rarity">{item.rare?"Редкий":"Обычный"}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Fusion overlay */}
-          {showFusion && fusionEffect &&
-            <FusionOverlay effect={fusionEffect}/>
-          }
-
-          {/* Result modal */}
+          {showFusion && fusionEffect && <FusionOverlay effect={fusionEffect}/>}
           {result && <ResultModal result={result} onClose={closeResult}/>}
 
-          {/* Bottom nav */}
+          {/* Navigation */}
           <div className="bottom-nav">
             <div className={`nav-btn ${screen==="main"?"active":""}`} onClick={()=>setScreen("main")}>Главная</div>
             <div className={`nav-btn ${screen==="inventory"?"active":""}`} onClick={()=>setScreen("inventory")}>Инвентарь</div>
@@ -256,7 +359,6 @@
     }
 
     function FusionOverlay({effect}) {
-      // generate simple particles
       const [particles, setParticles] = useState([]);
       useEffect(()=>{
         const p = Array.from({length:20}, ()=>{
