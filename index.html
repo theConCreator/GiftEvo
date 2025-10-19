@@ -5,26 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gift Evolution</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
       font-family: 'Inter', sans-serif;
-      background-color: #0a0a0a;
+      background: radial-gradient(circle at center, #141414, #0a0a0a);
       color: #fff;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .app-container {
       width: 420px;
       height: 720px;
-      background: linear-gradient(180deg, #0d0d0d 0%, #1a1a1a 100%);
+      background: linear-gradient(180deg, #101010 0%, #1a1a1a 100%);
       border-radius: 20px;
+      margin: auto;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 25px rgba(255, 20, 147, 0.2);
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 0 25px rgba(255, 20, 147, 0.2);
     }
 
     .screen {
@@ -44,17 +47,20 @@
       font-weight: 600;
       text-align: center;
       margin-bottom: 8px;
+      letter-spacing: 1px;
     }
 
+    /* Main layout */
     .main-content {
       flex: 1;
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
       position: relative;
+      overflow: hidden;
     }
 
-    /* Gifts on the right side */
+    /* Gifts */
     .gift-list {
       display: flex;
       flex-direction: column;
@@ -81,7 +87,8 @@
 
     .gift-card.selected {
       border-color: #e84393;
-      box-shadow: 0 0 12px #e84393;
+      box-shadow: 0 0 15px #e84393;
+      transform: scale(1.05);
     }
 
     .gift-card.coming-soon {
@@ -91,7 +98,7 @@
       text-align: center;
     }
 
-    /* Effects at bottom left */
+    /* Effects */
     .effects-bar {
       display: flex;
       flex-wrap: wrap;
@@ -99,31 +106,32 @@
       position: absolute;
       bottom: 70px;
       left: 10px;
+      width: 240px;
     }
 
     .effect-card {
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
-      padding: 8px 10px;
+      border-radius: 12px;
+      padding: 8px 12px;
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      width: 95px;
+      width: 220px;
       cursor: pointer;
       transition: 0.25s;
+      font-size: 15px;
+      font-weight: 500;
     }
 
-    .effect-card span {
-      font-size: 14px;
-      opacity: 0.85;
+    .effect-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.12);
     }
 
     .effect-card.selected {
       border-color: #e84393;
-      box-shadow: 0 0 10px #e84393;
-      transform: translateY(-3px);
+      box-shadow: 0 0 12px #e84393;
     }
 
     .combine-btn {
@@ -176,26 +184,43 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
       z-index: 100;
       font-size: 28px;
       color: #fff;
+      overflow: hidden;
+    }
+
+    .fusion-glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.6;
+      animation: pulseGlow 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(0.9); opacity: 0.5; }
+      to { transform: scale(1.1); opacity: 0.8; }
     }
 
     .particle {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      opacity: 0.8;
-      animation: particleAnim 1s forwards;
+      opacity: 0.9;
+      animation: particleAnim 1.2s forwards;
     }
 
     @keyframes particleAnim {
       0% { transform: translate(0,0) scale(1); opacity:1; }
-      100% { transform: translate(var(--x), var(--y)) scale(0.3); opacity:0; }
+      100% { transform: translate(var(--x), var(--y)) scale(0.4); opacity:0; }
     }
 
+    /* Result modal */
     .result-modal {
       position: fixed;
       top: 50%;
@@ -207,7 +232,14 @@
       padding: 24px;
       text-align: center;
       z-index: 101;
-      width: 240px;
+      width: 260px;
+      box-shadow: 0 0 20px rgba(232,67,147,0.4);
+      animation: popIn 0.3s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: translate(-50%, -50%) scale(0.8); opacity:0; }
+      to { transform: translate(-50%, -50%) scale(1); opacity:1; }
     }
 
     .result-modal h2 { margin: 8px 0; }
@@ -287,7 +319,7 @@
           };
           setResult(giftResult);
           setInventory(prev => [...prev, giftResult]);
-        },1500);
+        },1700);
       }
 
       const closeResult = () => setResult(null);
@@ -304,9 +336,7 @@
                   <div key={i}
                        className={`effect-card ${selectedEffect===e?"selected":""}`}
                        onClick={()=>setSelectedEffect(e)}>
-                    <div style={{fontSize:"24px"}}>{e.icon}</div>
-                    <span>{e.name}</span>
-                    <span style={{fontSize:"12px"}}>{e.price}⭐</span>
+                    <span>{e.icon} {e.name} {e.price}⭐️</span>
                   </div>
                 ))}
               </div>
@@ -361,15 +391,16 @@
     function FusionOverlay({effect}) {
       const [particles, setParticles] = useState([]);
       useEffect(()=>{
-        const p = Array.from({length:20}, ()=>{
+        const p = Array.from({length:25}, ()=>{
           const angle = Math.random()*2*Math.PI;
-          const radius = 50+Math.random()*50;
+          const radius = 60+Math.random()*60;
           return {x:`${Math.cos(angle)*radius}px`, y:`${Math.sin(angle)*radius}px`, color:effect.color};
         });
         setParticles(p);
       },[effect]);
       return (
         <div className="fusion-overlay">
+          <div className="fusion-glow" style={{background:effect.color}}></div>
           {particles.map((p,i)=>(
             <div key={i} className="particle" style={{
               "--x":p.x,
