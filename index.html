@@ -5,11 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Gift Evolution</title>
 <style>
+  :root {
+    --neon-pink: #ff4dff;
+    --neon-blue: #00ffff;
+    --neon-purple: #a855f7;
+    --bg-dark: #0a0a0a;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: radial-gradient(circle at center, #0b0b0b, #000);
+    background: var(--bg-dark);
     font-family: "Inter", sans-serif;
     color: #fff;
     overflow: hidden;
@@ -18,107 +25,47 @@
     align-items: center;
   }
 
-  .app-container {
+  .app {
     width: 100%;
     max-width: 480px;
     height: 100vh;
     max-height: 850px;
-    background: linear-gradient(180deg, #141414, #1e1e1e);
-    border-radius: 20px;
-    box-shadow: 0 0 30px rgba(232, 67, 147, 0.3);
-    display: flex;
-    flex-direction: column;
-    position: relative;
+    background: radial-gradient(circle at 20% 20%, #111, #000);
+    border-radius: 16px;
     overflow: hidden;
-  }
-
-  .screen {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    padding: 16px;
     position: relative;
-  }
-
-  .screen.active {
     display: flex;
+    flex-direction: column;
   }
 
-  .top-bar {
+  .top {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 12px 16px;
     font-weight: 600;
-    font-size: 18px;
-    margin-bottom: 8px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
   }
 
   .balance {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 6px 12px;
-    border-radius: 12px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+    color: black;
+    font-weight: bold;
   }
 
-  .main-content {
+  .main {
     flex: 1;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     position: relative;
+    padding: 12px;
   }
 
-  .gift-list {
-    position: absolute;
-    right: 10px;
-    bottom: 110px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-end;
-  }
-
-  .gift-card {
-    width: clamp(80px, 22vw, 100px);
-    height: clamp(80px, 22vw, 100px);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: 0.3s;
-    position: relative;
-  }
-
-  .gift-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(232, 67, 147, 0.3);
-  }
-
-  .gift-icon {
-    font-size: clamp(36px, 8vw, 44px);
-    cursor: pointer;
-  }
-
-  .gift-btn {
-    margin-top: 6px;
-    width: 90%;
-    padding: 5px;
-    font-size: clamp(10px, 3vw, 13px);
-    border: none;
-    border-radius: 10px;
-    background: #e84393;
-    color: white;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .gift-btn:hover {
-    background: #ff5fa3;
-  }
-
-  .effects-bar {
+  .effects {
     position: absolute;
     bottom: 70px;
     left: 10px;
@@ -128,172 +75,219 @@
     width: 60%;
   }
 
-  .effect-card {
+  .effect {
     flex: 1 1 calc(50% - 8px);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
     border-radius: 10px;
     padding: 8px;
-    text-align: center;
     cursor: pointer;
-    transition: 0.25s;
+    transition: 0.3s;
     font-size: clamp(12px, 3vw, 14px);
   }
 
-  .effect-card:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-2px);
+  .effect.selected {
+    border-image: linear-gradient(45deg, var(--neon-pink), var(--neon-blue)) 1;
+    box-shadow: 0 0 12px var(--neon-pink);
   }
 
-  .effect-card.selected {
-    border-color: #e84393;
-    box-shadow: 0 0 12px #e84393;
+  .gifts {
+    position: absolute;
+    right: 10px;
+    bottom: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-end;
   }
 
-  .combine-btn {
+  .gift {
+    width: clamp(80px, 22vw, 100px);
+    height: clamp(80px, 22vw, 100px);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: 0.3s;
+    position: relative;
+  }
+
+  .gift:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--neon-blue);
+  }
+
+  .gift-btn {
+    margin-top: 6px;
+    width: 90%;
+    padding: 5px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+    color: black;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: clamp(10px, 3vw, 13px);
+  }
+
+  .combine {
     position: absolute;
     bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
     width: 60%;
     padding: 12px;
-    font-size: clamp(16px, 4vw, 18px);
-    background: #e84393;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
     border: none;
     border-radius: 12px;
+    color: black;
+    font-weight: bold;
     cursor: pointer;
-    transition: 0.3s;
+    font-size: clamp(16px, 4vw, 18px);
   }
 
-  .combine-btn:disabled {
+  .combine:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .bottom-nav {
+  .bottom {
     display: flex;
     justify-content: space-around;
-    background: rgba(20, 20, 20, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
   }
 
   .nav-btn {
     flex: 1;
     text-align: center;
-    padding: 12px 0;
+    padding: 12px;
     color: #aaa;
+    font-weight: 600;
     cursor: pointer;
     transition: 0.3s;
-    font-size: clamp(14px, 3.5vw, 16px);
   }
 
   .nav-btn.active {
-    color: #e84393;
-    font-weight: 600;
+    color: var(--neon-blue);
+    text-shadow: 0 0 8px var(--neon-pink);
   }
 
-  .inventory-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    padding: 10px;
-    overflow-y: auto;
-  }
-
-  .inventory-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 12px;
-    text-align: center;
-    transition: 0.3s;
-  }
-
-  .inventory-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
-  }
-
-  .sell-btn {
-    margin-top: 6px;
-    width: 100%;
-    padding: 6px;
-    border: none;
-    border-radius: 8px;
-    background: #28a745;
-    color: white;
-    cursor: pointer;
-    font-size: 13px;
-    transition: 0.3s;
-  }
-
-  .sell-btn:hover {
-    background: #34d058;
-  }
-
-  .fusion-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
+  .inventory {
+    flex: 1;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-  }
-
-  .fusion-glow {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    border-radius: 50%;
-    filter: blur(160px);
-    opacity: 0.8;
-    animation: pulse 1.2s ease-in-out infinite alternate;
-  }
-
-  @keyframes pulse {
-    from { transform: scale(0.9); opacity: 0.5; }
-    to { transform: scale(1.1); opacity: 1; }
-  }
-
-  .result-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(30, 30, 30, 0.95);
-    border: 2px solid #e84393;
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    z-index: 101;
-    width: 260px;
-    box-shadow: 0 0 20px rgba(232, 67, 147, 0.4);
-    animation: pop 0.3s ease-out;
-  }
-
-  @keyframes pop {
-    from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    flex-direction: column;
+    padding: 12px;
   }
 
   .tabs {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .tab {
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.05);
     cursor: pointer;
+    transition: 0.3s;
   }
 
   .tab.active {
-    background: #e84393;
+    background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+    color: black;
+    font-weight: bold;
   }
+
+  .inv-list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding-bottom: 10px;
+  }
+
+  .inv-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    transition: 0.3s;
+  }
+
+  .inv-item:hover {
+    box-shadow: 0 0 10px var(--neon-purple);
+  }
+
+  .sell-btn {
+    margin-top: 6px;
+    padding: 6px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #00ff95, #00ffff);
+    color: black;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+
+  .fusion {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+    z-index: 50;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .pulse {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    filter: blur(150px);
+    animation: pulse 1.2s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(0.9); opacity: 0.6; }
+    to { transform: scale(1.1); opacity: 1; }
+  }
+
+  .result {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    background: rgba(20,20,20,0.9);
+    border-radius: 16px;
+    border: 2px solid var(--neon-pink);
+    padding: 20px;
+    text-align: center;
+    z-index: 60;
+    animation: pop 0.4s ease;
+  }
+
+  @keyframes pop {
+    from { transform: translate(-50%,-50%) scale(0.7); opacity: 0; }
+    to { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
 </style>
 </head>
 <body>
@@ -306,11 +300,11 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const GIFT_MODELS = [
+const GIFTS = [
   { id: 1, icon: "🎁" },
   { id: 2, icon: "🎀" },
-  { id: 3, icon: "🪄" },
-  { id: 4, icon: "🧸" },
+  { id: 3, icon: "🧸" },
+  { id: 4, icon: "🪄" },
   { id: 5, icon: "🛍️" },
 ];
 
@@ -325,24 +319,24 @@ const EFFECTS = [
 
 function App() {
   const [screen, setScreen] = useState("main");
-  const [inventory, setInventory] = useState([]);
   const [balance, setBalance] = useState(1000);
+  const [inventory, setInventory] = useState([]);
   const [selectedGift, setSelectedGift] = useState(null);
   const [selectedEffect, setSelectedEffect] = useState(null);
-  const [showFusion, setShowFusion] = useState(false);
+  const [fusion, setFusion] = useState(null);
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState("обычные");
 
   const countGift = (gift) =>
     inventory.filter((g) => g.model === gift.icon && !g.effect).length;
 
-  const handleBuyGift = (gift) => {
+  const buyGift = (gift) => {
     if (balance < 100) return alert("Недостаточно звёзд!");
     setBalance((b) => b - 100);
-    setInventory((prev) => [...prev, { model: gift.icon }]);
+    setInventory((p) => [...p, { model: gift.icon }]);
   };
 
-  const handleCombine = () => {
+  const combine = () => {
     if (!selectedGift || !selectedEffect) return;
     const count = countGift(selectedGift);
     if (count <= 0) return alert("Нет подарков для улучшения!");
@@ -354,187 +348,110 @@ function App() {
       return [...prev];
     });
     setBalance((b) => b - selectedEffect.price);
-    setShowFusion(true);
+    setFusion(selectedEffect);
     setTimeout(() => {
-      setShowFusion(false);
-      const isRare = Math.random() < 0.2;
-      const giftResult = {
-        model: selectedGift.icon,
-        effect: selectedEffect,
-        rare: isRare,
-      };
-      setResult(giftResult);
-      setInventory((prev) => [...prev, giftResult]);
+      setFusion(null);
+      const rare = true;
+      const newGift = { model: selectedGift.icon, effect: selectedEffect, rare };
+      setInventory((prev) => [...prev, newGift]);
+      setResult(newGift);
     }, 2000);
   };
 
-  const handleSell = (index) => {
+  const sell = (index) => {
     const gift = inventory[index];
-    if (!gift.rare) return;
-    const sellPrice = 200; // временно фикс
+    const price = 200;
     setInventory((prev) => prev.filter((_, i) => i !== index));
-    setBalance((b) => b + sellPrice);
+    setBalance((b) => b + price);
   };
 
-  const filteredInventory =
-    tab === "обычные"
-      ? inventory.filter((i) => !i.rare)
-      : inventory.filter((i) => i.rare);
+  const filtered = tab === "обычные"
+    ? inventory.filter(i => !i.rare)
+    : inventory.filter(i => i.rare);
 
   return (
-    <div className="app-container">
-      <div className={`screen ${screen === "main" ? "active" : ""}`}>
-        <div className="top-bar">
-          <div>Gift Evolution 🎁</div>
-          <div className="balance">⭐ {balance}</div>
-        </div>
-        <div className="main-content">
-          <div className="effects-bar">
-            {EFFECTS.map((e, i) => (
-              <div
-                key={i}
-                className={`effect-card ${
-                  selectedEffect === e ? "selected" : ""
-                }`}
-                onClick={() => setSelectedEffect(e)}
-              >
-                {e.icon} {e.name} {e.price}⭐
+    <div className="app">
+      <div className="top">
+        <div>Gift Evolution ✨</div>
+        <div className="balance">⭐ {balance}</div>
+      </div>
+
+      {screen === "main" && (
+        <div className="main">
+          <div className="effects">
+            {EFFECTS.map((e,i)=>(
+              <div key={i}
+                className={`effect ${selectedEffect===e?"selected":""}`}
+                onClick={()=>setSelectedEffect(e)}>
+                {e.icon} {e.name}<br/>{e.price}⭐
               </div>
             ))}
           </div>
 
-          <div className="gift-list">
-            {GIFT_MODELS.map((gift) => {
-              const ownedCount = countGift(gift);
+          <div className="gifts">
+            {GIFTS.map(gift=>{
+              const owned = countGift(gift);
               return (
-                <div key={gift.id} className="gift-card">
-                  <div
-                    className="gift-icon"
-                    onClick={() => setSelectedGift(gift)}
-                  >
-                    {gift.icon}
-                  </div>
-                  <button
-                    className="gift-btn"
-                    onClick={() =>
-                      ownedCount > 0 ? null : handleBuyGift(gift)
-                    }
-                  >
-                    {ownedCount > 0 ? `x${ownedCount}` : "Купить 100⭐"}
+                <div key={gift.id} className="gift" onClick={()=>setSelectedGift(gift)}>
+                  <div style={{fontSize:"40px"}}>{gift.icon}</div>
+                  <button className="gift-btn"
+                    onClick={(e)=>{
+                      e.stopPropagation();
+                      if(owned>0)return;
+                      buyGift(gift);
+                    }}>
+                    {owned>0?`x${owned}`:"Купить 100⭐"}
                   </button>
                 </div>
-              );
+              )
             })}
-            <div
-              className="gift-card"
-              style={{
-                opacity: 0.3,
-                fontSize: "14px",
-                justifyContent: "center",
-              }}
-            >
-              Coming soon...
-            </div>
+            <div className="gift" style={{opacity:.3, fontSize:"12px"}}>Coming soon...</div>
           </div>
-          <button
-            className="combine-btn"
-            disabled={!(selectedGift && selectedEffect)}
-            onClick={handleCombine}
-          >
+
+          <button className="combine" disabled={!(selectedGift && selectedEffect)} onClick={combine}>
             Объединить
           </button>
         </div>
-      </div>
+      )}
 
-      <div className={`screen ${screen === "inventory" ? "active" : ""}`}>
-        <div className="top-bar">
-          <div>🎒 Инвентарь</div>
-          <div className="balance">⭐ {balance}</div>
-        </div>
-        <div className="tabs">
-          <div
-            className={`tab ${tab === "обычные" ? "active" : ""}`}
-            onClick={() => setTab("обычные")}
-          >
-            Обычные
+      {screen === "inventory" && (
+        <div className="inventory no-scrollbar">
+          <div className="tabs">
+            <div className={`tab ${tab==="обычные"?"active":""}`} onClick={()=>setTab("обычные")}>Обычные</div>
+            <div className={`tab ${tab==="редкие"?"active":""}`} onClick={()=>setTab("редкие")}>Редкие</div>
           </div>
-          <div
-            className={`tab ${tab === "редкие" ? "active" : ""}`}
-            onClick={() => setTab("редкие")}
-          >
-            Редкие
-          </div>
-        </div>
-        <div className="inventory-list">
-          {filteredInventory.length === 0 && (
-            <p style={{ opacity: 0.7, textAlign: "center" }}>Пусто...</p>
-          )}
-          {filteredInventory.map((item, i) => (
-            <div key={i} className="inventory-card">
-              <div style={{ fontSize: "36px" }}>
-                {item.model} {item.rare ? "💎" : ""}
+          <div className="inv-list">
+            {filtered.length===0 && <p style={{opacity:.6,textAlign:"center"}}>Пусто...</p>}
+            {filtered.map((g,i)=>(
+              <div key={i} className="inv-item">
+                <div style={{fontSize:"36px"}}>{g.model} {g.rare?"💎":""}</div>
+                {g.effect && <div>{g.effect.icon} {g.effect.name}</div>}
+                {g.rare && <button className="sell-btn" onClick={()=>sell(i)}>Продать 💰</button>}
               </div>
-              {item.effect && (
-                <div>
-                  {item.effect.icon} {item.effect.name}
-                </div>
-              )}
-              {item.rare && (
-                <button className="sell-btn" onClick={() => handleSell(i)}>
-                  Продать 💰
-                </button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {showFusion && <FusionOverlay effect={selectedEffect} />}
-      {result && <ResultModal result={result} onClose={() => setResult(null)} />}
-
-      <div className="bottom-nav">
-        <div
-          className={`nav-btn ${screen === "main" ? "active" : ""}`}
-          onClick={() => setScreen("main")}
-        >
-          Главная
+      {fusion && (
+        <div className="fusion">
+          <div className="pulse" style={{background:fusion.color}}></div>
+          <h2>✨ Объединение... ✨</h2>
         </div>
-        <div
-          className={`nav-btn ${screen === "inventory" ? "active" : ""}`}
-          onClick={() => setScreen("inventory")}
-        >
-          Инвентарь
+      )}
+
+      {result && (
+        <div className="result" onClick={()=>setResult(null)}>
+          <div style={{fontSize:"48px"}}>{result.model} 💎</div>
+          <h3>{result.effect.icon} {result.effect.name}</h3>
+          <p>Получен редкий подарок!</p>
         </div>
-      </div>
-    </div>
-  );
-}
+      )}
 
-function FusionOverlay({ effect }) {
-  return (
-    <div className="fusion-overlay">
-      <div
-        className="fusion-glow"
-        style={{ background: effect ? effect.color : "#e84393" }}
-      ></div>
-      <h2 style={{ animation: "pulse 1s infinite alternate" }}>
-        ✨ Объединение... ✨
-      </h2>
-    </div>
-  );
-}
-
-function ResultModal({ result, onClose }) {
-  return (
-    <div className="result-modal" onClick={onClose}>
-      <div style={{ fontSize: "48px" }}>
-        {result.model}
-        {result.rare ? "💎" : ""}
+      <div className="bottom">
+        <div className={`nav-btn ${screen==="main"?"active":""}`} onClick={()=>setScreen("main")}>Главная</div>
+        <div className={`nav-btn ${screen==="inventory"?"active":""}`} onClick={()=>setScreen("inventory")}>Инвентарь</div>
       </div>
-      <h2>
-        {result.effect.icon} {result.effect.name}
-      </h2>
-      <p>{result.rare ? "Получен редкий подарок!" : "Получен обычный подарок!"}</p>
     </div>
   );
 }
