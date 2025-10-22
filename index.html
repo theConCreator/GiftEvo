@@ -11,260 +11,271 @@
   --neon-purple: #b26bff;
   --bg-dark: #050505;
 }
-html,body{
-  margin:0;
-  padding:0;
-  height:100%;
-  background:var(--bg-dark);
-  font-family:"Inter",sans-serif;
-  color:#fff;
-  overflow:hidden;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg-dark);
+  font-family: "Inter", sans-serif;
+  color: #fff;
+  overflow: hidden;
 }
-.app{
-  width:100%;
-  height:100%;
-  display:flex;
-  flex-direction:column;
-  position:relative;
-  background:radial-gradient(circle at 20% 30%,#111,#000);
+.app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: radial-gradient(circle at 20% 30%, #111, #000);
 }
-.top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:12px 16px;
-  font-weight:600;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(8px);
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  z-index: 10;
 }
-.balance{
-  background:linear-gradient(90deg,var(--neon-pink),var(--neon-blue));
-  color:black;
-  border-radius:10px;
-  padding:6px 12px;
-  font-weight:bold;
+.balance {
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+  color: black;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-weight: bold;
 }
-.main{
-  flex:1;
-  position:relative;
-  overflow:hidden;
+.main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
 }
-.effects{
-  position:absolute;
-  bottom:80px;
-  left:16px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  width:55%;
+.effects {
+  position: absolute;
+  bottom: 100px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 55%;
+  z-index: 2;
 }
-.effect{
-  flex:1 1 calc(45% - 10px);
-  background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:10px;
-  text-align:center;
-  padding:8px;
-  cursor:pointer;
-  transition:0.3s;
-  font-size:clamp(12px,3vw,14px);
+.effect {
+  flex: 1 1 calc(45% - 10px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  text-align: center;
+  padding: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: clamp(12px, 3vw, 14px);
 }
-.effect:hover{
-  box-shadow:0 0 12px var(--neon-purple);
-  transform:scale(1.05);
+.effect:hover {
+  box-shadow: 0 0 12px var(--neon-purple);
+  transform: scale(1.05);
 }
-.effect.selected{
-  border-image:linear-gradient(45deg,var(--neon-pink),var(--neon-blue)) 1;
-  box-shadow:0 0 15px var(--neon-blue);
+.effect.selected {
+  border-image: linear-gradient(45deg, var(--neon-pink), var(--neon-blue)) 1;
+  box-shadow: 0 0 15px var(--neon-blue);
 }
-.gifts{
-  position:absolute;
-  right:5%;
-  top:50%;
-  transform:translateY(-50%);
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  height:60%;
+.gifts {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 60%;
+  z-index: 2;
 }
-.gift{
-  width:clamp(80px,22vw,100px);
-  height:clamp(80px,22vw,100px);
-  border-radius:14px;
-  background:rgba(255,255,255,0.05);
-  border:1px solid rgba(255,255,255,0.1);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  position:relative;
-  transition:0.3s;
+.gift {
+  width: clamp(80px, 22vw, 100px);
+  height: clamp(80px, 22vw, 100px);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: 0.3s;
 }
-.gift:hover{
-  transform:scale(1.05);
-  box-shadow:0 0 20px var(--neon-purple);
+.gift:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px var(--neon-purple);
 }
-.gift-info{
-  position:absolute;
-  bottom:6px;
-  text-align:center;
-  font-size:12px;
-  opacity:0.8;
+.gift-info {
+  position: absolute;
+  bottom: 6px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.8;
 }
-.combine{
-  position:absolute;
-  bottom:12px;
-  left:50%;
-  transform:translateX(-50%);
-  background:linear-gradient(90deg,var(--neon-pink),var(--neon-blue));
-  color:black;
-  font-weight:bold;
-  border:none;
-  border-radius:12px;
-  padding:12px 24px;
-  cursor:pointer;
-  font-size:clamp(16px,4vw,18px);
+.combine {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+  color: black;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-size: clamp(16px, 4vw, 18px);
+  z-index: 3;
 }
-.combine:disabled{
-  opacity:0.5;
-  cursor:not-allowed;
+.combine:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-.bottom{
-  display:flex;
-  justify-content:space-around;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(8px);
+.inventory {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  overflow: hidden;
 }
-.nav-btn{
-  flex:1;
-  text-align:center;
-  padding:12px;
-  color:#aaa;
-  font-weight:600;
-  cursor:pointer;
-  transition:0.3s;
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
-.nav-btn.active{
-  color:var(--neon-blue);
-  text-shadow:0 0 8px var(--neon-pink);
+.tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: 0.3s;
 }
-.inventory{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  padding:12px;
+.tab.active {
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+  color: black;
+  font-weight: bold;
 }
-.tabs{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin-bottom:10px;
+.inv-list {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding-bottom: 10px;
 }
-.tab{
-  padding:8px 16px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.05);
-  cursor:pointer;
-  transition:0.3s;
+.inv-item {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  transition: 0.3s;
 }
-.tab.active{
-  background:linear-gradient(90deg,var(--neon-pink),var(--neon-blue));
-  color:black;
-  font-weight:bold;
+.inv-item:hover {
+  box-shadow: 0 0 10px var(--neon-purple);
 }
-.inv-list{
-  flex:1;
-  overflow-y:auto;
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
-  gap:12px;
-  padding-bottom:10px;
+.sell-btn {
+  margin-top: 6px;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #00ff95, #00ffff);
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
 }
-.inv-item{
-  background:rgba(255,255,255,0.07);
-  border-radius:10px;
-  padding:10px;
-  text-align:center;
-  transition:0.3s;
+.bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  z-index: 10;
 }
-.inv-item:hover{
-  box-shadow:0 0 10px var(--neon-purple);
+.nav-btn {
+  flex: 1;
+  text-align: center;
+  padding: 14px;
+  color: #aaa;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
 }
-.sell-btn{
-  margin-top:6px;
-  padding:6px;
-  border:none;
-  border-radius:8px;
-  background:linear-gradient(90deg,#00ff95,#00ffff);
-  color:black;
-  cursor:pointer;
-  font-weight:bold;
+.nav-btn.active {
+  color: var(--neon-blue);
+  text-shadow: 0 0 8px var(--neon-pink);
 }
-.fusion{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.8);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:50;
+.fusion {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
 }
-.fusion h2{
-  text-shadow:0 0 15px var(--neon-blue);
+.fusion h2 {
+  text-shadow: 0 0 15px var(--neon-blue);
 }
-.result{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(20,20,20,0.9);
-  border:2px solid var(--neon-pink);
-  border-radius:16px;
-  padding:20px;
-  text-align:center;
-  z-index:60;
+.result {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 20, 20, 0.9);
+  border: 2px solid var(--neon-pink);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  z-index: 60;
 }
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.8);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:70;
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 70;
 }
-.modal-content{
-  background:rgba(30,30,30,0.95);
-  border:2px solid var(--neon-blue);
-  border-radius:12px;
-  padding:20px;
-  text-align:center;
-  animation:pop 0.3s ease;
+.modal-content {
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid var(--neon-blue);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  animation: pop 0.3s ease;
 }
-.modal-btns{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  margin-top:10px;
+.modal-btns {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
 }
-.modal-btn{
-  padding:8px 14px;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
+.modal-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
 }
-.modal-btn.confirm{
-  background:linear-gradient(90deg,var(--neon-pink),var(--neon-blue));
-  color:black;
+.modal-btn.confirm {
+  background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+  color: black;
 }
-.modal-btn.cancel{
-  background:rgba(255,255,255,0.1);
-  color:white;
+.modal-btn.cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
-@keyframes pop{
-  from{transform:scale(0.7);opacity:0;}
-  to{transform:scale(1);opacity:1;}
+@keyframes pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>
 </head>
@@ -293,154 +304,227 @@ const EFFECTS = [
   { name: "Pepe", icon: "🐸", price: 500, color: "#32cd32" },
 ];
 
-function App(){
-  const [screen,setScreen]=useState("main");
-  const [balance,setBalance]=useState(1000);
-  const [inventory,setInventory]=useState([]);
-  const [selectedGift,setSelectedGift]=useState(null);
-  const [selectedEffect,setSelectedEffect]=useState(null);
-  const [fusion,setFusion]=useState(null);
-  const [result,setResult]=useState(null);
-  const [tab,setTab]=useState("обычные");
-  const [confirm,setConfirm]=useState(null);
+function App() {
+  const [screen, setScreen] = useState("main");
+  const [balance, setBalance] = useState(1000);
+  const [inventory, setInventory] = useState([]);
+  const [selectedGift, setSelectedGift] = useState(null);
+  const [selectedEffect, setSelectedEffect] = useState(null);
+  const [fusion, setFusion] = useState(null);
+  const [result, setResult] = useState(null);
+  const [tab, setTab] = useState("обычные");
+  const [confirm, setConfirm] = useState(null);
 
-  const countGift=g=>inventory.filter(i=>i.model===g.icon&&!i.effect).length;
+  const countGift = (g) =>
+    inventory.filter((i) => i.model === g.icon && !i.effect).length;
 
-  const buyGift=g=>{
-    if(balance<100)return alert("Недостаточно звёзд!");
-    setBalance(b=>b-100);
-    setInventory(p=>[...p,{model:g.icon}]);
+  const buyGift = (g) => {
+    if (balance < 100) return alert("Недостаточно звёзд!");
+    setBalance((b) => b - 100);
+    setInventory((p) => [...p, { model: g.icon }]);
   };
 
-  const combine=()=>{
-    if(!selectedGift||!selectedEffect)return;
-    const count=countGift(selectedGift);
-    if(count<=0)return alert("Нет подарков!");
-    setInventory(prev=>{
-      const idx=prev.findIndex(g=>g.model===selectedGift.icon&&!g.effect);
-      if(idx>=0)prev.splice(idx,1);
-      return[...prev];
+  const combine = () => {
+    if (!selectedGift || !selectedEffect) return;
+    const count = countGift(selectedGift);
+    if (count <= 0) return alert("Нет подарков!");
+    setInventory((prev) => {
+      const idx = prev.findIndex(
+        (g) => g.model === selectedGift.icon && !g.effect
+      );
+      if (idx >= 0) prev.splice(idx, 1);
+      return [...prev];
     });
-    setBalance(b=>b-selectedEffect.price);
+    setBalance((b) => b - selectedEffect.price);
     setFusion(selectedEffect);
-    setTimeout(()=>{
+    setTimeout(() => {
       setFusion(null);
-      const newGift={model:selectedGift.icon,effect:selectedEffect,rare:true};
-      setInventory(p=>[...p,newGift]);
+      const newGift = {
+        model: selectedGift.icon,
+        effect: selectedEffect,
+        rare: true,
+      };
+      setInventory((p) => [...p, newGift]);
       setResult(newGift);
-    },1500);
+    }, 1500);
   };
 
-  const sell=(i)=>{
-    const gift=inventory[i];
-    const price=200;
-    setInventory(prev=>prev.filter((_,idx)=>idx!==i));
-    setBalance(b=>b+price);
+  const sell = (i) => {
+    const gift = inventory[i];
+    const price = 200;
+    setInventory((prev) => prev.filter((_, idx) => idx !== i));
+    setBalance((b) => b + price);
   };
 
-  const filtered=tab==="обычные"
-    ? inventory.filter(i=>!i.rare)
-    : inventory.filter(i=>i.rare);
+  const filtered =
+    tab === "обычные"
+      ? inventory.filter((i) => !i.rare)
+      : inventory.filter((i) => i.rare);
 
-  return(
+  return (
     <div className="app">
       <div className="top">
         <div>Gift Evolution ✨</div>
         <div className="balance">⭐ {balance}</div>
       </div>
 
-      {screen==="main"&&(
+      {screen === "main" && (
         <div className="main">
           <div className="effects">
-            {EFFECTS.map((e,i)=>(
-              <div key={i}
-                className={`effect ${selectedEffect===e?"selected":""}`}
-                onClick={()=>setSelectedEffect(e)}>
-                <div>{e.icon} {e.name}</div>
-                <div style={{fontSize:"12px",opacity:0.7}}>{e.price}⭐</div>
+            {EFFECTS.map((e, i) => (
+              <div
+                key={i}
+                className={`effect ${selectedEffect === e ? "selected" : ""}`}
+                onClick={() => setSelectedEffect(e)}
+              >
+                <div>
+                  {e.icon} {e.name}
+                </div>
+                <div style={{ fontSize: "12px", opacity: 0.7 }}>{e.price}⭐</div>
               </div>
             ))}
           </div>
 
           <div className="gifts">
-            {GIFTS.map(g=>(
-              <div key={g.id}
+            {GIFTS.map((g) => (
+              <div
+                key={g.id}
                 className="gift"
-                onClick={()=>setSelectedGift(g)}>
-                <div style={{fontSize:"36px"}}>{g.icon}</div>
-                <div className="gift-info" onClick={(e)=>{
-                  e.stopPropagation();
-                  if(countGift(g)>0)return;
-                  setConfirm(g);
-                }}>
-                  {countGift(g)>0?`x${countGift(g)}`:<><span>купить</span><br/><span>{100}⭐</span></>}
+                onClick={() => setSelectedGift(g)}
+              >
+                <div style={{ fontSize: "36px" }}>{g.icon}</div>
+                <div
+                  className="gift-info"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (countGift(g) > 0) return;
+                    setConfirm(g);
+                  }}
+                >
+                  {countGift(g) > 0 ? (
+                    `x${countGift(g)}`
+                  ) : (
+                    <>
+                      <span>купить</span>
+                      <br />
+                      <span>100⭐</span>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          <button className="combine" disabled={!(selectedGift&&selectedEffect)} onClick={combine}>
+          <button
+            className="combine"
+            disabled={!(selectedGift && selectedEffect)}
+            onClick={combine}
+          >
             Объединить
           </button>
         </div>
       )}
 
-      {screen==="inventory"&&(
+      {screen === "inventory" && (
         <div className="inventory">
           <div className="tabs">
-            <div className={`tab ${tab==="обычные"?"active":""}`} onClick={()=>setTab("обычные")}>Обычные</div>
-            <div className={`tab ${tab==="редкие"?"active":""}`} onClick={()=>setTab("редкие")}>Редкие</div>
+            <div
+              className={`tab ${tab === "обычные" ? "active" : ""}`}
+              onClick={() => setTab("обычные")}
+            >
+              Обычные
+            </div>
+            <div
+              className={`tab ${tab === "редкие" ? "active" : ""}`}
+              onClick={() => setTab("редкие")}
+            >
+              Редкие
+            </div>
           </div>
           <div className="inv-list">
-            {filtered.length===0&&<p style={{opacity:.6,textAlign:"center"}}>Пусто...</p>}
-            {filtered.map((g,i)=>(
+            {filtered.length === 0 && (
+              <p style={{ opacity: 0.6, textAlign: "center" }}>Пусто...</p>
+            )}
+            {filtered.map((g, i) => (
               <div key={i} className="inv-item">
-                <div style={{fontSize:"36px"}}>{g.model} {g.rare?"💎":""}</div>
-                {g.effect&&<div>{g.effect.icon} {g.effect.name}</div>}
-                {g.rare&&<button className="sell-btn" onClick={()=>sell(i)}>Продать 💰</button>}
+                <div style={{ fontSize: "36px" }}>
+                  {g.model} {g.rare ? "💎" : ""}
+                </div>
+                {g.effect && (
+                  <div>
+                    {g.effect.icon} {g.effect.name}
+                  </div>
+                )}
+                {g.rare && (
+                  <button className="sell-btn" onClick={() => sell(i)}>
+                    Продать 💰
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {fusion&&(
+      {fusion && (
         <div className="fusion">
-          <h2 style={{color:fusion.color}}>✨ Объединение... ✨</h2>
+          <h2 style={{ color: fusion.color }}>✨ Объединение... ✨</h2>
         </div>
       )}
 
-      {result&&(
-        <div className="result" onClick={()=>setResult(null)}>
-          <div style={{fontSize:"48px"}}>{result.model} 💎</div>
-          <h3>{result.effect.icon} {result.effect.name}</h3>
+      {result && (
+        <div className="result" onClick={() => setResult(null)}>
+          <div style={{ fontSize: "48px" }}>{result.model} 💎</div>
+          <h3>
+            {result.effect.icon} {result.effect.name}
+          </h3>
           <p>Получен редкий подарок!</p>
         </div>
       )}
 
-      {confirm&&(
+      {confirm && (
         <div className="modal">
           <div className="modal-content">
             <h3>Купить {confirm.icon} за 100⭐?</h3>
             <div className="modal-btns">
-              <button className="modal-btn confirm" onClick={()=>{
-                buyGift(confirm);
-                setConfirm(null);
-              }}>Купить</button>
-              <button className="modal-btn cancel" onClick={()=>setConfirm(null)}>Отмена</button>
+              <button
+                className="modal-btn confirm"
+                onClick={() => {
+                  buyGift(confirm);
+                  setConfirm(null);
+                }}
+              >
+                Купить
+              </button>
+              <button
+                className="modal-btn cancel"
+                onClick={() => setConfirm(null)}
+              >
+                Отмена
+              </button>
             </div>
           </div>
         </div>
       )}
 
       <div className="bottom">
-        <div className={`nav-btn ${screen==="main"?"active":""}`} onClick={()=>setScreen("main")}>Главная</div>
-        <div className={`nav-btn ${screen==="inventory"?"active":""}`} onClick={()=>setScreen("inventory")}>Инвентарь</div>
+        <div
+          className={`nav-btn ${screen === "main" ? "active" : ""}`}
+          onClick={() => setScreen("main")}
+        >
+          Главная
+        </div>
+        <div
+          className={`nav-btn ${screen === "inventory" ? "active" : ""}`}
+          onClick={() => setScreen("inventory")}
+        >
+          Инвентарь
+        </div>
       </div>
     </div>
   );
 }
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
