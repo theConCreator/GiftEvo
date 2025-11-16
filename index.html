@@ -3,55 +3,57 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Balloon Blast — прототип арены</title>
+  <title>Balloon Blast — арена (улучшенный прототип)</title>
   <style>
     :root{
-      --bg:#0f1724;
-      --arena:#0b1220;
-      --panel:#071022;
-      --accent:#60a5fa;
-      --danger:#ff6b6b;
-      --glass: rgba(255,255,255,0.03);
+      --bg1:#071025; --bg2:#081733; --card:#071428; --accent:#5ec0ff; --accent-2:#7c3aed; --danger:#ff6b6b; --glass: rgba(255,255,255,0.03);
       font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071428);color:#e6eef8}
-    .app{display:flex;gap:18px;padding:18px;box-sizing:border-box;height:100%;}
 
-    /* Left - arena */
+    /* Remove native tap highlight and text selection rectangles */
+    *{ -webkit-tap-highlight-color: transparent; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; box-sizing:border-box }
+    :focus{ outline: none }
+
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f3ff}
+    .app{display:flex;gap:18px;padding:18px;box-sizing:border-box;height:100%;max-height:100vh}
+
+    /* Left arena */
     .left{flex:1;display:flex;flex-direction:column;gap:12px}
-    .arena-panel{flex:1;background:linear-gradient(180deg,var(--arena),#071228);border-radius:12px;padding:12px;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(2,6,23,.6)}
-    .arena-topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;color:#cfe6ff88}
-    .arena{position:relative;flex:1;border-radius:10px;background:linear-gradient(180deg,#07112a, #0b1530);height:calc(100% - 48px);overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+    .arena-panel{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:12px;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(2,6,23,.6)}
+    .arena-topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;color:#cfe6ffbb;font-size:14px}
+    .arena{position:relative;flex:1;border-radius:12px;background:linear-gradient(180deg,#071022,#051223);height:calc(100% - 46px);overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
 
-    /* balloons are absolutely positioned divs */
-    .balloon{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:none;transition:transform 120ms linear}
-    .balloon .label{font-weight:700;font-size:12px;color:rgba(255,255,255,0.95);text-shadow:0 1px 0 rgba(0,0,0,0.5)}
-    .shadow{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:60px;height:8px;border-radius:999px;opacity:.18;filter:blur(6px)}
+    /* balloon visuals */
+    .balloon{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;touch-action:none;will-change:transform,left,top}
+    .balloon:active{cursor:grabbing}
+    .balloon .label{font-weight:800;font-size:12px;color:rgba(255,255,255,0.95);text-shadow:0 1px 0 rgba(0,0,0,0.6);pointer-events:none}
+    .balloon .tag{position:absolute;left:6px;top:6px;font-size:11px;padding:4px 6px;border-radius:999px;background:rgba(0,0,0,0.18);backdrop-filter: blur(4px)}
 
-    /* Right - controls */
-    .right{width:360px;display:flex;flex-direction:column;gap:12px}
-    .card{background:var(--panel);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
-    .balance{font-size:20px;font-weight:700;color:var(--accent)}
+    /* shadow under balloon */
+    .balloon .ground-shadow{position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;width:60%;height:10px;border-radius:999px;filter:blur(6px);opacity:.12}
+
+    /* pop burst */
+    .burst{position:absolute;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);}
+    @keyframes burstAnim{0%{transform:translate(-50%,-50%) scale(0.2);opacity:1}50%{transform:translate(-50%,-50%) scale(1.6);opacity:0.9}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
+
+    /* Right column */
+    .right{width:420px;display:flex;flex-direction:column;gap:12px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
+    .balance{font-size:20px;font-weight:800;color:var(--accent)}
     .controls{display:flex;gap:8px;align-items:center}
-    .btn{background:linear-gradient(180deg,#16325a,#0f2746);padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e9f6ff;font-weight:600}
-    .btn.warn{background:linear-gradient(180deg,#7f1d1d,#491212);}
+    .btn{background:linear-gradient(180deg,#16325a,#0f2746);padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e9f6ff;font-weight:700}
+    .btn.warn{background:linear-gradient(180deg,#8f2b2b,#5a1b1b)}
     .small{padding:6px 8px;font-size:13px}
 
     .meta{font-size:13px;color:#bcd8ff88}
-    .log{height:220px;overflow:auto;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:8px}
+    .log{height:140px;overflow:auto;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:8px}
+
+    .results{height:140px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
 
     footer{font-size:12px;color:#9fb7d9cc;margin-top:6px}
 
-    /* pop animation */
-    .pop{animation:popAnim .45s ease forwards}
-    @keyframes popAnim{
-      0%{transform:scale(1);opacity:1}
-      60%{transform:scale(1.8);opacity:.9}
-      100%{transform:scale(2.6);opacity:0}
-    }
-
     /* responsive */
-    @media (max-width:900px){.right{display:none}.app{padding:12px}}
+    @media (max-width:980px){.right{display:none}.app{padding:12px}}
   </style>
 </head>
 <body>
@@ -59,19 +61,19 @@
     <div class="left">
       <div class="card arena-panel">
         <div class="arena-topbar">
-          <div>Арена — нажмите и удерживайте по пространству, чтобы разместить шар; удерживайте шар, чтобы надувать.</div>
+          <div>Арена — зажми в пустом месте, чтобы создать шар; удерживай шар, чтобы поддуть; тяните шар, отпустите — шар улетит.</div>
           <div class="meta">Шары: <span id="balloonCount">0</span></div>
         </div>
         <div id="arena" class="arena" tabindex="0" aria-label="Игровая арена"></div>
       </div>
       <div class="card" style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:14px;color:#bfdfff">Текущее выделение</div>
-          <div id="currentInfo" style="font-weight:700">—</div>
+          <div class="meta">Текущее выделение</div>
+          <div id="currentInfo" style="font-weight:800">—</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
           <button id="cashBtn" class="btn" disabled>Забрать</button>
-          <div class="meta">Автосохранение локально</div>
+          <div class="meta">Локальная сессия (демо). Сервер — в TODO.</div>
         </div>
       </div>
     </div>
@@ -80,63 +82,69 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div class="meta">Баланс (симуляция)</div>
+            <div class="meta">Баланс (демо)</div>
             <div class="balance" id="balance">1000</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-            <button id="buyBtn" class="btn">Купить шар</button>
+            <button id="buyBtn" class="btn">Купить шар (10)</button>
             <div class="meta">Цена по умолчанию: 10</div>
           </div>
         </div>
 
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
         <div style="display:flex;gap:8px;align-items:center">
-          <button id="seedBtn" class="btn small">Сброс / Новая сессия</button>
-          <button id="demoBtn" class="btn small">Демо: спавн шар автоматически</button>
-          <button id="rulesBtn" class="btn small">Показать правила</button>
+          <button id="seedBtn" class="btn small">Сброс</button>
+          <button id="demoBtn" class="btn small">Демо: авто-спавн</button>
+          <button id="rulesBtn" class="btn small">Правила</button>
         </div>
       </div>
 
       <div class="card">
-        <div style="font-weight:700;margin-bottom:6px">Лог событий</div>
+        <div style="font-weight:800;margin-bottom:6px">Последние результаты (иксы и исход)</div>
+        <div id="results" class="results"></div>
+        <hr style="margin:8px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+        <div style="font-weight:800;margin-bottom:6px">Лог событий</div>
         <div id="log" class="log"></div>
-        <footer>Подсказка: интеграция с сервером — см. комментарии в коде</footer>
+        <footer>Подсказка: серверная логика и валидация обязательны для реальных денег.</footer>
       </div>
     </div>
   </div>
 
   <script>
     /*
-      Balloon Blast – прототип фронтенда
-      - Нажмите и удерживайте островок в арене, чтобы разместить шар (pointerdown на пустом месте создаёт шар)
-      - Чтобы надуть шар: удерживайте этот шар (pointerdown на самом шаре). При удержании шар растёт.
-      - Можно отпустить и снова зажать тот же шар, чтобы продолжить поддувать.
-      - Нажмите "Забрать" чтобы получить награду по текущему множителю. Если шар лопнет — вы теряете вложение.
-      - Этот код — прототип. Точки интеграции с сервером отмечены TODO.
+      Улучшенный Balloon Blast
+      - Удалены синие прямоугольники выделения.
+      - Шары можно перетаскивать во время/после надувания. При отпускании они получат вектор скорости и будут сталкиваться со стенами и другими шарами.
+      - Анимация лопания появляется прямо на месте шара (burst element).
+      - Иксы и исход записываются в отдельный блок "results".
+
+      IMPORTANT: Это фронтенд-прототип. Все финансовые операции и RNG должны выполняться на сервере в боевой версии.
     */
 
-    // ----- Конфигурация -----
+    // ----- CONFIG -----
     const CONFIG = {
-      basePrice: 10,            // цена покупки шарика (симуляция)
-      inflationPerSec: 18,      // пикселей радиуса в секунду при удержании
+      basePrice: 10,
+      inflationPerSec: 28,      // px radius per second
       minRadius: 18,
-      maxSafeRadius: 160,       // после этого шанс резко растёт
-      popBasePerSec: 0.02,      // базовый шанс взрыва в секунду (2%)
-      popRadiusFactor: 0.004,   // добавочный шанс на каждый пикс radius
-      multiplierBase: 1.0,      // множитель при минимальном размере
-      multiplierCurve: 0.014,   // как размер переводится в икс
-      autoframeMs: 60          // частота обновления (ms)
+      maxRadius: 220,
+      popBasePerSec: 0.02,      // базовый риск в секунду
+      popRadiusFactor: 0.0038,  // риск на px радиуса
+      multiplierBase: 1.0,
+      multiplierCurve: 0.012,
+      physicsFriction: 0.992,   // глобальное трение скорости
+      bounceDamping: 0.86,      // потеря скорости при отдаче от стен
+      tickMs: 16
     }
 
-    // ----- Состояние -----
+    // ----- State -----
     let state = {
       balance: Number(localStorage.getItem('bb_balance')) || 1000,
-      balloons: new Map(), // id -> balloonObj
-      selectedBalloonId: null,
-      nextId: 1
+      balloons: new Map(),
+      nextId: 1,
+      selectedBalloonId: null
     }
 
-    // Элементы DOM
+    // DOM
     const arena = document.getElementById('arena')
     const balanceEl = document.getElementById('balance')
     const buyBtn = document.getElementById('buyBtn')
@@ -144,143 +152,207 @@
     const currentInfo = document.getElementById('currentInfo')
     const balloonCount = document.getElementById('balloonCount')
     const logEl = document.getElementById('log')
+    const resultsEl = document.getElementById('results')
     const demoBtn = document.getElementById('demoBtn')
     const seedBtn = document.getElementById('seedBtn')
     const rulesBtn = document.getElementById('rulesBtn')
 
-    function saveState(){
-      localStorage.setItem('bb_balance', state.balance)
-    }
+    function saveState(){ localStorage.setItem('bb_balance', state.balance) }
 
-    function log(msg){
-      const time = new Date().toLocaleTimeString()
-      logEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:6px"><b>[${time}]</b> ${escapeHtml(msg)}</div>`)
-    }
-
+    function log(msg){ const time = new Date().toLocaleTimeString(); logEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:6px"><b>[${time}]</b> ${escapeHtml(msg)}</div>`) }
+    function pushResult(text, kind='info'){ const time = new Date().toLocaleTimeString(); resultsEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:8px"><b>[${time}]</b> ${escapeHtml(text)}</div>`); }
     function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])) }
 
-    function refreshUI(){
-      balanceEl.textContent = state.balance.toFixed(2)
-      balloonCount.textContent = state.balloons.size
-      const sel = state.selectedBalloonId ? state.balloons.get(state.selectedBalloonId) : null
-      if(sel){
-        currentInfo.innerHTML = `ID ${sel.id} · R=${Math.round(sel.radius)} · x${sel.multiplier.toFixed(2)} · ${sel.state}`
-        cashBtn.disabled = false
-      } else {
-        currentInfo.textContent = '—'
-        cashBtn.disabled = true
-      }
-    }
+    function refreshUI(){ balanceEl.textContent = state.balance.toFixed(2); balloonCount.textContent = state.balloons.size; const sel = state.selectedBalloonId ? state.balloons.get(state.selectedBalloonId) : null; if(sel){ currentInfo.innerHTML = `ID ${sel.id} · R=${Math.round(sel.radius)} · x${sel.multiplier.toFixed(2)} · ${sel.state}`; cashBtn.disabled = false } else { currentInfo.textContent = '—'; cashBtn.disabled = true } }
 
-    // ----- Балун объект -----
-    function createBalloon(x, y, price){
+    // ----- Balloon factory -----
+    function createBalloon(x,y,price){
       const id = state.nextId++
       const el = document.createElement('div')
       el.className = 'balloon'
-      el.style.left = (x)+'px'
-      el.style.top = (y)+'px'
-      el.style.width = (CONFIG.minRadius*2)+'px'
-      el.style.height = (CONFIG.minRadius*2)+'px'
-      el.style.transform = 'translate(-50%,-50%) scale(1)'
       el.dataset.id = id
-      // color
+      el.style.left = x+'px'
+      el.style.top = y+'px'
       const hue = Math.floor(Math.random()*360)
-      el.style.background = `radial-gradient(circle at 30% 30%, hsla(${hue},95%,70%,0.95), hsla(${hue},80%,45%,0.95))`
-      el.style.boxShadow = `0 10px 30px rgba(2,8,23,0.6), inset 0 -6px 18px rgba(0,0,0,0.24)`
-      // label
-      const lbl = document.createElement('div')
-      lbl.className = 'label'
-      lbl.textContent = 'x1.00'
-      el.appendChild(lbl)
+      el.style.background = `radial-gradient(circle at 30% 25%, hsla(${hue},95%,75%,0.98), hsla(${hue+12},85%,45%,0.98))`
+      el.style.boxShadow = `0 14px 40px rgba(5,8,20,0.6), inset 0 -8px 20px rgba(0,0,0,0.22)`
 
-      // shadow
-      const shadow = document.createElement('div')
-      shadow.className = 'shadow'
-      shadow.style.background = 'radial-gradient(ellipse at center, rgba(0,0,0,0.5), rgba(0,0,0,0))'
-      shadow.style.width = '60px'
+      const label = document.createElement('div')
+      label.className = 'label'
+      label.textContent = 'x1.00'
+      el.appendChild(label)
+      const tag = document.createElement('div')
+      tag.className = 'tag'
+      tag.textContent = `#${id}`
+      el.appendChild(tag)
+      const ground = document.createElement('div')
+      ground.className = 'ground-shadow'
+      ground.style.background = 'radial-gradient(ellipse at center, rgba(0,0,0,0.6), rgba(0,0,0,0))'
+      el.appendChild(ground)
 
       arena.appendChild(el)
-      arena.appendChild(shadow)
 
       const obj = {
-        id, el, shadow,
+        id, el,
         x, y,
+        vx: (Math.random()-0.5)*0.6,
+        vy: (Math.random()-0.5)*0.6,
         radius: CONFIG.minRadius,
         price: price || CONFIG.basePrice,
         createdAt: Date.now(),
         inflatedMs: 0,
         lastInflateAt: null,
         popping: false,
-        state: 'idle', // idle | inflating | safe | popped | cashed
-        multiplier: CONFIG.multiplierBase
+        state: 'idle', // idle | inflating | popped | cashed | dragging
+        multiplier: CONFIG.multiplierBase,
+        // dragging helpers
+        dragging: false,
+        lastPointer: null,
+        recentPointerVel: {x:0,y:0}
       }
 
-      // pointer events to inflate the particular balloon
-      let pointerActive = false
-      function onPointerDown(ev){
+      // pointer handlers for drag & inflate
+      let pointerId = null
+      function onPointerDown(e){
         if(obj.popping || obj.state==='popped' || obj.state==='cashed') return
-        pointerActive = true
+        // capture pointer
+        el.setPointerCapture(e.pointerId)
+        pointerId = e.pointerId
+        obj.dragging = true
         obj.state = 'inflating'
         obj.lastInflateAt = performance.now()
-        // select
+        state.selectedBalloonId = obj.id
+        obj.lastPointer = {x:e.clientX,y:e.clientY, t: performance.now()}
+        obj.recentPointerVel = {x:0,y:0}
+        refreshUI()
+        e.preventDefault()
+      }
+      function onPointerMove(e){
+        if(!obj.dragging || e.pointerId !== pointerId) return
+        const rect = arena.getBoundingClientRect()
+        const nx = e.clientX - rect.left
+        const ny = e.clientY - rect.top
+        // move balloon center
+        obj.x = nx; obj.y = ny
+        // compute pointer velocity
+        const now = performance.now()
+        const dt = Math.max(1, now - (obj.lastPointer?.t||now))
+        const dx = e.clientX - (obj.lastPointer?.x||e.clientX)
+        const dy = e.clientY - (obj.lastPointer?.y||e.clientY)
+        obj.recentPointerVel = { x: dx/dt*1000, y: dy/dt*1000 }
+        obj.lastPointer = {x:e.clientX,y:e.clientY,t:now}
+        e.preventDefault()
+      }
+      function onPointerUp(e){
+        if(pointerId !== e.pointerId) return
+        el.releasePointerCapture(e.pointerId)
+        pointerId = null
+        // stop dragging, set velocity from recentPointerVel
+        obj.dragging = false
+        obj.state = 'idle'
+        obj.vx = obj.recentPointerVel.x * 0.008 // scale to reasonable velocity
+        obj.vy = obj.recentPointerVel.y * 0.008
+        obj.lastPointer = null
         state.selectedBalloonId = obj.id
         refreshUI()
-        ev.preventDefault()
-      }
-      function onPointerUp(ev){
-        if(pointerActive){
-          pointerActive = false
-          obj.state = 'idle'
-          obj.lastInflateAt = null
-          refreshUI()
-        }
+        e.preventDefault()
       }
 
       el.addEventListener('pointerdown', onPointerDown)
+      window.addEventListener('pointermove', onPointerMove)
       window.addEventListener('pointerup', onPointerUp)
-      // to allow reselect via tap
-      el.addEventListener('click',()=>{ state.selectedBalloonId = obj.id; refreshUI() })
 
-      state.balloons.set(id, obj)
-      log(`Шар ${id} размещён (цена ${obj.price}).`) 
-
-      // TODO: здесь можно вызвать серверный хук: onPlaceBalloon({id,x,y,price})
-
+      state.balloons.set(id,obj)
+      log(`Шар ${id} размещён (цена ${obj.price}).`)
       return obj
     }
 
-    // ----- механика инфляции и шанс взрыва -----
+    // ----- Physics & inflate loop -----
     let lastFrame = performance.now()
     function tick(now){
-      const dt = Math.max(0, now - lastFrame)
+      const dt = Math.min(60, now - lastFrame)
       lastFrame = now
-      for(const [id,obj] of state.balloons){
-        // if inflating
+      const sec = dt/1000
+      const rect = arena.getBoundingClientRect()
+      const W = rect.width, H = rect.height
+
+      // update balloons
+      const arr = Array.from(state.balloons.values())
+      // update inflate/size/pop
+      for(const obj of arr){
         if(obj.state==='inflating'){
           obj.inflatedMs += dt
-          const add = (CONFIG.inflationPerSec * (dt/1000))
-          obj.radius = Math.min(360, obj.radius + add) // hard cap
+          const add = CONFIG.inflationPerSec * sec
+          obj.radius = Math.min(CONFIG.maxRadius, obj.radius + add)
         }
-        // update multiplier (simple curve)
+        // multiplier curve
         obj.multiplier = CONFIG.multiplierBase + Math.pow(1 + CONFIG.multiplierCurve*obj.radius, 1.02) - 1
-
-        // compute pop chance per tick
-        const sec = dt/1000
-        const popChance = 1 - Math.exp(- (CONFIG.popBasePerSec + (obj.radius * CONFIG.popRadiusFactor)) * sec )
-        if(!obj.popping && Math.random() < popChance){
-          // POP!
-          doPop(obj)
+        // pop chance
+        if(!obj.popping){
+          const popChance = 1 - Math.exp(- (CONFIG.popBasePerSec + (obj.radius * CONFIG.popRadiusFactor)) * sec )
+          if(Math.random() < popChance){ doPop(obj); continue }
         }
+      }
 
-        // update DOM size & label
+      // physics movement and collisions
+      // integrate velocity for non-dragging balloons
+      for(const obj of arr){
+        if(obj.popping || obj.dragging) continue
+        obj.x += obj.vx * dt
+        obj.y += obj.vy * dt
+        // wall collision
+        if(obj.x - obj.radius < 6){ obj.x = obj.radius + 6; obj.vx = -obj.vx * CONFIG.bounceDamping }
+        if(obj.x + obj.radius > W-6){ obj.x = W - obj.radius - 6; obj.vx = -obj.vx * CONFIG.bounceDamping }
+        if(obj.y - obj.radius < 6){ obj.y = obj.radius + 6; obj.vy = -obj.vy * CONFIG.bounceDamping }
+        if(obj.y + obj.radius > H-6){ obj.y = H - obj.radius - 6; obj.vy = -obj.vy * CONFIG.bounceDamping }
+        // friction
+        obj.vx *= Math.pow(CONFIG.physicsFriction, dt/16)
+        obj.vy *= Math.pow(CONFIG.physicsFriction, dt/16)
+      }
+
+      // circle-circle collisions (simple symmetric resolution)
+      for(let i=0;i<arr.length;i++){
+        const A = arr[i]
+        if(A.popping) continue
+        for(let j=i+1;j<arr.length;j++){
+          const B = arr[j]
+          if(B.popping) continue
+          const dx = B.x - A.x, dy = B.y - A.y
+          const dist = Math.hypot(dx,dy)
+          const minDist = A.radius + B.radius
+          if(dist > 0 && dist < minDist){
+            // push them apart proportionally
+            const overlap = (minDist - dist)
+            const nx = dx/dist, ny = dy/dist
+            const totalMass = (A.radius*A.radius) + (B.radius*B.radius)
+            const aMove = (overlap * (B.radius*B.radius) / totalMass)
+            const bMove = (overlap * (A.radius*A.radius) / totalMass)
+            A.x -= nx * aMove
+            A.y -= ny * aMove
+            B.x += nx * bMove
+            B.y += ny * bMove
+            // exchange velocities (elastic-ish)
+            const dvx = B.vx - A.vx
+            const dvy = B.vy - A.vy
+            const impact = dvx*nx + dvy*ny
+            if(impact > 0){
+              const impulse = impact * 0.9
+              A.vx += nx * impulse * (B.radius*B.radius/totalMass)
+              A.vy += ny * impulse * (B.radius*B.radius/totalMass)
+              B.vx -= nx * impulse * (A.radius*A.radius/totalMass)
+              B.vy -= ny * impulse * (A.radius*A.radius/totalMass)
+            }
+          }
+        }
+      }
+
+      // DOM sync
+      for(const obj of arr){
+        if(obj.popping) continue
         obj.el.style.width = (obj.radius*2)+'px'
         obj.el.style.height = (obj.radius*2)+'px'
         obj.el.style.left = obj.x + 'px'
         obj.el.style.top = obj.y + 'px'
-        obj.shadow.style.left = (obj.x - 30) + 'px'
-        obj.shadow.style.bottom = (10 - obj.radius/20) + 'px'
-        obj.shadow.style.opacity = Math.max(0.06, Math.min(0.28, obj.radius/180))
-        obj.shadow.style.width = Math.max(36, Math.min(150, obj.radius*1.2))
         obj.el.querySelector('.label').textContent = `x${obj.multiplier.toFixed(2)}`
       }
 
@@ -289,139 +361,128 @@
     }
     requestAnimationFrame(tick)
 
+    // ----- Pop (burst) -----
     function doPop(obj){
+      if(obj.popping) return
       obj.popping = true
       obj.state = 'popped'
-      obj.el.classList.add('pop')
-      log(`Шар ${obj.id} лопнул на x${obj.multiplier.toFixed(2)}! Проигрыш вложения ${obj.price}.`)
+      // create burst element centered at obj position
+      const burst = document.createElement('div')
+      burst.className = 'burst'
+      burst.style.left = obj.x + 'px'
+      burst.style.top = obj.y + 'px'
+      burst.style.width = (obj.radius*2)+'px'
+      burst.style.height = (obj.radius*2)+'px'
+      burst.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.6)), radial-gradient(circle at 70% 70%, rgba(255,255,255,0.6), rgba(255,255,255,0.1))`
+      burst.style.boxShadow = `0 10px 40px rgba(255,255,255,0.12), 0 0 60px rgba(255,120,120,0.06)`
+      burst.style.animation = 'burstAnim .6s cubic-bezier(.2,.8,.2,1) forwards'
+      arena.appendChild(burst)
 
-      // TODO: вызвать серверный хук onPop({id, multiplier, lostPrice})
+      // log & results
+      log(`Шар ${obj.id} лопнул на x${obj.multiplier.toFixed(2)} — проигрыш ${obj.price}.`)
+      pushResult(`#${obj.id} — lOP (x${obj.multiplier.toFixed(2)})`)
 
-      // remove after animation
-      setTimeout(()=>{
-        try{ obj.el.remove(); obj.shadow.remove() }catch(e){}
-        state.balloons.delete(obj.id)
-        if(state.selectedBalloonId===obj.id) state.selectedBalloonId = null
-      },450)
+      // remove balloon element and burst after animation
+      try{ obj.el.remove() }catch(e){}
+      setTimeout(()=>{ try{ burst.remove() }catch(e){} }, 700)
+      state.balloons.delete(obj.id)
+      if(state.selectedBalloonId===obj.id) state.selectedBalloonId = null
     }
 
+    // ----- Cash out -----
     function cashOutSelected(){
       const id = state.selectedBalloonId
       if(!id) return
       const obj = state.balloons.get(id)
-      if(!obj) return
-      if(obj.popping) return
-
-      // payout calculation
+      if(!obj || obj.popping) return
       const payout = obj.price * obj.multiplier
       state.balance += payout
       saveState()
-      log(`Шар ${obj.id} забран — выплата ${payout.toFixed(2)} (x${obj.multiplier.toFixed(2)})`).
-      // visual
-      obj.state = 'cashed'
-      obj.el.classList.add('pop')
-      // TODO: здесь должен быть серверный вызов: onCashOut({id, multiplier, payout})
+      log(`Шар ${obj.id} забран — выплата ${payout.toFixed(2)} (x${obj.multiplier.toFixed(2)})`)
+      pushResult(`#${obj.id} — CASH (x${obj.multiplier.toFixed(2)}) → +${payout.toFixed(2)}`)
+      // visual: small burst green
+      const burst = document.createElement('div')
+      burst.className='burst'
+      burst.style.left = obj.x + 'px'
+      burst.style.top = obj.y + 'px'
+      burst.style.width = (obj.radius*2)+'px'
+      burst.style.height = (obj.radius*2)+'px'
+      burst.style.background = `radial-gradient(circle at 30% 30%, rgba(200,255,240,0.95), rgba(120,255,200,0.85))`
+      burst.style.animation = 'burstAnim .5s cubic-bezier(.2,.8,.2,1) forwards'
+      arena.appendChild(burst)
 
-      setTimeout(()=>{
-        try{ obj.el.remove(); obj.shadow.remove() }catch(e){}
-        state.balloons.delete(obj.id)
-        if(state.selectedBalloonId===obj.id) state.selectedBalloonId = null
-      }, 420)
+      try{ obj.el.remove() }catch(e){}
+      setTimeout(()=>{ try{ burst.remove() }catch(e){} },600)
+      state.balloons.delete(obj.id)
+      state.selectedBalloonId = null
+      refreshUI()
     }
 
-    // ----- Arena placement: pointerdown on arena creates balloon and begins inflating immediately -----
-    let placing = false
+    // ----- Arena placement: pointerdown on arena creates balloon (and starts inflating) -----
     let placingObj = null
     arena.addEventListener('pointerdown', (ev)=>{
-      // do not create if clicking existing balloon
-      const target = ev.target
-      if(target.classList && target.classList.contains('balloon')) return
-
-      // if user has enough balance
-      if(state.balance < CONFIG.basePrice){ log('Недостаточно средств для покупки шарика.'); return }
-
-      // subtract price (simulate purchase)
+      // avoid creating when clicking on a balloon (bubbling)
+      if(ev.target.closest('.balloon')) return
+      if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return }
       state.balance -= CONFIG.basePrice
       saveState()
-
       const rect = arena.getBoundingClientRect()
       const x = ev.clientX - rect.left
       const y = ev.clientY - rect.top
-      placingObj = createBalloon(x, y, CONFIG.basePrice)
-      // start inflating immediately
+      placingObj = createBalloon(x,y, CONFIG.basePrice)
       placingObj.state = 'inflating'
+      placingObj.dragging = true
       placingObj.lastInflateAt = performance.now()
       state.selectedBalloonId = placingObj.id
-      // prevent default to avoid selection
-      ev.preventDefault()
+      refreshUI()
     })
-
-    // release anywhere will stop inflating the currently active balloon (if any)
     window.addEventListener('pointerup', ()=>{
       if(placingObj){
-        if(placingObj.state==='inflating') placingObj.state='idle'
-        placingObj.lastInflateAt = null
+        placingObj.dragging = false
+        placingObj.state = 'idle'
         placingObj = null
         refreshUI()
       }
     })
 
-    // Buy button (creates balloon near center)
+    // ----- Controls -----
     buyBtn.addEventListener('click', ()=>{
       if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return }
       state.balance -= CONFIG.basePrice
       saveState()
       const r = arena.getBoundingClientRect()
-      const x = Math.random()*(r.width-100)+50
-      const y = Math.random()*(r.height-100)+50
-      const b = createBalloon(x,y, CONFIG.basePrice)
-      state.selectedBalloonId = b.id
+      const x = Math.random()*(r.width-120)+60
+      const y = Math.random()*(r.height-120)+60
+      createBalloon(x,y, CONFIG.basePrice)
       refreshUI()
     })
 
-    cashBtn.addEventListener('click', ()=>{
-      cashOutSelected()
-      refreshUI()
-    })
+    cashBtn.addEventListener('click', ()=>{ cashOutSelected() })
 
     demoBtn.addEventListener('click', ()=>{
-      // spawn demo balloons in random positions that auto-inflate then cash out (for demo)
-      for(let i=0;i<3;i++){
+      for(let i=0;i<4;i++){
         const r = arena.getBoundingClientRect()
-        const x = Math.random()*(r.width-120)+60
-        const y = Math.random()*(r.height-120)+60
+        const x = Math.random()*(r.width-160)+80
+        const y = Math.random()*(r.height-160)+80
         const b = createBalloon(x,y, CONFIG.basePrice)
-        // auto-inflate for random time
-        const t = 800 + Math.random()*2200
-        b.state='inflating'
+        b.state = 'inflating'
+        const t = 400 + Math.random()*2400
         setTimeout(()=>{ b.state='idle' }, t)
       }
     })
 
     seedBtn.addEventListener('click', ()=>{
-      // clear arena
-      for(const [id,obj] of state.balloons){ try{ obj.el.remove(); obj.shadow.remove() }catch(e){} }
-      state.balloons.clear()
-      state.selectedBalloonId = null
-      state.balance = 1000
-      saveState()
-      log('Сессия сброшена.')
-      refreshUI()
+      for(const [id,obj] of state.balloons){ try{ obj.el.remove() }catch(e){} }
+      state.balloons.clear(); state.selectedBalloonId=null; state.balance=1000; saveState(); log('Сброшена сессия.'); refreshUI()
     })
 
-    rulesBtn.addEventListener('click', ()=>{
-      alert(`Правила:\n- Нажмите в свободном месте арены чтобы разместить шар (списание цены).\n- Удерживайте палец/мышку на шаре, чтобы надувать его — множитель растёт.\n- Шанс лопнуть растёт с размером.\n- Нажмите "Забрать", чтобы получить выплату по текущему множителю (или интегрируйте это с реальным платёжным бэком).`)
-    })
+    rulesBtn.addEventListener('click', ()=>{ alert(`Правила:\n- Создайте шар в пустом месте (списывается цена).\n- Удерживая/перетаскивая шар — вы его надуваете.\n- Отпустите — шар улетит (получит скорость).\n- Нажмите "Забрать" чтобы получить выплату по текущему множителю.\n- Если шар лопнет — проигрыш вложения.\n\nВажно: сделайте серверную валидацию и RNG для реальных платежей.`) })
 
-    // init
+    // simple init
     refreshUI()
 
-    // ==== ВАЖНЫЕ ЗАМЕТКИ ДЛЯ ИНТЕГРАЦИИ С СЕРВЕРОМ ====
-    // 1) ВСЕ платежные операции (покупка шарика, выплата при забирании, учёт подарков) должны происходить на сервере.
-    //    Клиент только инициирует запросы: onPlaceBalloon, onInflateTick, onCashOut, onPop.
-    // 2) Для честности и аудита модель RNG и обработка взрывов лучше держать на сервере.
-    // 3) Поддержка мультиплеера/общей арены потребует вебсокетов: сервер рассылает апдейты о состоянии шаров всем клиентам.
-    // 4) Для защиты от читов — никогда не доверяйте голосам клиента по размеру/времени, проверяйте все транзакции на сервере.
+    // expose for debugging
+    window._bb = { state, CONFIG }
 
   </script>
 </body>
