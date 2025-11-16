@@ -1,734 +1,299 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Balloon Blast — арена (финальный прототип)</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Balloon Arena</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, #0a0d16, #0f1320);
+    overflow: hidden;
+    font-family: "Inter", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
 
-  <!-- Phaser 3 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+  #ui {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(255,255,255,0.06);
+    padding: 12px 22px;
+    border-radius: 18px;
+    backdrop-filter: blur(8px);
+    color: #fff;
+    z-index: 20;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  }
 
-  <style>
-    :root{
-      --bg1:#071025; --bg2:#081733; --card:#071428;
-      --accent:#5ec0ff; --accent-2:#7c3aed; --danger:#ff6b6b;
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    }
+  #ui button {
+    background: linear-gradient(135deg, #ff3d6e, #ff1550);
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 14px;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(255,50,90,0.45);
+    transition: 0.2s;
+  }
 
-    /* Remove selection/tap highlight */
-    *{ -webkit-tap-highlight-color: transparent; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; box-sizing:border-box }
-    :focus{ outline: none }
+  #ui button:active {
+    transform: scale(0.95);
+  }
 
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f3ff}
-    .app{display:flex;gap:18px;padding:18px;box-sizing:border-box;height:100vh;align-items:stretch}
-
-    /* Left arena */
-    .left{flex:1;display:flex;flex-direction:column;gap:12px}
-    .arena-panel{flex:1;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:12px;position:relative;overflow:hidden;box-shadow:0 10px 40px rgba(2,6,23,.6)}
-    .arena-topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;color:#cfe6ffbb;font-size:14px}
-    .arena-canvas{position:relative;border-radius:12px;background:linear-gradient(180deg,#071022,#051223);height:calc(100% - 46px);overflow:hidden;border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center}
-
-    /* Right column */
-    .right{width:420px;display:flex;flex-direction:column;gap:12px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
-    .balance{font-size:20px;font-weight:800;color:var(--accent)}
-    .controls{display:flex;gap:8px;align-items:center}
-    .btn{background:linear-gradient(180deg,#16325a,#0f2746);padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e9f6ff;font-weight:700}
-    .btn.warn{background:linear-gradient(180deg,#8f2b2b,#5a1b1b)}
-    .small{padding:6px 8px;font-size:13px}
-
-    .meta{font-size:13px;color:#bcd8ff88}
-    .log{height:140px;overflow:auto;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:8px}
-    .results{height:140px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
-    .hud{display:flex;gap:8px;align-items:center}
-    .timer{font-weight:900;color:var(--accent-2);font-size:18px;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.02)}
-    footer{font-size:12px;color:#9fb7d9cc;margin-top:6px}
-
-    /* balloon HUD (overlay on right panel) */
-    .balloon-preview{display:flex;gap:10px;align-items:center}
-    .badge{padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.03);font-weight:700}
-
-    /* responsive */
-    @media (max-width:980px){.right{display:none}.app{padding:12px}}
-  </style>
+  #log {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 12px;
+    color: #e0e6ff;
+    font-size: 14px;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    z-index: 20;
+  }
+</style>
 </head>
 <body>
-  <div class="app">
-    <div class="left">
-      <div class="card arena-panel">
-        <div class="arena-topbar">
-          <div>Арена — зажми в пустом месте, чтобы создать шар; удерживай шар, чтобы поддуть; тяните шар и отпустите — шар улетит.</div>
-          <div class="hud">
-            <div class="meta">Шары: <span id="balloonCount">0</span></div>
-            <div class="timer" id="timer">—</div>
-          </div>
-        </div>
-        <div id="arena" class="arena-canvas"></div>
-      </div>
-
-      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div class="meta">Текущее выделение</div>
-          <div id="currentInfo" style="font-weight:800">—</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-          <button id="cashBtn" class="btn" disabled>Забрать</button>
-          <div class="meta">Локальная сессия (демо). Сервер — в TODO.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="right">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="meta">Баланс (демо)</div>
-            <div class="balance" id="balance">1000</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-            <button id="buyBtn" class="btn">Купить шар (10)</button>
-            <div class="meta">Цена по умолчанию: 10</div>
-          </div>
-        </div>
-
-        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="seedBtn" class="btn small">Сброс</button>
-          <button id="demoBtn" class="btn small">Демо: авто-спавн</button>
-          <button id="rulesBtn" class="btn small">Правила</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:800;margin-bottom:6px">Последние результаты (иксы и исход)</div>
-        <div id="results" class="results"></div>
-        <hr style="margin:8px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
-        <div style="font-weight:800;margin-bottom:6px">Лог событий</div>
-        <div id="log" class="log"></div>
-        <footer>Подсказка: серверная логика и валидация обязательны для реальных денег.</footer>
-      </div>
-    </div>
-  </div>
+<div id="ui">
+  <button id="claimBtn">Забрать</button>
+  <span>Раунд: <span id="timer">40</span>s</span>
+</div>
+<div id="log"></div>
 
 <script>
-/*
-  Balloon Blast — Phaser 3, single-file prototype.
+// CONFIG
+const ROUND_DURATION = 40;
+const BALLOON_MIN_RADIUS = 22;
+const BALLOON_MAX_RADIUS = 140;
+const BALLOON_GROW_SPEED = 0.45;
+const WIND_MIN = -90;
+const WIND_MAX = 90;
 
-  Особенности:
-  - Режим раундов: 40 секунд (при завершении — автоматическая выплата оставшихся шаров и новая карта).
-  - Создание шара: pointerdown по пустому месту списывает цену и создаёт шар, удержание на шаре — надувание из центра.
-  - Шар можно перетаскивать во время первого надувания; при отпускании он получает скорость.
-  - Препятствия: wind (ветер), spikes (шипы — лопают шар при контакте), walls (стены).
-  - При надувании проверяется, не будет ли шар пересекаться с объектом; если да — рост останавливается.
-  - Матовые яркие шары, красивые всплески при лопании, лог и результаты.
-*/
+// Global refs
+let W = window.innerWidth;
+let H = window.innerHeight;
+let game, scene;
+let balloons = [];
+let obstacles = [];
+let roundTimer = ROUND_DURATION;
+let timerInterval = null;
+let pointerDown = false;
+let currentBalloon = null;
+let windForce = 0;
 
-// ---- CONFIG ----
-const CONFIG = {
-  basePrice: 10,
-  inflationPerSec: 32,   // px radius per second
-  minRadius: 18,
-  maxRadius: 220,
-  popBasePerSec: 0.015,
-  popRadiusFactor: 0.0039,
-  multiplierCurve: 0.0124,
-  roundDurationSec: 40
+const logBox = document.getElementById("log");
+const log = (t) => logBox.innerHTML += t + "<br>";
+
+document.getElementById("claimBtn").onclick = () => {
+  if (!currentBalloon) return;
+  const x = (currentBalloon.radius / 30).toFixed(2);
+  log("Забрал x" + x);
+  scene.removeBalloon(currentBalloon);
+  currentBalloon = null;
 };
 
-// ---- STATE ----
-let game, phScene;
-let state = {
-  balance: Number(localStorage.getItem('bb_balance')) || 1000,
-  balloons: new Map(),   // id -> {sprite, id, cx, cy, radius, vx, vy, price, state}
-  obstacles: [],         // list of obstacle objects {type, gameObject, rect}
-  nextId: 1,
-  selectedId: null,
-  round: 1,
-  roundEndsAt: 0
-};
-
-// UI references
-const BALANCE = document.getElementById('balance');
-const BALLOON_COUNT = document.getElementById('balloonCount');
-const TIMER = document.getElementById('timer');
-const LOG_EL = document.getElementById('log');
-const RESULTS_EL = document.getElementById('results');
-const CASH_BTN = document.getElementById('cashBtn');
-const BUY_BTN = document.getElementById('buyBtn');
-const DEMO_BTN = document.getElementById('demoBtn');
-const SEED_BTN = document.getElementById('seedBtn');
-const RULES_BTN = document.getElementById('rulesBtn');
-const CURRENT_INFO = document.getElementById('currentInfo');
-
-// helpers
-function saveState(){ localStorage.setItem('bb_balance', state.balance) }
-function log(msg){ const t = new Date().toLocaleTimeString(); LOG_EL.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:6px"><b>[${t}]</b> ${escapeHtml(msg)}</div>`); }
-function pushResult(msg){ const t = new Date().toLocaleTimeString(); RESULTS_EL.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:8px"><b>[${t}]</b> ${escapeHtml(msg)}</div>`); }
-function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])) }
-function refreshUI(){
-  BALANCE.textContent = state.balance.toFixed(2);
-  BALLOON_COUNT.textContent = state.balloons.size;
-  const sel = state.selectedId ? state.balloons.get(state.selectedId) : null;
-  if(sel){
-    CURRENT_INFO.innerHTML = `#${sel.id} · R=${Math.round(sel.radius)} · x${(computeMultiplier(sel.radius)).toFixed(2)} · ${sel.state}`;
-    CASH_BTN.disabled = false;
-  } else {
-    CURRENT_INFO.textContent = '—';
-    CASH_BTN.disabled = true;
-  }
-}
-
-// ---- Phaser game setup ----
-window.addEventListener('load', ()=>{
+window.onload = () => {
   const config = {
     type: Phaser.AUTO,
-    parent: 'arena',
-    width: Math.max(800, window.innerWidth * 0.62),
-    height: Math.max(480, window.innerHeight * 0.72),
-    backgroundColor: 0x071022,
+    width: W,
+    height: H,
+    backgroundColor: 0x0a0f18,
     physics: {
       default: 'arcade',
       arcade: {
-        gravity: { x: 0, y: 0 },
-        debug: false
+        debug: false,
       }
     },
-    scene: {
-      preload: preload,
-      create: create,
-      update: update
-    }
+    scene: { preload, create, update }
   };
+
   game = new Phaser.Game(config);
-  window.addEventListener('resize', ()=>{ /* let Phaser handle scaling by CSS parent */ });
-});
+};
 
-function preload(){}
-function create(){
-  phScene = this;
+function preload() {}
 
-  // container for obstacles visualization behind sprites
-  this.obstacleLayer = this.add.layer();
+function create() {
+  scene = this;
 
-  // input handlers: place balloon on pointerdown (if clicked on empty area)
-  this.input.on('pointerdown', (pointer, currentlyOver) => {
-    // if pointer down on existing balloon sprite, handled by sprite pointerdown
-    // otherwise create new balloon at pointer
-    const hit = phScene.children.getChildren().some(ch => ch.input && ch.input.hitArea && ch.input.enabled && ch.input.pointerDown(pointer));
-    // above check may be unreliable; simpler: if pointer over any balloon
-    let overBalloon = false;
-    for(const b of state.balloons.values()){
-      const dx = pointer.x - b.cx, dy = pointer.y - b.cy;
-      if(Math.hypot(dx,dy) <= b.radius) { overBalloon = true; break; }
+  startRound();
+
+  this.input.on("pointerdown", pointerDownHandler);
+  this.input.on("pointermove", pointerMoveHandler);
+  this.input.on("pointerup", () => { pointerDown = false; });
+}
+
+function startRound() {
+  roundTimer = ROUND_DURATION;
+  document.getElementById("timer").innerText = roundTimer;
+  log("Новый раунд!");
+
+  clearArena();
+  generateObstacles();
+
+  timerInterval = setInterval(() => {
+    roundTimer--;
+    document.getElementById("timer").innerText = roundTimer;
+
+    if (roundTimer <= 0) {
+      clearInterval(timerInterval);
+      endRound();
     }
-    if(overBalloon) return;
-    if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return; }
-    state.balance -= CONFIG.basePrice; saveState();
+  }, 1000);
+}
 
-    const b = spawnBalloon(pointer.x, pointer.y, CONFIG.basePrice);
-    // start inflating and allow drag while inflating
-    b.state = 'inflating';
-    b.dragging = true;
-    b.lastPointer = {x: pointer.x, y: pointer.y, t: performance.now()};
-    state.selectedId = b.id;
-    refreshUI();
+function endRound() {
+  log("Раунд окончен.");
+  balloons.forEach(b => {
+    const x = (b.radius / 30).toFixed(2);
+    log("Ваш x" + x);
+    b.sprite.destroy();
   });
 
-  // start first round
+  balloons = [];
+  currentBalloon = null;
   startRound();
 }
 
-// ---- Spawn obstacles map ----
-function randomMap(){
-  // clear existing obstacles
-  for(const o of state.obstacles){
-    try{ o.go.destroy(); }catch(e){}
-  }
-  state.obstacles = [];
-
-  const W = phScene.scale.width, H = phScene.scale.height;
-
-  // winds (1-2)
-  const windCount = 1 + Math.floor(Math.random()*2);
-  for(let i=0;i<windCount;i++){
-    const w = 140 + Math.random()*180;
-    const h = 80 + Math.random()*80;
-    const x = 40 + Math.random()*(W - w - 80);
-    const y = 40 + Math.random()*(H - h - 80);
-    const vx = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random()*80); // pixels/sec push
-    const color = 0x2f9fff;
-    const rect = phScene.add.rectangle(x + w/2, y + h/2, w, h).setFillStyle(color, 0.08).setStrokeStyle(1, 0x2f9fff, 0.06).setDepth(1);
-    state.obstacles.push({type:'wind', rect: new Phaser.Geom.Rectangle(x,y,w,h), vx, go: rect});
-  }
-
-  // spikes (1-3)
-  const spikesCount = 1 + Math.floor(Math.random()*3);
-  for(let i=0;i<spikesCount;i++){
-    const w = 40 + Math.random()*140;
-    const h = 20 + Math.random()*40;
-    const x = 20 + Math.random()*(W - w - 40);
-    const y = 20 + Math.random()*(H - h - 40);
-    // draw spikes as triangle group
-    const g = phScene.add.graphics({x, y});
-    g.fillStyle(0xff6b6b, 0.95);
-    const triCount = Math.max(3, Math.floor(w/20));
-    for(let t=0;t<triCount;t++){
-      const tx = t*(w/triCount);
-      g.fillTriangle(tx, h, tx + (w/triCount)/2, 0, tx + (w/triCount), h);
-    }
-    g.setDepth(2);
-    state.obstacles.push({type:'spikes', rect: new Phaser.Geom.Rectangle(x,y,w,h), go: g});
-  }
-
-  // walls (1-2)
-  const wallCount = 1 + Math.floor(Math.random()*2);
-  for(let i=0;i<wallCount;i++){
-    const horizontal = Math.random() < 0.5;
-    if(horizontal){
-      const w = 120 + Math.random()*260;
-      const h = 18;
-      const x = 20 + Math.random()*(phScene.scale.width - w - 40);
-      const y = 40 + Math.random()*(phScene.scale.height - 120);
-      const r = phScene.add.rectangle(x + w/2, y + h/2, w, h).setFillStyle(0x0b1726, 1).setDepth(3);
-      state.obstacles.push({type:'wall', rect: new Phaser.Geom.Rectangle(x,y,w,h), go: r});
-    } else {
-      const w = 18;
-      const h = 100 + Math.random()*220;
-      const x = 40 + Math.random()*(phScene.scale.width - 120);
-      const y = 20 + Math.random()*(phScene.scale.height - h - 40);
-      const r = phScene.add.rectangle(x + w/2, y + h/2, w, h).setFillStyle(0x0b1726, 1).setDepth(3);
-      state.obstacles.push({type:'wall', rect: new Phaser.Geom.Rectangle(x,y,w,h), go: r});
-    }
-  }
-
-  log(`Новая карта: ${state.obstacles.length} препятствий.`);
+function clearArena() {
+  obstacles.forEach(o => o.destroy());
+  obstacles = [];
+  balloons.forEach(b => b.sprite.destroy());
+  balloons = [];
 }
 
-// ---- Balloon spawn ----
-function spawnBalloon(cx, cy, price){
-  const id = state.nextId++;
-  // create matte bright balloon using graphics, then convert to texture for better performance
-  const radius = CONFIG.minRadius;
-  const g = phScene.add.graphics();
-  drawBalloonGraphic(g, radius, 0x66c2ff);
-  const key = 'balloon_'+id;
-  g.generateTexture(key, radius*2 + 4, radius*2 + 4);
-  g.destroy();
+function generateObstacles() {
+  // Walls
+  let topWall = createWall(W / 2, 20, W * 0.8, 24);
+  let bottomWall = createWall(W / 2, H - 20, W * 0.8, 24);
 
-  const sprite = phScene.add.image(cx, cy, key);
-  sprite.setDepth(10);
-  sprite.setInteractive(new Phaser.Geom.Circle(sprite.width/2, sprite.height/2, sprite.width/2), Phaser.Geom.Circle.Contains);
+  obstacles.push(topWall, bottomWall);
 
-  // physics body (Arcade) uses body.setCircle
-  phScene.physics.add.existing(sprite);
-  sprite.body.setCircle(radius, -radius + sprite.width/2, -radius + sprite.height/2);
-  sprite.body.setBounce(0.86, 0.86);
-  sprite.body.setCollideWorldBounds(true);
+  // Spikes
+  for (let i = 0; i < 5; i++) {
+    let s = createSpike(
+      Phaser.Math.Between(60, W - 60),
+      Phaser.Math.Between(80, H - 80)
+    );
+    obstacles.push(s);
+  }
 
-  // collisions with walls/spikes managed manually each tick
-  const obj = {
-    id, sprite, cx, cy,
-    vx: (Math.random()-0.5) * 40,
-    vy: (Math.random()-0.5) * 40,
-    radius,
-    price,
-    state: 'idle', // idle | inflating | dragging | popped
-    lastPointer: null,
-    dragging: false,
-    multiplier: computeMultiplier(radius)
-  };
+  // Wind
+  windForce = Phaser.Math.FloatBetween(WIND_MIN, WIND_MAX);
+  log("Ветер: " + windForce.toFixed(1));
+}
 
-  // sprite pointer events for drag/inflate
-  sprite.on('pointerdown', (pointer) => {
-    if(obj.state === 'popped') return;
-    obj.dragging = true;
-    obj.state = 'inflating';
-    obj.lastPointer = {x: pointer.x, y: pointer.y, t: performance.now()};
-    state.selectedId = obj.id;
-    refreshUI();
-    pointer.event.stopPropagation && pointer.event.stopPropagation();
-  });
-  phScene.input.on('pointermove', pointer => {
-    if(obj.dragging){
-      // drag allowed while radius is small (we allow drag during first inflation until release)
-      obj.cx = Phaser.Math.Clamp(pointer.x, obj.radius + 6, phScene.scale.width - obj.radius - 6);
-      obj.cy = Phaser.Math.Clamp(pointer.y, obj.radius + 6, phScene.scale.height - obj.radius - 6);
-      sprite.setPosition(obj.cx, obj.cy);
-    }
-  });
-  phScene.input.on('pointerup', pointer => {
-    if(obj.dragging){
-      obj.dragging = false;
-      obj.state = 'idle';
-      // assign velocity based on last pointer movement (approx)
-      if(obj.lastPointer){
-        const dt = Math.max(1, performance.now() - obj.lastPointer.t);
-        const dx = (pointer.x - obj.lastPointer.x);
-        const dy = (pointer.y - obj.lastPointer.y);
-        obj.vx = dx / dt * 600; // tuned scalar
-        obj.vy = dy / dt * 600;
-      }
-      state.selectedId = obj.id;
-      refreshUI();
-    }
+function createWall(x, y, w, h) {
+  let rect = scene.add.rectangle(x, y, w, h, 0x202636);
+  scene.physics.add.existing(rect, true);
+  rect.isWall = true;
+  return rect;
+}
+
+function createSpike(x, y) {
+  let s = scene.add.triangle(x, y, 0, 40, 20, 0, 40, 40, 0xff3355);
+  scene.physics.add.existing(s, true);
+  s.isSpike = true;
+  return s;
+}
+
+function pointerDownHandler(pointer) {
+  pointerDown = true;
+  currentBalloon = createBalloon(pointer.x, pointer.y);
+  balloons.push(currentBalloon);
+}
+
+function pointerMoveHandler(pointer) {
+  if (!pointerDown || !currentBalloon) return;
+  if (currentBalloon.radius <= BALLOON_MIN_RADIUS + 2) {
+    currentBalloon.sprite.x = pointer.x;
+    currentBalloon.sprite.y = pointer.y;
+  }
+}
+
+function createBalloon(x, y) {
+  let c = scene.add.circle(x, y, BALLOON_MIN_RADIUS, 0x55aaff);
+  scene.physics.add.existing(c);
+  c.body.setCircle(BALLOON_MIN_RADIUS);
+  c.body.setCollideWorldBounds(true);
+  c.body.setBounce(0.85);
+
+  obstacles.forEach(o => scene.physics.add.collider(c, o));
+
+  return { sprite: c, radius: BALLOON_MIN_RADIUS };
+}
+
+function update() {
+  balloons.forEach(b => {
+    b.sprite.body.velocity.x += windForce * 0.015;
   });
 
-  state.balloons.set(id, obj);
-  refreshBalloonTexture(obj); // ensure correct texture & physics
-  log(`Шар #${id} размещён (цена ${price}).`);
-  return obj;
+  if (pointerDown && currentBalloon) inflateBalloon(currentBalloon);
+
+  for (let i = 0; i < balloons.length; i++)
+    for (let j = i + 1; j < balloons.length; j++)
+      scene.physics.world.collide(balloons[i].sprite, balloons[j].sprite);
 }
 
-// draw matte balloon graphic to graphics object (used to generate texture)
-function drawBalloonGraphic(g, radius, tint){
-  g.clear();
-  // base
-  g.fillStyle(tint, 1);
-  g.fillCircle(radius + 2, radius + 2, radius);
-  // soft highlight
-  const hl = g.createGeometryMask ? 0 : 1;
-  g.fillStyle(0xffffff, 0.18);
-  g.fillEllipse(radius + 2 - radius*0.28, radius + 2 - radius*0.36, radius*0.6, radius*0.38);
-  // small top sheen
-  g.fillStyle(0xffffff, 0.32);
-  g.fillEllipse(radius + 2 - radius*0.12, radius + 2 - radius*0.52, radius*0.26, radius*0.18);
+function inflateBalloon(b) {
+  if (b.radius >= BALLOON_MAX_RADIUS) return explode(b);
+
+  let newR = b.radius + BALLOON_GROW_SPEED;
+  if (!canExpand(b, newR)) return;
+
+  b.radius = newR;
+  b.sprite.setRadius(newR);
+  b.sprite.body.setCircle(newR);
+  b.sprite.body.mass = newR / 12;
+
+  if (Math.random() < (b.radius / 2600)) explode(b);
 }
 
-// recompute multiplier
-function computeMultiplier(radius){
-  return 1 + Math.pow(1 + CONFIG.multiplierCurve * radius, 1.02) - 1;
-}
+function canExpand(balloon, newR) {
+  for (let o of obstacles) {
+    let dx = balloon.sprite.x - o.x;
+    let dy = balloon.sprite.y - o.y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
 
-// refresh balloon texture and physics when radius changes
-function refreshBalloonTexture(obj){
-  const id = obj.id;
-  // re-generate texture
-  const g = phScene.add.graphics();
-  // choose a tint per id (deterministic)
-  const hue = (id * 47) % 360;
-  const tint = Phaser.Display.Color.HSLToColor(hue/360, 0.85, 0.6).color;
-  drawBalloonGraphic(g, Math.max(8, Math.round(obj.radius)), tint);
-  const key = 'balloon_'+id;
-  // ensure unique texture key by removing previous
-  if(phScene.textures.exists(key)) phScene.textures.remove(key);
-  g.generateTexture(key, Math.round(obj.radius*2 + 4), Math.round(obj.radius*2 + 4));
-  g.destroy();
-  obj.sprite.setTexture(key);
-  obj.sprite.setDisplaySize(Math.round(obj.radius*2 + 4), Math.round(obj.radius*2 + 4));
-  // adjust physics body: Arcade body circle offset computed by setCircle
-  if(obj.sprite.body){
-    obj.sprite.body.setCircle(Math.round(obj.radius), -Math.round(obj.radius) + obj.sprite.width/2, -Math.round(obj.radius) + obj.sprite.height/2);
-  }
-  obj.sprite.setDepth(10);
-}
-
-// ---- Utility collision math ----
-function circleRectOverlap(cx, cy, r, rect){
-  const closestX = Phaser.Math.Clamp(cx, rect.x, rect.x + rect.width);
-  const closestY = Phaser.Math.Clamp(cy, rect.y, rect.y + rect.height);
-  const dx = cx - closestX, dy = cy - closestY;
-  return (dx*dx + dy*dy) <= (r*r);
-}
-
-// check if candidate radius at cx,cy would overlap any obstacle or other balloon
-function canExpandTo(obj, newRadius){
-  // arena bounds
-  const minX = newRadius + 6, maxX = phScene.scale.width - newRadius - 6;
-  const minY = newRadius + 6, maxY = phScene.scale.height - newRadius - 6;
-  if(obj.cx < minX || obj.cx > maxX || obj.cy < minY || obj.cy > maxY) return false;
-  // obstacles
-  for(const o of state.obstacles){
-    if(circleRectOverlap(obj.cx, obj.cy, newRadius + 2, o.rect)){
-      // if spikes, it's considered overlap (can't expand into spikes)
-      return false;
-    }
-  }
-  // other balloons
-  for(const other of state.balloons.values()){
-    if(other.id === obj.id) continue;
-    const dist = Phaser.Math.Distance.Between(obj.cx, obj.cy, other.cx, other.cy);
-    if(dist < newRadius + other.radius + 3) return false;
+    if (o.isWall && dist < newR + 28) return false;
+    if (o.isSpike && dist < newR + 35) return explode(balloon), false;
   }
   return true;
 }
 
-// ---- Update loop ----
-function update(time, delta){
-  if(!phScene) return;
-  // delta in ms
-  // inflate handling for balloons that are in 'inflating'
-  for(const obj of state.balloons.values()){
-    // keep sprite pos synced with obj.cx/obj.cy
-    if(obj.sprite){
-      obj.sprite.x = obj.cx;
-      obj.sprite.y = obj.cy;
-    }
-    if(obj.state === 'inflating'){
-      // try to expand by amount
-      const add = CONFIG.inflationPerSec * (delta/1000);
-      const target = Math.min(CONFIG.maxRadius, obj.radius + add);
-      if(target > obj.radius){
-        // check if expansion allowed
-        if(canExpandTo(obj, target)){
-          obj.radius = target;
-          obj.multiplier = computeMultiplier(obj.radius);
-          refreshBalloonTexture(obj);
-        } else {
-          // cannot expand further: set to idle to block further inflate
-          obj.state = 'idle';
-        }
-      }
-    }
-
-    // simple pop RNG based on radius (tick-based)
-    if(obj.state !== 'popped'){
-      const popChance = 1 - Math.exp(-(CONFIG.popBasePerSec + obj.radius * CONFIG.popRadiusFactor) * (delta/1000));
-      if(Math.random() < popChance){
-        popBalloon(obj, 'rng');
-        continue;
-      }
-    }
-
-    // integrate velocity if not dragging
-    if(!obj.dragging && obj.state !== 'popped'){
-      // move
-      obj.cx += obj.vx * (delta/1000);
-      obj.cy += obj.vy * (delta/1000);
-      // simple bounce on walls bounds
-      if(obj.cx - obj.radius < 6){ obj.cx = obj.radius + 6; obj.vx = -obj.vx * 0.86; }
-      if(obj.cx + obj.radius > phScene.scale.width - 6){ obj.cx = phScene.scale.width - obj.radius - 6; obj.vx = -obj.vx * 0.86; }
-      if(obj.cy - obj.radius < 6){ obj.cy = obj.radius + 6; obj.vy = -obj.vy * 0.86; }
-      if(obj.cy + obj.radius > phScene.scale.height - 6){ obj.cy = phScene.scale.height - obj.radius - 6; obj.vy = -obj.vy * 0.86; }
-      // friction
-      obj.vx *= Math.pow(0.992, delta/16);
-      obj.vy *= Math.pow(0.992, delta/16);
-    }
-
-    // check interaction with obstacles: spikes cause immediate pop; wind applies gentle acceleration; walls push away
-    for(const o of state.obstacles){
-      if(o.type === 'spikes'){
-        if(circleRectOverlap(obj.cx, obj.cy, obj.radius, o.rect)){
-          popBalloon(obj, 'spikes');
-          break;
-        }
-      } else if(o.type === 'wind'){
-        if(circleRectOverlap(obj.cx, obj.cy, obj.radius, o.rect)){
-          // apply gentle acceleration proportional to wind vx
-          obj.vx += (o.vx * 0.0008) * delta;
-          obj.vy += (o.vy * 0.0008) * delta;
-        }
-      } else if(o.type === 'wall'){
-        if(circleRectOverlap(obj.cx, obj.cy, obj.radius, o.rect)){
-          // push out along minimal vector
-          const closestX = Phaser.Math.Clamp(obj.cx, o.rect.x, o.rect.x + o.rect.width);
-          const closestY = Phaser.Math.Clamp(obj.cy, o.rect.y, o.rect.y + o.rect.height);
-          let dx = obj.cx - closestX, dy = obj.cy - closestY;
-          let dist = Math.hypot(dx, dy);
-          if(dist === 0){ dx = 0; dy = -1; dist = 1; }
-          dx /= dist; dy /= dist;
-          const push = (obj.radius - dist) + 2;
-          obj.cx += dx * push;
-          obj.cy += dy * push;
-          const vn = obj.vx*dx + obj.vy*dy;
-          obj.vx = obj.vx - (1.9 * vn * dx);
-          obj.vy = obj.vy - (1.9 * vn * dy);
-          obj.vx *= 0.86; obj.vy *= 0.86;
-        }
-      }
-    }
-
-    // circle-circle collision resolution
-    // naive O(n^2) acceptable for demo
-    for(const other of state.balloons.values()){
-      if(other.id === obj.id) continue;
-      if(other.state === 'popped' || obj.state === 'popped') continue;
-      const dx = other.cx - obj.cx, dy = other.cy - obj.cy;
-      const dist = Math.hypot(dx, dy);
-      const minD = obj.radius + other.radius;
-      if(dist > 0 && dist < minD){
-        const overlap = (minD - dist);
-        const nx = dx/dist, ny = dy/dist;
-        const mA = obj.radius*obj.radius, mB = other.radius*other.radius;
-        const total = mA + mB;
-        const aMove = overlap * (mB/total);
-        const bMove = overlap * (mA/total);
-        obj.cx -= nx * aMove;
-        obj.cy -= ny * aMove;
-        other.cx += nx * bMove;
-        other.cy += ny * bMove;
-        const dvx = other.vx - obj.vx, dvy = other.vy - obj.vy;
-        const impact = dvx*nx + dvy*ny;
-        if(impact > 0){
-          const impulse = impact * 0.9;
-          obj.vx += nx * impulse * (mB/total);
-          obj.vy += ny * impulse * (mB/total);
-          other.vx -= nx * impulse * (mA/total);
-          other.vy -= ny * impulse * (mA/total);
-        }
-      }
-    }
-
-    // sync sprite
-    if(obj.sprite){
-      obj.sprite.x = obj.cx;
-      obj.sprite.y = obj.cy;
-      obj.sprite.setDisplaySize(Math.round(obj.radius*2 + 4), Math.round(obj.radius*2 + 4));
-    }
-  } // end for balloons
-
-  // update timer and round end check
-  const now = Date.now();
-  const remaining = Math.max(0, Math.ceil((state.roundEndsAt - now)/1000));
-  TIMER.textContent = `${remaining}s (Раунд ${state.round})`;
-  if(now >= state.roundEndsAt){
-    finishRound();
-  }
-
-  refreshUI();
-}
-
-// ---- Pop / Cash / Round logic ----
-function popBalloon(obj, reason=''){
-  if(obj.state === 'popped') return;
-  obj.state = 'popped';
-  // burst effect: particle emitter
-  const px = obj.cx, py = obj.cy;
-  const particles = phScene.add.particles();
-  const emitter = particles.createEmitter({
-    x: px, y: py,
-    speed: { min: -220, max: 220 },
-    lifespan: 600,
-    scale: { start: 0.7, end: 0 },
-    quantity: 24,
-    tint: 0xff8b8b
+function explode(b) {
+  let x = b.sprite.x, y = b.sprite.y;
+  let particles = scene.add.particles();
+  let emitter = particles.createEmitter({
+    x, y,
+    speed: {min: -220, max: 220},
+    scale: { start: 0.5, end: 0 },
+    lifespan: 700,
+    tint: 0xff3355
   });
-  phScene.time.delayedCall(650, ()=>{ particles.destroy(); }, [], this);
 
-  log(`Шар #${obj.id} лопнул (x${obj.multiplier.toFixed(2)})${reason ? ' — '+reason : ''}. Проигрыш ${obj.price}.`);
-  pushResult(`#${obj.id} — POP (x${obj.multiplier.toFixed(2)})`);
-  // destroy sprite
-  try{ obj.sprite.destroy(); }catch(e){}
-  state.balloons.delete(obj.id);
-  if(state.selectedId === obj.id) state.selectedId = null;
+  setTimeout(() => particles.destroy(), 700);
+
+  log("Шар лопнул! x" + (b.radius / 30).toFixed(2));
+  scene.removeBalloon(b);
 }
 
-function cashOutSelected(){
-  const id = state.selectedId;
-  if(!id) return;
-  const obj = state.balloons.get(id);
-  if(!obj) return;
-  const payout = obj.price * obj.multiplier;
-  state.balance += payout;
-  saveState();
-  log(`Шар #${obj.id} забран — выплата ${payout.toFixed(2)} (x${obj.multiplier.toFixed(2)})`);
-  pushResult(`#${obj.id} — CASH (x${obj.multiplier.toFixed(2)}) → +${payout.toFixed(2)}`);
-  // green burst
-  const particles = phScene.add.particles();
-  const emitter = particles.createEmitter({
-    x: obj.cx, y: obj.cy,
-    speed: { min: -120, max: 120 },
-    lifespan: 500,
-    scale: { start: 0.6, end: 0 },
-    tint: 0xa8ffef,
-    quantity: 18
-  });
-  phScene.time.delayedCall(520, ()=>{ particles.destroy(); }, [], this);
-  try{ obj.sprite.destroy(); }catch(e){}
-  state.balloons.delete(obj.id);
-  state.selectedId = null;
-  refreshUI();
-}
-
-// end of round: payout survivors automatically and start new round
-function finishRound(){
-  // prevent double calls
-  if(Date.now() < state.roundEndsAt) return;
-  const survivors = Array.from(state.balloons.values());
-  if(survivors.length === 0){
-    log(`Раунд ${state.round} завершён. Никто не остался.`);
-    pushResult(`Раунд ${state.round} — никто не остался.`);
-  } else {
-    log(`Раунд ${state.round} завершён. Автовыплаты ${survivors.length} шаров.`);
-    for(const obj of survivors){
-      const payout = obj.price * obj.multiplier;
-      state.balance += payout;
-      pushResult(`#${obj.id} — AUTO CASH (x${obj.multiplier.toFixed(2)}) → +${payout.toFixed(2)}`);
-      try{ obj.sprite.destroy(); }catch(e){}
-    }
-    saveState();
-  }
-  // clear balloons & obstacles
-  for(const o of state.obstacles) try{ o.go.destroy(); }catch(e){}
-  state.obstacles = [];
-  state.balloons.clear();
-  state.selectedId = null;
-
-  // start next round shortly
-  state.round++;
-  phScene.time.delayedCall(900, () => {
-    startRound();
-  });
-}
-
-// start a round: set timer and spawn map
-function startRound(){
-  state.roundEndsAt = Date.now() + CONFIG.roundDurationSec * 1000;
-  randomMap();
-  log(`Раунд ${state.round} стартовал — ${CONFIG.roundDurationSec} секунд.`);
-}
-
-// ---- Controls handlers ----
-CASH_BTN.addEventListener('click', cashOutSelected);
-BUY_BTN.addEventListener('click', ()=>{
-  if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return; }
-  state.balance -= CONFIG.basePrice; saveState();
-  // spawn near center
-  const x = phScene ? phScene.scale.width/2 + (Math.random()-0.5)*200 : 200;
-  const y = phScene ? phScene.scale.height/2 + (Math.random()-0.5)*140 : 200;
-  const b = spawnBalloon(x, y, CONFIG.basePrice);
-  b.state = 'inflating';
-  phScene.time.delayedCall(600 + Math.random()*1200, ()=>{ if(state.balloons.has(b.id)) b.state = 'idle'; });
-  refreshUI();
-});
-DEMO_BTN.addEventListener('click', ()=>{
-  for(let i=0;i<4;i++){
-    if(state.balance < CONFIG.basePrice) break;
-    state.balance -= CONFIG.basePrice; saveState();
-    const x = 80 + Math.random()*(phScene.scale.width - 160);
-    const y = 80 + Math.random()*(phScene.scale.height - 160);
-    const b = spawnBalloon(x, y, CONFIG.basePrice);
-    b.state = 'inflating';
-    phScene.time.delayedCall(400 + Math.random()*2400, ()=>{ if(state.balloons.has(b.id)) b.state = 'idle'; });
-  }
-  refreshUI();
-});
-SEED_BTN.addEventListener('click', ()=>{
-  // reset everything
-  for(const obj of state.balloons.values()) try{ obj.sprite.destroy(); }catch(e){}
-  for(const o of state.obstacles) try{ o.go.destroy(); }catch(e){}
-  state.balloons.clear(); state.obstacles = []; state.selectedId = null;
-  state.balance = 1000; saveState();
-  state.round = 1;
-  log('Сессия сброшена.');
-  startRound();
-  refreshUI();
-});
-RULES_BTN.addEventListener('click', ()=> {
-  alert(`Правила:
-- Нажмите в пустом месте арены, чтобы разместить шар (списание цены).
-- Удерживайте/перетаскивайте шар, чтобы надувать его — рост из центра.
-- Отпустите — шар улетит и будет сталкиваться с объектами и шарами.
-- На карте есть препятствия: ветер (сдвигает шар), шипы (ломают шар), стены (отталкивают).
-- Раунд ${CONFIG.roundDurationSec} секунд — затем автоматические выплаты оставшихся шаров и новая карта.
-- Для реальных денег — перенос платежной и RNG логики на сервер.`);
-});
-
-// expose for debug
-window._bb = { state, CONFIG };
-
-// initial refresh
-refreshUI();
-
+Phaser.Scene.prototype.removeBalloon = function(b) {
+  let idx = balloons.indexOf(b);
+  if (idx >= 0) balloons.splice(idx, 1);
+  b.sprite.destroy();
+};
 </script>
 </body>
 </html>
