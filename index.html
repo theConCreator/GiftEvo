@@ -1,283 +1,428 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gift Evolution</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Balloon Blast — прототип арены</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Inter", sans-serif; }
-    body, html { width: 100%; height: 100%; background: radial-gradient(circle at top, #050505, #000); color: #fff; overflow: hidden; }
+    :root{
+      --bg:#0f1724;
+      --arena:#0b1220;
+      --panel:#071022;
+      --accent:#60a5fa;
+      --danger:#ff6b6b;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071428);color:#e6eef8}
+    .app{display:flex;gap:18px;padding:18px;box-sizing:border-box;height:100%;}
 
-    #root { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+    /* Left - arena */
+    .left{flex:1;display:flex;flex-direction:column;gap:12px}
+    .arena-panel{flex:1;background:linear-gradient(180deg,var(--arena),#071228);border-radius:12px;padding:12px;position:relative;overflow:hidden;box-shadow:0 6px 24px rgba(2,6,23,.6)}
+    .arena-topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;color:#cfe6ff88}
+    .arena{position:relative;flex:1;border-radius:10px;background:linear-gradient(180deg,#07112a, #0b1530);height:calc(100% - 48px);overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
 
-    .app { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 16px; }
+    /* balloons are absolutely positioned divs */
+    .balloon{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;touch-action:none;transition:transform 120ms linear}
+    .balloon .label{font-weight:700;font-size:12px;color:rgba(255,255,255,0.95);text-shadow:0 1px 0 rgba(0,0,0,0.5)}
+    .shadow{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:60px;height:8px;border-radius:999px;opacity:.18;filter:blur(6px)}
 
-    header { display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: 600; text-shadow: 0 0 8px #0ff; }
+    /* Right - controls */
+    .right{width:360px;display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--panel);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
+    .balance{font-size:20px;font-weight:700;color:var(--accent)}
+    .controls{display:flex;gap:8px;align-items:center}
+    .btn{background:linear-gradient(180deg,#16325a,#0f2746);padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e9f6ff;font-weight:600}
+    .btn.warn{background:linear-gradient(180deg,#7f1d1d,#491212);}
+    .small{padding:6px 8px;font-size:13px}
 
-    .main { flex: 1; display: flex; justify-content: space-between; align-items: center; }
+    .meta{font-size:13px;color:#bcd8ff88}
+    .log{height:220px;overflow:auto;padding:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:8px}
 
-    .gifts-column {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 20px; width: 40%; height: 100%;
+    footer{font-size:12px;color:#9fb7d9cc;margin-top:6px}
+
+    /* pop animation */
+    .pop{animation:popAnim .45s ease forwards}
+    @keyframes popAnim{
+      0%{transform:scale(1);opacity:1}
+      60%{transform:scale(1.8);opacity:.9}
+      100%{transform:scale(2.6);opacity:0}
     }
 
-    .gift-card {
-      background: rgba(30, 30, 30, 0.8);
-      border: 2px solid transparent;
-      background-clip: padding-box;
-      border-radius: 16px;
-      width: 140px; height: 140px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      position: relative; cursor: pointer;
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-
-    .gift-card:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-      border-image: linear-gradient(45deg, #0ff, #f0f, #ff00ff) 1;
-    }
-
-    .gift-name { font-size: 0.9rem; margin-top: 8px; text-align: center; }
-
-    .gift-info {
-      position: absolute;
-      bottom: 4px;
-      font-size: 0.75rem;
-      color: #aaa;
-      text-align: center;
-    }
-
-    .effects-panel {
-      position: absolute;
-      bottom: 70px;
-      left: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .effect-btn {
-      background: linear-gradient(90deg, #ff00ff, #00ffff);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-      box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
-      transition: transform 0.2s, box-shadow 0.3s;
-    }
-
-    .effect-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(0, 255, 255, 0.6); }
-
-    footer {
-      position: fixed; bottom: 0; left: 0; width: 100%;
-      display: flex; justify-content: space-around; align-items: center;
-      background: rgba(15, 15, 15, 0.9);
-      padding: 10px 0; border-top: 1px solid #222;
-      backdrop-filter: blur(6px);
-    }
-
-    .tab-btn {
-      flex: 1; background: none; border: none; color: #888; font-size: 1rem;
-      font-weight: 600; cursor: pointer; transition: color 0.3s;
-    }
-
-    .tab-btn.active { color: #0ff; text-shadow: 0 0 8px #0ff; }
-
-    .inventory {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: flex-start; gap: 16px; height: calc(100% - 60px); overflow-y: auto;
-      padding-top: 20px;
-    }
-
-    .inventory h2 { color: #0ff; margin-bottom: 10px; }
-
-    .inv-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px; width: 100%; max-width: 600px;
-    }
-
-    .inv-card {
-      background: rgba(30, 30, 30, 0.8); border: 2px solid #0ff;
-      border-radius: 12px; padding: 10px; text-align: center;
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-    }
-
-    .modal {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-      display: flex; justify-content: center; align-items: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background: #111; border: 2px solid #0ff; border-radius: 16px;
-      padding: 24px; text-align: center; box-shadow: 0 0 20px rgba(0,255,255,0.5);
-    }
-
-    .modal button {
-      margin-top: 12px; background: linear-gradient(45deg, #00ffff, #ff00ff);
-      border: none; padding: 10px 16px; border-radius: 8px; color: white; cursor: pointer;
-      font-weight: 600;
-    }
+    /* responsive */
+    @media (max-width:900px){.right{display:none}.app{padding:12px}}
   </style>
 </head>
 <body>
-<div id="root"></div>
-
-<script type="text/babel">
-
-const giftsData = [
-  { name: "Desk Calendar", price: 230 },
-  { name: "Ginger Cookie", price: 362 },
-  { name: "Spy Aragic", price: 600 },
-  { name: "Party Sparkler", price: 360 },
-  { name: "Star Notepad", price: 425 }
-];
-
-const effects = [
-  { name: "Огонь", emoji: "🔥", key: "fire" },
-  { name: "Молния", emoji: "⚡", key: "lightning" },
-  { name: "Кровь", emoji: "🩸", key: "blood" },
-  { name: "Чёрный", emoji: "⚫", key: "black" },
-  { name: "Золото", emoji: "💰", key: "gold" },
-  { name: "Pepe", emoji: "🐸", key: "pepe" }
-];
-
-function GiftCard({ gift, count, onClick }) {
-  const [animationLoaded, setAnimationLoaded] = React.useState(false);
-  const containerRef = React.useRef(null);
-
-  React.useEffect(() => {
-    const path = `${gift.name}/${gift.name}.json`;
-    fetch(path)
-      .then(res => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then(data => {
-        const anim = lottie.loadAnimation({
-          container: containerRef.current,
-          renderer: "svg",
-          loop: false,
-          autoplay: true,
-          animationData: data
-        });
-        anim.addEventListener("DOMLoaded", () => setAnimationLoaded(true));
-        return () => anim.destroy();
-      })
-      .catch(() => setAnimationLoaded(false));
-  }, [gift.name]);
-
-  return (
-    <div className="gift-card" onClick={onClick}>
-      <div style={{ width: 80, height: 80 }} ref={containerRef}>
-        {!animationLoaded && <div style={{ color: "#555", textAlign: "center", paddingTop: "30px" }}>нет файла</div>}
+  <div class="app">
+    <div class="left">
+      <div class="card arena-panel">
+        <div class="arena-topbar">
+          <div>Арена — нажмите и удерживайте по пространству, чтобы разместить шар; удерживайте шар, чтобы надувать.</div>
+          <div class="meta">Шары: <span id="balloonCount">0</span></div>
+        </div>
+        <div id="arena" class="arena" tabindex="0" aria-label="Игровая арена"></div>
       </div>
-      <div className="gift-name">{gift.name}</div>
-      <div className="gift-info">
-        {count > 0 ? `x${count}` : `Купить: ${gift.price}⭐`}
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;color:#bfdfff">Текущее выделение</div>
+          <div id="currentInfo" style="font-weight:700">—</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+          <button id="cashBtn" class="btn" disabled>Забрать</button>
+          <div class="meta">Автосохранение локально</div>
+        </div>
       </div>
     </div>
-  );
-}
 
-function App() {
-  const [tab, setTab] = React.useState("main");
-  const [stars, setStars] = React.useState(1000);
-  const [inventory, setInventory] = React.useState({});
-  const [modal, setModal] = React.useState(null);
+    <div class="right">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="meta">Баланс (симуляция)</div>
+            <div class="balance" id="balance">1000</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <button id="buyBtn" class="btn">Купить шар</button>
+            <div class="meta">Цена по умолчанию: 10</div>
+          </div>
+        </div>
 
-  const buyGift = (gift) => {
-    if (stars < gift.price) {
-      setModal({ text: "Недостаточно звёзд!" });
-      return;
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="seedBtn" class="btn small">Сброс / Новая сессия</button>
+          <button id="demoBtn" class="btn small">Демо: спавн шар автоматически</button>
+          <button id="rulesBtn" class="btn small">Показать правила</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:6px">Лог событий</div>
+        <div id="log" class="log"></div>
+        <footer>Подсказка: интеграция с сервером — см. комментарии в коде</footer>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      Balloon Blast – прототип фронтенда
+      - Нажмите и удерживайте островок в арене, чтобы разместить шар (pointerdown на пустом месте создаёт шар)
+      - Чтобы надуть шар: удерживайте этот шар (pointerdown на самом шаре). При удержании шар растёт.
+      - Можно отпустить и снова зажать тот же шар, чтобы продолжить поддувать.
+      - Нажмите "Забрать" чтобы получить награду по текущему множителю. Если шар лопнет — вы теряете вложение.
+      - Этот код — прототип. Точки интеграции с сервером отмечены TODO.
+    */
+
+    // ----- Конфигурация -----
+    const CONFIG = {
+      basePrice: 10,            // цена покупки шарика (симуляция)
+      inflationPerSec: 18,      // пикселей радиуса в секунду при удержании
+      minRadius: 18,
+      maxSafeRadius: 160,       // после этого шанс резко растёт
+      popBasePerSec: 0.02,      // базовый шанс взрыва в секунду (2%)
+      popRadiusFactor: 0.004,   // добавочный шанс на каждый пикс radius
+      multiplierBase: 1.0,      // множитель при минимальном размере
+      multiplierCurve: 0.014,   // как размер переводится в икс
+      autoframeMs: 60          // частота обновления (ms)
     }
-    setStars(stars - gift.price);
-    setInventory({ ...inventory, [gift.name]: (inventory[gift.name] || 0) + 1 });
-    setModal({ text: `Вы купили ${gift.name}!` });
-  };
 
-  const sellRare = (gift) => {
-    setStars(stars + 300); // временная цена
-    const updated = { ...inventory };
-    updated[gift] = Math.max((updated[gift] || 1) - 1, 0);
-    setInventory(updated);
-  };
+    // ----- Состояние -----
+    let state = {
+      balance: Number(localStorage.getItem('bb_balance')) || 1000,
+      balloons: new Map(), // id -> balloonObj
+      selectedBalloonId: null,
+      nextId: 1
+    }
 
-  return (
-    <div className="app">
-      <header>
-        <div>Gift Evolution</div>
-        <div>{stars}⭐</div>
-      </header>
+    // Элементы DOM
+    const arena = document.getElementById('arena')
+    const balanceEl = document.getElementById('balance')
+    const buyBtn = document.getElementById('buyBtn')
+    const cashBtn = document.getElementById('cashBtn')
+    const currentInfo = document.getElementById('currentInfo')
+    const balloonCount = document.getElementById('balloonCount')
+    const logEl = document.getElementById('log')
+    const demoBtn = document.getElementById('demoBtn')
+    const seedBtn = document.getElementById('seedBtn')
+    const rulesBtn = document.getElementById('rulesBtn')
 
-      {tab === "main" && (
-        <div className="main">
-          <div className="effects-panel">
-            {effects.map(e => (
-              <button key={e.key} className="effect-btn">
-                {e.emoji} {e.name}
-              </button>
-            ))}
-          </div>
+    function saveState(){
+      localStorage.setItem('bb_balance', state.balance)
+    }
 
-          <div className="gifts-column">
-            {giftsData.map(g => (
-              <GiftCard
-                key={g.name}
-                gift={g}
-                count={inventory[g.name] || 0}
-                onClick={() => {
-                  if (!inventory[g.name]) buyGift(g);
-                  else setModal({ text: `${g.name} выбран для улучшения!` });
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+    function log(msg){
+      const time = new Date().toLocaleTimeString()
+      logEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:6px"><b>[${time}]</b> ${escapeHtml(msg)}</div>`)
+    }
 
-      {tab === "inventory" && (
-        <div className="inventory">
-          <h2>Инвентарь</h2>
-          <div className="inv-grid">
-            {Object.entries(inventory).length === 0 && <p>Пока пусто...</p>}
-            {Object.entries(inventory).map(([name, count]) => (
-              <div className="inv-card" key={name}>
-                <strong>{name}</strong>
-                <p>x{count}</p>
-                <button onClick={() => sellRare(name)}>Продать</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])) }
 
-      <footer>
-        <button className={`tab-btn ${tab === "main" ? "active" : ""}`} onClick={() => setTab("main")}>Главная</button>
-        <button className={`tab-btn ${tab === "inventory" ? "active" : ""}`} onClick={() => setTab("inventory")}>Инвентарь</button>
-      </footer>
+    function refreshUI(){
+      balanceEl.textContent = state.balance.toFixed(2)
+      balloonCount.textContent = state.balloons.size
+      const sel = state.selectedBalloonId ? state.balloons.get(state.selectedBalloonId) : null
+      if(sel){
+        currentInfo.innerHTML = `ID ${sel.id} · R=${Math.round(sel.radius)} · x${sel.multiplier.toFixed(2)} · ${sel.state}`
+        cashBtn.disabled = false
+      } else {
+        currentInfo.textContent = '—'
+        cashBtn.disabled = true
+      }
+    }
 
-      {modal && (
-        <div className="modal" onClick={() => setModal(null)}>
-          <div className="modal-content">
-            <p>{modal.text}</p>
-            <button onClick={() => setModal(null)}>ОК</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+    // ----- Балун объект -----
+    function createBalloon(x, y, price){
+      const id = state.nextId++
+      const el = document.createElement('div')
+      el.className = 'balloon'
+      el.style.left = (x)+'px'
+      el.style.top = (y)+'px'
+      el.style.width = (CONFIG.minRadius*2)+'px'
+      el.style.height = (CONFIG.minRadius*2)+'px'
+      el.style.transform = 'translate(-50%,-50%) scale(1)'
+      el.dataset.id = id
+      // color
+      const hue = Math.floor(Math.random()*360)
+      el.style.background = `radial-gradient(circle at 30% 30%, hsla(${hue},95%,70%,0.95), hsla(${hue},80%,45%,0.95))`
+      el.style.boxShadow = `0 10px 30px rgba(2,8,23,0.6), inset 0 -6px 18px rgba(0,0,0,0.24)`
+      // label
+      const lbl = document.createElement('div')
+      lbl.className = 'label'
+      lbl.textContent = 'x1.00'
+      el.appendChild(lbl)
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-</script>
+      // shadow
+      const shadow = document.createElement('div')
+      shadow.className = 'shadow'
+      shadow.style.background = 'radial-gradient(ellipse at center, rgba(0,0,0,0.5), rgba(0,0,0,0))'
+      shadow.style.width = '60px'
+
+      arena.appendChild(el)
+      arena.appendChild(shadow)
+
+      const obj = {
+        id, el, shadow,
+        x, y,
+        radius: CONFIG.minRadius,
+        price: price || CONFIG.basePrice,
+        createdAt: Date.now(),
+        inflatedMs: 0,
+        lastInflateAt: null,
+        popping: false,
+        state: 'idle', // idle | inflating | safe | popped | cashed
+        multiplier: CONFIG.multiplierBase
+      }
+
+      // pointer events to inflate the particular balloon
+      let pointerActive = false
+      function onPointerDown(ev){
+        if(obj.popping || obj.state==='popped' || obj.state==='cashed') return
+        pointerActive = true
+        obj.state = 'inflating'
+        obj.lastInflateAt = performance.now()
+        // select
+        state.selectedBalloonId = obj.id
+        refreshUI()
+        ev.preventDefault()
+      }
+      function onPointerUp(ev){
+        if(pointerActive){
+          pointerActive = false
+          obj.state = 'idle'
+          obj.lastInflateAt = null
+          refreshUI()
+        }
+      }
+
+      el.addEventListener('pointerdown', onPointerDown)
+      window.addEventListener('pointerup', onPointerUp)
+      // to allow reselect via tap
+      el.addEventListener('click',()=>{ state.selectedBalloonId = obj.id; refreshUI() })
+
+      state.balloons.set(id, obj)
+      log(`Шар ${id} размещён (цена ${obj.price}).`) 
+
+      // TODO: здесь можно вызвать серверный хук: onPlaceBalloon({id,x,y,price})
+
+      return obj
+    }
+
+    // ----- механика инфляции и шанс взрыва -----
+    let lastFrame = performance.now()
+    function tick(now){
+      const dt = Math.max(0, now - lastFrame)
+      lastFrame = now
+      for(const [id,obj] of state.balloons){
+        // if inflating
+        if(obj.state==='inflating'){
+          obj.inflatedMs += dt
+          const add = (CONFIG.inflationPerSec * (dt/1000))
+          obj.radius = Math.min(360, obj.radius + add) // hard cap
+        }
+        // update multiplier (simple curve)
+        obj.multiplier = CONFIG.multiplierBase + Math.pow(1 + CONFIG.multiplierCurve*obj.radius, 1.02) - 1
+
+        // compute pop chance per tick
+        const sec = dt/1000
+        const popChance = 1 - Math.exp(- (CONFIG.popBasePerSec + (obj.radius * CONFIG.popRadiusFactor)) * sec )
+        if(!obj.popping && Math.random() < popChance){
+          // POP!
+          doPop(obj)
+        }
+
+        // update DOM size & label
+        obj.el.style.width = (obj.radius*2)+'px'
+        obj.el.style.height = (obj.radius*2)+'px'
+        obj.el.style.left = obj.x + 'px'
+        obj.el.style.top = obj.y + 'px'
+        obj.shadow.style.left = (obj.x - 30) + 'px'
+        obj.shadow.style.bottom = (10 - obj.radius/20) + 'px'
+        obj.shadow.style.opacity = Math.max(0.06, Math.min(0.28, obj.radius/180))
+        obj.shadow.style.width = Math.max(36, Math.min(150, obj.radius*1.2))
+        obj.el.querySelector('.label').textContent = `x${obj.multiplier.toFixed(2)}`
+      }
+
+      refreshUI()
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+
+    function doPop(obj){
+      obj.popping = true
+      obj.state = 'popped'
+      obj.el.classList.add('pop')
+      log(`Шар ${obj.id} лопнул на x${obj.multiplier.toFixed(2)}! Проигрыш вложения ${obj.price}.`)
+
+      // TODO: вызвать серверный хук onPop({id, multiplier, lostPrice})
+
+      // remove after animation
+      setTimeout(()=>{
+        try{ obj.el.remove(); obj.shadow.remove() }catch(e){}
+        state.balloons.delete(obj.id)
+        if(state.selectedBalloonId===obj.id) state.selectedBalloonId = null
+      },450)
+    }
+
+    function cashOutSelected(){
+      const id = state.selectedBalloonId
+      if(!id) return
+      const obj = state.balloons.get(id)
+      if(!obj) return
+      if(obj.popping) return
+
+      // payout calculation
+      const payout = obj.price * obj.multiplier
+      state.balance += payout
+      saveState()
+      log(`Шар ${obj.id} забран — выплата ${payout.toFixed(2)} (x${obj.multiplier.toFixed(2)})`).
+      // visual
+      obj.state = 'cashed'
+      obj.el.classList.add('pop')
+      // TODO: здесь должен быть серверный вызов: onCashOut({id, multiplier, payout})
+
+      setTimeout(()=>{
+        try{ obj.el.remove(); obj.shadow.remove() }catch(e){}
+        state.balloons.delete(obj.id)
+        if(state.selectedBalloonId===obj.id) state.selectedBalloonId = null
+      }, 420)
+    }
+
+    // ----- Arena placement: pointerdown on arena creates balloon and begins inflating immediately -----
+    let placing = false
+    let placingObj = null
+    arena.addEventListener('pointerdown', (ev)=>{
+      // do not create if clicking existing balloon
+      const target = ev.target
+      if(target.classList && target.classList.contains('balloon')) return
+
+      // if user has enough balance
+      if(state.balance < CONFIG.basePrice){ log('Недостаточно средств для покупки шарика.'); return }
+
+      // subtract price (simulate purchase)
+      state.balance -= CONFIG.basePrice
+      saveState()
+
+      const rect = arena.getBoundingClientRect()
+      const x = ev.clientX - rect.left
+      const y = ev.clientY - rect.top
+      placingObj = createBalloon(x, y, CONFIG.basePrice)
+      // start inflating immediately
+      placingObj.state = 'inflating'
+      placingObj.lastInflateAt = performance.now()
+      state.selectedBalloonId = placingObj.id
+      // prevent default to avoid selection
+      ev.preventDefault()
+    })
+
+    // release anywhere will stop inflating the currently active balloon (if any)
+    window.addEventListener('pointerup', ()=>{
+      if(placingObj){
+        if(placingObj.state==='inflating') placingObj.state='idle'
+        placingObj.lastInflateAt = null
+        placingObj = null
+        refreshUI()
+      }
+    })
+
+    // Buy button (creates balloon near center)
+    buyBtn.addEventListener('click', ()=>{
+      if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return }
+      state.balance -= CONFIG.basePrice
+      saveState()
+      const r = arena.getBoundingClientRect()
+      const x = Math.random()*(r.width-100)+50
+      const y = Math.random()*(r.height-100)+50
+      const b = createBalloon(x,y, CONFIG.basePrice)
+      state.selectedBalloonId = b.id
+      refreshUI()
+    })
+
+    cashBtn.addEventListener('click', ()=>{
+      cashOutSelected()
+      refreshUI()
+    })
+
+    demoBtn.addEventListener('click', ()=>{
+      // spawn demo balloons in random positions that auto-inflate then cash out (for demo)
+      for(let i=0;i<3;i++){
+        const r = arena.getBoundingClientRect()
+        const x = Math.random()*(r.width-120)+60
+        const y = Math.random()*(r.height-120)+60
+        const b = createBalloon(x,y, CONFIG.basePrice)
+        // auto-inflate for random time
+        const t = 800 + Math.random()*2200
+        b.state='inflating'
+        setTimeout(()=>{ b.state='idle' }, t)
+      }
+    })
+
+    seedBtn.addEventListener('click', ()=>{
+      // clear arena
+      for(const [id,obj] of state.balloons){ try{ obj.el.remove(); obj.shadow.remove() }catch(e){} }
+      state.balloons.clear()
+      state.selectedBalloonId = null
+      state.balance = 1000
+      saveState()
+      log('Сессия сброшена.')
+      refreshUI()
+    })
+
+    rulesBtn.addEventListener('click', ()=>{
+      alert(`Правила:\n- Нажмите в свободном месте арены чтобы разместить шар (списание цены).\n- Удерживайте палец/мышку на шаре, чтобы надувать его — множитель растёт.\n- Шанс лопнуть растёт с размером.\n- Нажмите "Забрать", чтобы получить выплату по текущему множителю (или интегрируйте это с реальным платёжным бэком).`)
+    })
+
+    // init
+    refreshUI()
+
+    // ==== ВАЖНЫЕ ЗАМЕТКИ ДЛЯ ИНТЕГРАЦИИ С СЕРВЕРОМ ====
+    // 1) ВСЕ платежные операции (покупка шарика, выплата при забирании, учёт подарков) должны происходить на сервере.
+    //    Клиент только инициирует запросы: onPlaceBalloon, onInflateTick, onCashOut, onPop.
+    // 2) Для честности и аудита модель RNG и обработка взрывов лучше держать на сервере.
+    // 3) Поддержка мультиплеера/общей арены потребует вебсокетов: сервер рассылает апдейты о состоянии шаров всем клиентам.
+    // 4) Для защиты от читов — никогда не доверяйте голосам клиента по размеру/времени, проверяйте все транзакции на сервере.
+
+  </script>
 </body>
 </html>
