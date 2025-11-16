@@ -4,296 +4,448 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Balloon Arena</title>
-<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: linear-gradient(180deg, #0a0d16, #0f1320);
-    overflow: hidden;
-    font-family: "Inter", sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
+    * {
+        margin: 0;
+        padding: 0;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        font-family: "Inter", sans-serif;
+        box-sizing: border-box;
+    }
 
-  #ui {
-    position: fixed;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: rgba(255,255,255,0.06);
-    padding: 12px 22px;
-    border-radius: 18px;
-    backdrop-filter: blur(8px);
-    color: #fff;
-    z-index: 20;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-  }
+    body {
+        background: radial-gradient(circle at top, #1d1f27, #0d0e12 60%);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        color: white;
+    }
 
-  #ui button {
-    background: linear-gradient(135deg, #ff3d6e, #ff1550);
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 14px;
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 2px 12px rgba(255,50,90,0.45);
-    transition: 0.2s;
-  }
+    #game-wrapper {
+        width: 100%;
+        max-width: 480px;
+        height: 100vh;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(40px);
+    }
 
-  #ui button:active {
-    transform: scale(0.95);
-  }
+    header {
+        height: 70px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 18px;
+        color: #fff;
+        background: rgba(255,255,255,0.06);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
 
-  #log {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    max-height: 150px;
-    overflow-y: auto;
-    padding: 12px;
-    color: #e0e6ff;
-    font-size: 14px;
-    background: rgba(0,0,0,0.35);
-    backdrop-filter: blur(6px);
-    z-index: 20;
-  }
+    #timer {
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    #score {
+        font-size: 18px;
+        opacity: 0.85;
+    }
+
+    #arena {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: rgba(255,255,255,0.04);
+        border-radius: 22px;
+        margin: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #blow {
+        height: 70px;
+        border-radius: 18px;
+        margin: 8px 16px 16px;
+        background: linear-gradient(135deg, #6d5dfc, #8a7cfe);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #fff;
+        cursor: pointer;
+        box-shadow: 0 4px 18px rgba(109,93,252,0.4);
+    }
+
+    .obstacle {
+        position: absolute;
+        background: rgba(255,255,255,0.12);
+        border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 12px;
+    }
+
+    .spike {
+        background: #ff5d5d;
+    }
+
+    .wall {
+        background: #5d6bff;
+    }
+
+    #log {
+        position: absolute;
+        bottom: 90px;
+        width: 100%;
+        text-align: center;
+        font-size: 17px;
+        opacity: 0.75;
+        pointer-events: none;
+    }
 </style>
 </head>
+
 <body>
-<div id="ui">
-  <button id="claimBtn">Забрать</button>
-  <span>Раунд: <span id="timer">40</span>s</span>
+<div id="game-wrapper">
+    <header>
+        <div id="timer">40</div>
+        <div id="score">x0.00</div>
+    </header>
+
+    <div id="arena"></div>
+
+    <div id="log"></div>
+
+    <div id="blow">Надуть шар</div>
 </div>
-<div id="log"></div>
 
 <script>
-// CONFIG
-const ROUND_DURATION = 40;
-const BALLOON_MIN_RADIUS = 22;
-const BALLOON_MAX_RADIUS = 140;
-const BALLOON_GROW_SPEED = 0.45;
-const WIND_MIN = -90;
-const WIND_MAX = 90;
+/* -----------------------------------------------------
+    Основные параметры
+----------------------------------------------------- */
+const arena = document.getElementById("arena");
+const timerEl = document.getElementById("timer");
+const scoreEl = document.getElementById("score");
+const logEl = document.getElementById("log");
+const blowBtn = document.getElementById("blow");
 
-// Global refs
-let W = window.innerWidth;
-let H = window.innerHeight;
-let game, scene;
 let balloons = [];
 let obstacles = [];
-let roundTimer = ROUND_DURATION;
-let timerInterval = null;
-let pointerDown = false;
-let currentBalloon = null;
-let windForce = 0;
+let roundTime = 40;
+let interval;
+let windX = 0;
+let activeBalloon = null;
 
-const logBox = document.getElementById("log");
-const log = (t) => logBox.innerHTML += t + "<br>";
-
-document.getElementById("claimBtn").onclick = () => {
-  if (!currentBalloon) return;
-  const x = (currentBalloon.radius / 30).toFixed(2);
-  log("Забрал x" + x);
-  scene.removeBalloon(currentBalloon);
-  currentBalloon = null;
-};
-
-window.onload = () => {
-  const config = {
-    type: Phaser.AUTO,
-    width: W,
-    height: H,
-    backgroundColor: 0x0a0f18,
-    physics: {
-      default: 'arcade',
-      arcade: {
-        debug: false,
-      }
-    },
-    scene: { preload, create, update }
-  };
-
-  game = new Phaser.Game(config);
-};
-
-function preload() {}
-
-function create() {
-  scene = this;
-
-  startRound();
-
-  this.input.on("pointerdown", pointerDownHandler);
-  this.input.on("pointermove", pointerMoveHandler);
-  this.input.on("pointerup", () => { pointerDown = false; });
+/* -----------------------------------------------------
+    Уведомления
+----------------------------------------------------- */
+function log(text) {
+    logEl.textContent = text;
+    setTimeout(() => {
+        if (logEl.textContent === text) logEl.textContent = "";
+    }, 1800);
 }
 
-function startRound() {
-  roundTimer = ROUND_DURATION;
-  document.getElementById("timer").innerText = roundTimer;
-  log("Новый раунд!");
+/* -----------------------------------------------------
+    Генерация карты
+----------------------------------------------------- */
+function generateMap() {
+    obstacles.forEach(o => o.remove());
+    obstacles = [];
 
-  clearArena();
-  generateObstacles();
+    const mapTypes = ["wind", "spikes", "walls"];
+    const chosen = mapTypes[Math.floor(Math.random() * mapTypes.length)];
 
-  timerInterval = setInterval(() => {
-    roundTimer--;
-    document.getElementById("timer").innerText = roundTimer;
-
-    if (roundTimer <= 0) {
-      clearInterval(timerInterval);
-      endRound();
+    if (chosen === "wind") {
+        windX = Math.random() < 0.5 ? -0.12 : 0.12;
+        log("Карты с ветром!");
     }
-  }, 1000);
+
+    if (chosen === "spikes") {
+        for (let i = 0; i < 4; i++) {
+            const s = document.createElement("div");
+            s.className = "obstacle spike";
+            s.style.width = "40px";
+            s.style.height = "40px";
+            s.style.left = Math.random() * (arena.clientWidth - 40) + "px";
+            s.style.top = Math.random() * (arena.clientHeight - 40) + "px";
+            arena.appendChild(s);
+            obstacles.push(s);
+        }
+        log("Осторожно, шипы!");
+    }
+
+    if (chosen === "walls") {
+        for (let i = 0; i < 2; i++) {
+            const w = document.createElement("div");
+            w.className = "obstacle wall";
+            w.style.width = "160px";
+            w.style.height = "20px";
+            w.style.left = Math.random() * (arena.clientWidth - 160) + "px";
+            w.style.top = Math.random() * (arena.clientHeight - 20) + "px";
+            arena.appendChild(w);
+            obstacles.push(w);
+        }
+        log("Стены!");
+    }
+}
+
+/* -----------------------------------------------------
+    Физика
+----------------------------------------------------- */
+function updatePhysics() {
+    balloons.forEach(balloon => {
+        if (!balloon.isDragging && !balloon.burst) {
+            // ветер
+            balloon.vx += windX;
+
+            // движение + столкновения со стенками ареной
+            balloon.x += balloon.vx;
+            balloon.y += balloon.vy;
+
+            if (balloon.x - balloon.r < 0) { balloon.x = balloon.r; balloon.vx *= -0.8; }
+            if (balloon.x + balloon.r > arena.clientWidth) { balloon.x = arena.clientWidth - balloon.r; balloon.vx *= -0.8; }
+            if (balloon.y - balloon.r < 0) { balloon.y = balloon.r; balloon.vy *= -0.8; }
+            if (balloon.y + balloon.r > arena.clientHeight) { balloon.y = arena.clientHeight - balloon.r; balloon.vy *= -0.8; }
+
+            // столкновения между шарами
+            balloons.forEach(other => {
+                if (other !== balloon && !other.burst) {
+                    const dx = other.x - balloon.x;
+                    const dy = other.y - balloon.y;
+                    const dist = Math.hypot(dx, dy);
+                    const minDist = balloon.r + other.r;
+
+                    if (dist < minDist) {
+                        const overlap = minDist - dist;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+
+                        balloon.x -= nx * overlap * 0.5;
+                        balloon.y -= ny * overlap * 0.5;
+                        other.x += nx * overlap * 0.5;
+                        other.y += ny * overlap * 0.5;
+
+                        balloon.vx -= nx * 0.2;
+                        balloon.vy -= ny * 0.2;
+                        other.vx += nx * 0.2;
+                        other.vy += ny * 0.2;
+                    }
+                }
+            });
+
+            // столкновения препятствиями
+            obstacles.forEach(o => {
+                const rect = o.getBoundingClientRect();
+                const ox = rect.left - arena.getBoundingClientRect().left;
+                const oy = rect.top - arena.getBoundingClientRect().top;
+                const ow = rect.width;
+                const oh = rect.height;
+
+                // шипы → лопнуть
+                if (o.classList.contains("spike")) {
+                    const dx = Math.max(ox, Math.min(balloon.x, ox + ow));
+                    const dy = Math.max(oy, Math.min(balloon.y, oy + oh));
+                    const dist = Math.hypot(balloon.x - dx, balloon.y - dy);
+                    if (dist < balloon.r) burst(balloon);
+                }
+
+                // стены → упругая реакция
+                if (o.classList.contains("wall")) {
+                    const dx = Math.max(ox, Math.min(balloon.x, ox + ow));
+                    const dy = Math.max(oy, Math.min(balloon.y, oy + oh));
+                    const dist = Math.hypot(balloon.x - dx, balloon.y - dy);
+                    if (dist < balloon.r) {
+                        balloon.vx *= -1;
+                        balloon.vy *= -1;
+                    }
+                }
+            });
+
+            balloon.el.style.left = (balloon.x - balloon.r) + "px";
+            balloon.el.style.top = (balloon.y - balloon.r) + "px";
+        }
+    });
+
+    requestAnimationFrame(updatePhysics);
+}
+
+/* -----------------------------------------------------
+    Создание шара
+----------------------------------------------------- */
+function createBalloon(x, y) {
+    const el = document.createElement("div");
+    el.style.position = "absolute";
+    el.style.width = "20px";
+    el.style.height = "20px";
+    el.style.borderRadius = "50%";
+    el.style.background = "radial-gradient(circle at 30% 30%, #ff79c6, #d43f8d)";
+    el.style.left = (x - 10) + "px";
+    el.style.top = (y - 10) + "px";
+
+    arena.appendChild(el);
+
+    const balloon = {
+        el,
+        x,
+        y,
+        r: 10,
+        vx: 0,
+        vy: 0,
+        burst: false,
+        isDragging: true,
+        firstGrow: true,
+        growthRate: 0.35,
+        startX: x,
+        startY: y
+    };
+
+    balloons.push(balloon);
+
+    return balloon;
+}
+
+/* -----------------------------------------------------
+    Лопнуть
+----------------------------------------------------- */
+function burst(balloon) {
+    if (balloon.burst) return;
+
+    balloon.burst = true;
+    balloon.el.style.transition = "0.15s";
+    balloon.el.style.transform = "scale(1.6)";
+    balloon.el.style.opacity = "0";
+
+    setTimeout(() => balloon.el.remove(), 200);
+
+    log("Шар лопнул!");
+}
+
+/* -----------------------------------------------------
+    Надувание
+----------------------------------------------------- */
+document.addEventListener("touchstart", handleStart);
+document.addEventListener("touchmove", handleMove);
+document.addEventListener("touchend", handleEnd);
+
+let isTouching = false;
+
+function handleStart(e) {
+    if (isTouching) return;
+    isTouching = true;
+
+    const rect = arena.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    const y = e.touches[0].clientY - rect.top;
+
+    activeBalloon = createBalloon(x, y);
+}
+
+function handleMove(e) {
+    if (!activeBalloon || activeBalloon.burst) return;
+    const rect = arena.getBoundingClientRect();
+    const x = e.touches[0].clientX - rect.left;
+    const y = e.touches[0].clientY - rect.top;
+
+    if (activeBalloon.firstGrow) {
+        // перетаскивание
+        activeBalloon.x = x;
+        activeBalloon.y = y;
+        activeBalloon.el.style.left = (x - activeBalloon.r) + "px";
+        activeBalloon.el.style.top = (y - activeBalloon.r) + "px";
+    }
+
+    // надувание только если не пересекается с препятствиями
+    const newR = activeBalloon.r + activeBalloon.growthRate;
+
+    if (!collidesWithObstacles(activeBalloon.x, activeBalloon.y, newR)) {
+        activeBalloon.r = newR;
+        activeBalloon.el.style.width = (newR * 2) + "px";
+        activeBalloon.el.style.height = (newR * 2) + "px";
+        activeBalloon.el.style.left = (activeBalloon.x - newR) + "px";
+        activeBalloon.el.style.top = (activeBalloon.y - newR) + "px";
+    }
+}
+
+function handleEnd(e) {
+    if (activeBalloon) {
+        activeBalloon.firstGrow = false;
+        activeBalloon.isDragging = false;
+    }
+    activeBalloon = null;
+    isTouching = false;
+}
+
+/* Проверка столкновения шара с препятствиями */
+function collidesWithObstacles(cx, cy, r) {
+    return obstacles.some(o => {
+        const rect = o.getBoundingClientRect();
+        const ox = rect.left - arena.getBoundingClientRect().left;
+        const oy = rect.top - arena.getBoundingClientRect().top;
+        const ow = rect.width;
+        const oh = rect.height;
+
+        const dx = Math.max(ox, Math.min(cx, ox + ow));
+        const dy = Math.max(oy, Math.min(cy, oy + oh));
+
+        const dist = Math.hypot(cx - dx, cy - dy);
+        return dist < r;
+    });
+}
+
+/* -----------------------------------------------------
+    Раунд
+----------------------------------------------------- */
+function startRound() {
+    balloons.forEach(b => b.el.remove());
+    balloons = [];
+
+    windX = 0;
+    generateMap();
+
+    timerEl.textContent = roundTime;
+    let t = roundTime;
+
+    interval = setInterval(() => {
+        t--;
+        timerEl.textContent = t;
+
+        if (t <= 0) {
+            clearInterval(interval);
+            endRound();
+        }
+    }, 1000);
 }
 
 function endRound() {
-  log("Раунд окончен.");
-  balloons.forEach(b => {
-    const x = (b.radius / 30).toFixed(2);
-    log("Ваш x" + x);
-    b.sprite.destroy();
-  });
+    let best = 0;
 
-  balloons = [];
-  currentBalloon = null;
-  startRound();
+    balloons.forEach(b => {
+        if (!b.burst) {
+            const score = b.r / 10;
+            best = Math.max(best, score);
+        }
+        b.el.remove();
+    });
+
+    balloons = [];
+
+    scoreEl.textContent = "x" + best.toFixed(2);
+
+    log("Раунд завершён. Награда: x" + best.toFixed(2));
+
+    setTimeout(startRound, 2000);
 }
 
-function clearArena() {
-  obstacles.forEach(o => o.destroy());
-  obstacles = [];
-  balloons.forEach(b => b.sprite.destroy());
-  balloons = [];
-}
-
-function generateObstacles() {
-  // Walls
-  let topWall = createWall(W / 2, 20, W * 0.8, 24);
-  let bottomWall = createWall(W / 2, H - 20, W * 0.8, 24);
-
-  obstacles.push(topWall, bottomWall);
-
-  // Spikes
-  for (let i = 0; i < 5; i++) {
-    let s = createSpike(
-      Phaser.Math.Between(60, W - 60),
-      Phaser.Math.Between(80, H - 80)
-    );
-    obstacles.push(s);
-  }
-
-  // Wind
-  windForce = Phaser.Math.FloatBetween(WIND_MIN, WIND_MAX);
-  log("Ветер: " + windForce.toFixed(1));
-}
-
-function createWall(x, y, w, h) {
-  let rect = scene.add.rectangle(x, y, w, h, 0x202636);
-  scene.physics.add.existing(rect, true);
-  rect.isWall = true;
-  return rect;
-}
-
-function createSpike(x, y) {
-  let s = scene.add.triangle(x, y, 0, 40, 20, 0, 40, 40, 0xff3355);
-  scene.physics.add.existing(s, true);
-  s.isSpike = true;
-  return s;
-}
-
-function pointerDownHandler(pointer) {
-  pointerDown = true;
-  currentBalloon = createBalloon(pointer.x, pointer.y);
-  balloons.push(currentBalloon);
-}
-
-function pointerMoveHandler(pointer) {
-  if (!pointerDown || !currentBalloon) return;
-  if (currentBalloon.radius <= BALLOON_MIN_RADIUS + 2) {
-    currentBalloon.sprite.x = pointer.x;
-    currentBalloon.sprite.y = pointer.y;
-  }
-}
-
-function createBalloon(x, y) {
-  let c = scene.add.circle(x, y, BALLOON_MIN_RADIUS, 0x55aaff);
-  scene.physics.add.existing(c);
-  c.body.setCircle(BALLOON_MIN_RADIUS);
-  c.body.setCollideWorldBounds(true);
-  c.body.setBounce(0.85);
-
-  obstacles.forEach(o => scene.physics.add.collider(c, o));
-
-  return { sprite: c, radius: BALLOON_MIN_RADIUS };
-}
-
-function update() {
-  balloons.forEach(b => {
-    b.sprite.body.velocity.x += windForce * 0.015;
-  });
-
-  if (pointerDown && currentBalloon) inflateBalloon(currentBalloon);
-
-  for (let i = 0; i < balloons.length; i++)
-    for (let j = i + 1; j < balloons.length; j++)
-      scene.physics.world.collide(balloons[i].sprite, balloons[j].sprite);
-}
-
-function inflateBalloon(b) {
-  if (b.radius >= BALLOON_MAX_RADIUS) return explode(b);
-
-  let newR = b.radius + BALLOON_GROW_SPEED;
-  if (!canExpand(b, newR)) return;
-
-  b.radius = newR;
-  b.sprite.setRadius(newR);
-  b.sprite.body.setCircle(newR);
-  b.sprite.body.mass = newR / 12;
-
-  if (Math.random() < (b.radius / 2600)) explode(b);
-}
-
-function canExpand(balloon, newR) {
-  for (let o of obstacles) {
-    let dx = balloon.sprite.x - o.x;
-    let dy = balloon.sprite.y - o.y;
-    let dist = Math.sqrt(dx*dx + dy*dy);
-
-    if (o.isWall && dist < newR + 28) return false;
-    if (o.isSpike && dist < newR + 35) return explode(balloon), false;
-  }
-  return true;
-}
-
-function explode(b) {
-  let x = b.sprite.x, y = b.sprite.y;
-  let particles = scene.add.particles();
-  let emitter = particles.createEmitter({
-    x, y,
-    speed: {min: -220, max: 220},
-    scale: { start: 0.5, end: 0 },
-    lifespan: 700,
-    tint: 0xff3355
-  });
-
-  setTimeout(() => particles.destroy(), 700);
-
-  log("Шар лопнул! x" + (b.radius / 30).toFixed(2));
-  scene.removeBalloon(b);
-}
-
-Phaser.Scene.prototype.removeBalloon = function(b) {
-  let idx = balloons.indexOf(b);
-  if (idx >= 0) balloons.splice(idx, 1);
-  b.sprite.destroy();
-};
+/* -----------------------------------------------------
+    Старт игры
+----------------------------------------------------- */
+updatePhysics();
+startRound();
 </script>
 </body>
 </html>
