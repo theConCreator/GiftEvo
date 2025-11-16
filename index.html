@@ -1,804 +1,205 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Balloon Blast — Арена с ветром, шипами и раундами</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Balloon Arena</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
 <style>
-  :root{
-    --bg1:#061022; --bg2:#081634; --panel:#071428;
-    --accent:#5ec0ff; --accent2:#7c3aed; --danger:#ff6b6b;
-    --glass: rgba(255,255,255,0.03);
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  }
-
-  /* no native selection highlight */
-  *{ -webkit-tap-highlight-color: transparent; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; box-sizing:border-box }
-  :focus{ outline: none }
-
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#eaf6ff}
-  .app{display:flex;gap:16px;padding:16px;height:100vh;align-items:stretch}
-
-  /* Left: arena */
-  .left{flex:1;display:flex;flex-direction:column;gap:12px}
-  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 8px 40px rgba(2,8,28,0.6);border:1px solid rgba(255,255,255,0.03)}
-  .arena-wrap{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-  .arena-title{font-weight:700}
-  .meta{font-size:13px;color:#bcd8ff88}
-  #arena{position:relative;height:72vh;border-radius:10px;background:
-    linear-gradient(180deg,#041022,#051225);overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
-
-  /* balloon: position uses left/top as top-left; radius controls size */
-  .balloon{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;will-change:transform,left,top,width,height;box-shadow:0 12px 28px rgba(5,10,20,0.6), inset 0 -8px 18px rgba(0,0,0,0.25)}
-  .balloon:active{cursor:grabbing}
-  .balloon .label{font-weight:800;font-size:13px;color:rgba(255,255,255,0.96);text-shadow:0 1px 0 rgba(0,0,0,0.5);pointer-events:none}
-  .balloon .idtag{position:absolute;left:8px;top:6px;font-size:11px;padding:4px 6px;border-radius:999px;background:rgba(0,0,0,0.16);pointer-events:none}
-  .balloon .ground{position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;width:60%;height:10px;border-radius:999px;filter:blur(6px);opacity:.12;pointer-events:none}
-
-  /* pop/burst */
-  .burst{position:absolute;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);z-index:900}
-  @keyframes burstAnim{0%{transform:translate(-50%,-50%) scale(0.2);opacity:1}60%{transform:translate(-50%,-50%) scale(1.6);opacity:0.9}100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
-
-  /* obstacles */
-  .obs-wind{position:absolute;background:linear-gradient(90deg, rgba(90,192,255,0.12), rgba(124,58,237,0.08));border-radius:8px;border:1px dashed rgba(92,192,255,0.06);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.75);font-weight:700}
-  .obs-spikes{position:absolute;pointer-events:none} /* drawn by canvas-like shapes via CSS pseudo */
-  .wall{position:absolute;background:linear-gradient(180deg,#0b1726,#06111a);border-radius:6px;border:1px solid rgba(255,255,255,0.03);box-shadow:inset 0 -6px 10px rgba(0,0,0,0.3)}
-
-  /* right column */
-  .right{width:420px;display:flex;flex-direction:column;gap:12px}
-  .balance{font-size:22px;font-weight:900;color:var(--accent)}
-  .controls{display:flex;gap:8px;align-items:center}
-  .btn{background:linear-gradient(180deg,#16325a,#0f2746);padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);cursor:pointer;color:#e9f6ff;font-weight:800}
-  .btn.warn{background:linear-gradient(180deg,#8f2b2b,#5a1b1b)}
-  .small{padding:6px 10px;font-size:13px}
-
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
-  .log{height:160px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
-  .results{height:120px;overflow:auto;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
-
-  .hud{display:flex;gap:8px;align-items:center}
-  .timer{font-weight:900;color:var(--accent2);font-size:18px;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.02)}
-  .legend{font-size:13px;color:#bcd8ff88}
-
-  /* responsive */
-  @media (max-width:1000px){ .right{display:none} .app{padding:12px} #arena{height:68vh} }
+ body { margin:0; background:#0a0a0f; overflow:hidden; font-family:Arial; }
+ #ui { position:fixed; top:0; left:0; width:100%; padding:10px; color:white; text-align:center; z-index:10; }
+ #ui button { padding:10px 18px; border:none; border-radius:8px; background:#ff3c6a; color:white; font-size:16px; }
+ #log { position:fixed; bottom:0; left:0; width:100%; max-height:120px; overflow-y:auto; color:white; padding:8px; background:rgba(0,0,0,0.4); font-size:14px; }
 </style>
 </head>
 <body>
-  <div class="app">
-    <div class="left">
-      <div class="panel">
-        <div class="arena-wrap">
-          <div>
-            <div class="arena-title">Арена — режим раундов (40 сек)</div>
-            <div class="meta">Создавай шар в пустом месте, удерживай/перетаскивай его чтобы надувать. После 40 сек — раунд завершится.</div>
-          </div>
-          <div class="hud">
-            <div class="timer" id="timer">—</div>
-            <div class="legend">Шары: <span id="balloonCount">0</span></div>
-          </div>
-        </div>
-        <div id="arena"></div>
-      </div>
-
-      <div class="panel" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div class="meta">Текущее выделение</div>
-          <div id="currentInfo" style="font-weight:800">—</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-          <button id="cashBtn" class="btn" disabled>Забрать</button>
-          <div class="meta">Игра в демо-режиме — интеграция платежей на сервере.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="right">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div class="meta">Баланс (демо)</div>
-            <div class="balance" id="balance">1000</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-            <button id="buyBtn" class="btn">Купить шар (10)</button>
-            <div class="meta">Цена: 10</div>
-          </div>
-        </div>
-
-        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="seedBtn" class="btn small">Сброс</button>
-          <button id="demoBtn" class="btn small">Демо: авто-спавн</button>
-          <button id="rulesBtn" class="btn small">Правила</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:900;margin-bottom:6px">Результаты раундов</div>
-        <div id="results" class="results"></div>
-        <hr style="margin:8px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)" />
-        <div style="font-weight:900;margin-bottom:6px">Лог</div>
-        <div id="log" class="log"></div>
-      </div>
-    </div>
-  </div>
-
+<div id="ui">
+ <button id="claimBtn">Забрать</button>
+ <span id="timer">40</span>s
+</div>
+<div id="log"></div>
 <script>
-/*
-  Balloon Blast — расширенный прототип:
-  - inflates from center
-  - can drag while first inflating
-  - obstacles: wind zones, spikes, walls
-  - round = 40s; at round end remaining balloons auto-cash; map regenerates
-  - improved physics and visuals
-*/
+const W = window.innerWidth;
+const H = window.innerHeight;
+let game, scene;
+let balloons = [];
+let obstacles = [];
+let roundTime = 40;
+let roundTimer = roundTime;
+let currentBalloon = null;
+let pointerDown = false;
+let windForce = 0;
 
-// ------ CONFIG -------
-const CONFIG = {
-  basePrice: 10,
-  inflationPerSec: 34,   // px radius per second
-  minRadius: 18,
-  maxRadius: 220,
-  popBasePerSec: 0.015,  // base pop rate per second
-  popRadiusFactor: 0.0039,
-  multiplierBase: 1.0,
-  multiplierCurve: 0.0126,
-  friction: 0.992,
-  bounceDamping: 0.82,
-  roundDurationSec: 40,
-  arenaPadding: 8
+const log = (t)=>{ document.getElementById('log').innerHTML += t+"<br>"; };
+
+document.getElementById("claimBtn").onclick = ()=>{
+ if(currentBalloon){
+  const x = (currentBalloon.radius/30).toFixed(2);
+  log("Забрал x"+x);
+  scene.removeBalloon(currentBalloon);
+  currentBalloon = null;
+ }
 };
 
-// ------ STATE -------
-let state = {
-  balance: Number(localStorage.getItem('bb_balance')) || 1000,
-  balloons: new Map(),
-  nextId: 1,
-  selectedBalloonId: null,
-  obstacles: [], // list of obstacle objects
-  round: 1,
-  roundEndsAt: Date.now() + CONFIG.roundDurationSec*1000,
-  running: true
+window.onload = ()=>{
+ const config = {
+  type: Phaser.AUTO,
+  width: W,
+  height: H,
+  backgroundColor: '#101018',
+  physics: { default: 'arcade', arcade:{ debug:false } },
+  scene: { preload, create, update }
+ };
+ game = new Phaser.Game(config);
 };
 
-// DOM
-const arena = document.getElementById('arena');
-const balanceEl = document.getElementById('balance');
-const balloonCountEl = document.getElementById('balloonCount');
-const timerEl = document.getElementById('timer');
-const buyBtn = document.getElementById('buyBtn');
-const cashBtn = document.getElementById('cashBtn');
-const currentInfo = document.getElementById('currentInfo');
-const logEl = document.getElementById('log');
-const resultsEl = document.getElementById('results');
-const demoBtn = document.getElementById('demoBtn');
-const seedBtn = document.getElementById('seedBtn');
-const rulesBtn = document.getElementById('rulesBtn');
+function preload(){ }
 
-function saveState(){ localStorage.setItem('bb_balance', state.balance) }
-function log(msg){ const time = new Date().toLocaleTimeString(); logEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:6px"><b>[${time}]</b> ${escapeHtml(msg)}</div>`); }
-function pushResult(msg){ const time = new Date().toLocaleTimeString(); resultsEl.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:8px"><b>[${time}]</b> ${escapeHtml(msg)}</div>`); }
-function escapeHtml(s){ return (s+'').replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])) }
-
-function refreshUI(){
-  balanceEl.textContent = state.balance.toFixed(2);
-  balloonCountEl.textContent = state.balloons.size;
-  const sel = state.selectedBalloonId ? state.balloons.get(state.selectedBalloonId) : null;
-  if(sel){
-    currentInfo.innerHTML = `#${sel.id} · R=${Math.round(sel.radius)} · x${sel.multiplier.toFixed(2)} · ${sel.state}`;
-    cashBtn.disabled = false;
-  } else {
-    currentInfo.textContent = '—';
-    cashBtn.disabled = true;
-  }
+function create(){
+ scene = this;
+ roundStart();
+ this.input.on('pointerdown', startBalloon);
+ this.input.on('pointerup', ()=>{ pointerDown=false; });
+ this.input.on('pointermove', dragBalloon);
 }
 
-// ----- Obstacle utilities -----
-/*
- obstacles types:
-  - wind: {type:'wind', x,y,w,h, vx, vy, strength}
-  - spikes: {type:'spikes', x,y,w,h}
-  - wall: {type:'wall', x,y,w,h}
-*/
-function randomMap(){
-  // clear old obstacles DOM nodes
-  for(const o of state.obstacles){
-    if(o.el) try{o.el.remove()}catch(e){}
-  }
-  state.obstacles = [];
-  const rect = arena.getBoundingClientRect();
-  const W = Math.max(400, rect.width);
-  const H = Math.max(300, rect.height);
-
-  // generate random number of obstacles based on round
-  const windCount = 1 + Math.floor(Math.random()*2); // 1-2 winds
-  const spikesCount = 1 + Math.floor(Math.random()*3); //1-3 spikes
-  const wallCount = 1 + Math.floor(Math.random()*2); //1-2 walls
-
-  function placeRect(w,h){
-    const pad = 40;
-    const x = pad + Math.random()*(W - pad*2 - w);
-    const y = pad + Math.random()*(H - pad*2 - h);
-    return {x,y,w,h};
-  }
-
-  // create winds
-  for(let i=0;i<windCount;i++){
-    const w = 80 + Math.random()*160;
-    const h = 60 + Math.random()*100;
-    const p = placeRect(w,h);
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    const strength = 40 + Math.random()*80; // pixels/sec^2 equivalent (applied gently)
-    const vx = dir * (10 + Math.random()*35);
-    const vy = (Math.random()-0.5)*20;
-    const o = { type:'wind', x:p.x, y:p.y, w:p.w, h:p.h, vx, vy, strength, id: 'wind'+i };
-    // DOM
-    const el = document.createElement('div');
-    el.className = 'obs-wind';
-    el.style.left = o.x + 'px';
-    el.style.top = o.y + 'px';
-    el.style.width = o.w + 'px';
-    el.style.height = o.h + 'px';
-    el.textContent = o.vx>0 ? '→' : '←';
-    arena.appendChild(el);
-    o.el = el;
-    state.obstacles.push(o);
-  }
-
-  // spikes
-  for(let i=0;i<spikesCount;i++){
-    const w = 40 + Math.random()*120;
-    const h = 24 + Math.random()*40;
-    const p = placeRect(w,h);
-    const o = { type:'spikes', x:p.x, y:p.y, w:p.w, h:p.h, id:'spk'+i };
-    // DOM: draw a spikes bar (using SVG)
-    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('class','obs-spikes');
-    svg.setAttribute('width',o.w);
-    svg.setAttribute('height',o.h);
-    svg.style.left = o.x + 'px';
-    svg.style.top = o.y + 'px';
-    // draw triangles
-    const triCount = Math.max(3, Math.floor(o.w/20));
-    const poly = document.createElementNS('http://www.w3.org/2000/svg','g');
-    for(let t=0;t<triCount;t++){
-      const tx = (t/triCount)*o.w;
-      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-      const px1 = tx, py1 = o.h;
-      const px2 = tx + o.w/triCount*0.9, py2 = o.h;
-      const px3 = tx + o.w/triCount*0.45, py3 = 0;
-      path.setAttribute('d', `M ${px1} ${py1} L ${px3} ${py3} L ${px2} ${py2} Z`);
-      path.setAttribute('fill', 'linear-gradient'? '#ffb3b3' : '#ff9b9b');
-      path.setAttribute('opacity','0.95');
-      path.setAttribute('stroke','rgba(0,0,0,0.08)');
-      poly.appendChild(path);
-    }
-    svg.appendChild(poly);
-    arena.appendChild(svg);
-    o.el = svg;
-    state.obstacles.push(o);
-  }
-
-  // walls
-  for(let i=0;i<wallCount;i++){
-    const w = 80 + Math.random()*200;
-    const h = 20 + Math.random()*60;
-    const p = placeRect(w,h);
-    // randomly vertical or horizontal
-    if(Math.random() < 0.5){
-      // vertical wall
-      const oh = 80 + Math.random()*220;
-      const o = { type:'wall', x:p.x, y:p.y, w:24, h:oh, id:'wallv'+i };
-      const el = document.createElement('div');
-      el.className = 'wall';
-      el.style.left = o.x + 'px';
-      el.style.top = o.y + 'px';
-      el.style.width = o.w + 'px';
-      el.style.height = o.h + 'px';
-      arena.appendChild(el);
-      o.el = el;
-      state.obstacles.push(o);
-    } else {
-      // horizontal
-      const oh = 24;
-      const o = { type:'wall', x:p.x, y:p.y, w:w, h:oh, id:'wallh'+i };
-      const el = document.createElement('div');
-      el.className = 'wall';
-      el.style.left = o.x + 'px';
-      el.style.top = o.y + 'px';
-      el.style.width = o.w + 'px';
-      el.style.height = o.h + 'px';
-      arena.appendChild(el);
-      o.el = el;
-      state.obstacles.push(o);
-    }
-  }
-
-  log(`Новая карта: ${state.obstacles.length} препятствий (ветер ${windCount}, шипы ${spikesCount}, стены ${wallCount}).`);
+function roundStart(){
+ roundTimer = roundTime;
+ obstacles.forEach(o=>o.destroy());
+ obstacles = [];
+ balloons.forEach(b=>b.sprite.destroy());
+ balloons = [];
+ generateObstacles();
+ const t = setInterval(()=>{
+  roundTimer--;
+  document.getElementById('timer').innerText = roundTimer;
+  if(roundTimer<=0){ clearInterval(t); roundEnd(); }
+ },1000);
 }
 
-// ----- Balloon creation & interaction -----
-function createBalloon(cx, cy, price){
-  const id = state.nextId++;
-  const el = document.createElement('div');
-  el.className = 'balloon';
-  el.dataset.id = id;
-  const hue = 40 + Math.floor(Math.random()*300);
-  el.style.background = `radial-gradient(circle at 30% 25%, hsla(${hue},92%,78%,0.98), hsla(${hue+12},82%,44%,0.98))`;
-  // initial top-left coordinates computed from center + radius
-  const label = document.createElement('div'); label.className = 'label'; label.textContent = 'x1.00';
-  const idtag = document.createElement('div'); idtag.className = 'idtag'; idtag.textContent = `#${id}`;
-  const ground = document.createElement('div'); ground.className = 'ground'; ground.style.background = 'radial-gradient(ellipse at center, rgba(0,0,0,0.55), rgba(0,0,0,0))';
-  el.appendChild(label); el.appendChild(idtag); el.appendChild(ground);
-  arena.appendChild(el);
-
-  const obj = {
-    id, el, cx, cy,
-    vx: (Math.random()-0.5)*0.8, vy:(Math.random()-0.5)*0.8,
-    radius: CONFIG.minRadius,
-    price: price || CONFIG.basePrice,
-    createdAt: Date.now(),
-    inflatedMs: 0,
-    lastInflateAt: null,
-    popping: false,
-    state: 'idle', // idle | inflating | popped | cashed | dragging
-    multiplier: CONFIG.multiplierBase,
-    dragging: false,
-    pointerId: null,
-    recentPointerVel: {x:0,y:0},
-    lastPointer: null
-  };
-
-  // set initial position (top-left)
-  updateElemPosition(obj);
-
-  // pointer handlers: allow drag while inflating (pointer capture)
-  function onPointerDown(e){
-    if(obj.popping || obj.state==='popped' || obj.state==='cashed') return;
-    el.setPointerCapture(e.pointerId);
-    obj.pointerId = e.pointerId;
-    obj.dragging = true;
-    obj.state = 'inflating'; // start inflating immediately
-    obj.lastInflateAt = performance.now();
-    obj.lastPointer = {x:e.clientX, y:e.clientY, t:performance.now()};
-    obj.recentPointerVel = {x:0,y:0};
-    state.selectedBalloonId = obj.id;
-    refreshUI();
-    e.preventDefault();
-  }
-  function onPointerMove(e){
-    if(!obj.dragging || obj.pointerId !== e.pointerId) return;
-    const rect = arena.getBoundingClientRect();
-    const nx = e.clientX - rect.left;
-    const ny = e.clientY - rect.top;
-    // update center
-    obj.cx = Math.max(CONFIG.arenaPadding + obj.radius, Math.min(rect.width - CONFIG.arenaPadding - obj.radius, nx));
-    obj.cy = Math.max(CONFIG.arenaPadding + obj.radius, Math.min(rect.height - CONFIG.arenaPadding - obj.radius, ny));
-    // velocity estimator
-    const now = performance.now();
-    const dt = Math.max(6, now - (obj.lastPointer?.t || now));
-    const dx = (e.clientX - (obj.lastPointer?.x || e.clientX));
-    const dy = (e.clientY - (obj.lastPointer?.y || e.clientY));
-    obj.recentPointerVel = {x: dx/dt*1000, y: dy/dt*1000};
-    obj.lastPointer = {x:e.clientX, y:e.clientY, t:now};
-    updateElemPosition(obj);
-    e.preventDefault();
-  }
-  function onPointerUp(e){
-    if(obj.pointerId !== e.pointerId) return;
-    try{ el.releasePointerCapture(e.pointerId) }catch(e){}
-    obj.pointerId = null;
-    obj.dragging = false;
-    // set velocity on release derived from recent pointer
-    obj.vx = obj.recentPointerVel.x * 0.007;
-    obj.vy = obj.recentPointerVel.y * 0.007;
-    obj.state = 'idle';
-    obj.lastPointer = null;
-    state.selectedBalloonId = obj.id;
-    refreshUI();
-    e.preventDefault();
-  }
-
-  el.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-
-  state.balloons.set(id, obj);
-  log(`Шар #${id} создан по цене ${obj.price}.`);
-  return obj;
+function roundEnd(){
+ balloons.forEach(b=>{
+  const x = (b.radius/30).toFixed(2);
+  log("Раунд окончен. Ваш x"+x);
+  b.sprite.destroy();
+ });
+ balloons = [];
+ currentBalloon=null;
+ roundStart();
 }
 
-function updateElemPosition(obj){
-  // left/top represent top-left; center is cx,cy
-  const left = obj.cx - obj.radius;
-  const top = obj.cy - obj.radius;
-  obj.el.style.left = left + 'px';
-  obj.el.style.top = top + 'px';
-  obj.el.style.width = (obj.radius*2) + 'px';
-  obj.el.style.height = (obj.radius*2) + 'px';
-  // ground shadow adjusts with size
-  const g = obj.el.querySelector('.ground');
-  if(g){
-    const w = Math.max(26, obj.radius*2*0.55);
-    g.style.width = w + 'px';
-    g.style.opacity = Math.min(0.28, obj.radius/200 + 0.06);
-  }
-  // label
-  const lbl = obj.el.querySelector('.label');
-  if(lbl) lbl.textContent = `x${obj.multiplier.toFixed(2)}`;
+function generateObstacles(){
+ // walls
+ const wall1 = scene.add.rectangle(W/2, 20, W*0.6, 20, 0x333344);
+ const wall2 = scene.add.rectangle(W/2, H-20, W*0.6, 20, 0x333344);
+ scene.physics.add.existing(wall1, true);
+ scene.physics.add.existing(wall2, true);
+ obstacles.push(wall1, wall2);
+
+ // spikes
+ for(let i=0;i<4;i++){
+  let s = scene.add.triangle(
+   Phaser.Math.Between(60,W-60),
+   Phaser.Math.Between(60,H-60),
+   0,40, 20,0, 40,40,
+   0xff0033
+  );
+  scene.physics.add.existing(s, true);
+  s.isSpike = true;
+  obstacles.push(s);
+ }
+
+ // wind
+ windForce = Phaser.Math.FloatBetween(-80,80);
+ log("Ветер: " + windForce.toFixed(1));
 }
 
-// ----- Physics & tick loop -----
-let lastFrame = performance.now();
-function gameTick(now){
-  const dt = Math.min(40, now - lastFrame);
-  lastFrame = now;
-  const sec = dt/1000;
-  const rect = arena.getBoundingClientRect();
-  const W = rect.width, H = rect.height;
-
-  // inflate & pop checks
-  for(const obj of Array.from(state.balloons.values())){
-    if(obj.state === 'inflating'){
-      obj.inflatedMs += dt;
-      const add = CONFIG.inflationPerSec * sec;
-      obj.radius = Math.min(CONFIG.maxRadius, obj.radius + add);
-    }
-    // multiplier
-    obj.multiplier = CONFIG.multiplierBase + Math.pow(1 + CONFIG.multiplierCurve * obj.radius, 1.02) - 1;
-    // pop RNG
-    if(!obj.popping){
-      const popChance = 1 - Math.exp(- (CONFIG.popBasePerSec + (obj.radius * CONFIG.popRadiusFactor)) * sec);
-      if(Math.random() < popChance){
-        doPop(obj, 'rng');
-        continue;
-      }
-    }
-  }
-
-  // apply environmental forces (wind)
-  for(const o of state.obstacles){
-    if(o.type !== 'wind') continue;
-    // for each balloon inside wind zone, apply gentle acceleration
-    for(const obj of state.balloons.values()){
-      if(obj.popping) continue;
-      if(circleRectIntersect(obj.cx, obj.cy, obj.radius, o.x, o.y, o.w, o.h)){
-        // apply acceleration proportional to wind strength and relative center
-        obj.vx += (o.vx * 0.0009) * dt * (o.strength/60);
-        obj.vy += (o.vy * 0.0009) * dt * (o.strength/60);
-      }
-    }
-  }
-
-  // integrate velocities, collisions with walls (arena bounds)
-  for(const obj of state.balloons.values()){
-    if(obj.popping) continue;
-    if(!obj.dragging){ // only integrate when not being dragged
-      obj.cx += obj.vx * dt;
-      obj.cy += obj.vy * dt;
-    }
-    // arena bounds
-    if(obj.cx - obj.radius < CONFIG.arenaPadding){
-      obj.cx = CONFIG.arenaPadding + obj.radius;
-      obj.vx = -obj.vx * CONFIG.bounceDamping;
-    }
-    if(obj.cx + obj.radius > W - CONFIG.arenaPadding){
-      obj.cx = W - CONFIG.arenaPadding - obj.radius;
-      obj.vx = -obj.vx * CONFIG.bounceDamping;
-    }
-    if(obj.cy - obj.radius < CONFIG.arenaPadding){
-      obj.cy = CONFIG.arenaPadding + obj.radius;
-      obj.vy = -obj.vy * CONFIG.bounceDamping;
-    }
-    if(obj.cy + obj.radius > H - CONFIG.arenaPadding){
-      obj.cy = H - CONFIG.arenaPadding - obj.radius;
-      obj.vy = -obj.vy * CONFIG.bounceDamping;
-    }
-  }
-
-  // collisions with obstacles
-  for(const o of state.obstacles){
-    if(o.type === 'spikes'){
-      // check circle-rect overlap => instant pop
-      for(const obj of state.balloons.values()){
-        if(obj.popping) continue;
-        if(circleRectIntersect(obj.cx, obj.cy, obj.radius, o.x, o.y, o.w, o.h)){
-          doPop(obj, 'spikes');
-        }
-      }
-    } else if(o.type === 'wall'){
-      // reflect balloons off the wall and push outside
-      for(const obj of state.balloons.values()){
-        if(obj.popping) continue;
-        if(circleRectIntersect(obj.cx, obj.cy, obj.radius, o.x, o.y, o.w, o.h)){
-          // compute minimal translation vector to push circle out of rect
-          // find closest point in rect to circle center
-          const closestX = clamp(obj.cx, o.x, o.x + o.w);
-          const closestY = clamp(obj.cy, o.y, o.y + o.h);
-          let dx = obj.cx - closestX;
-          let dy = obj.cy - closestY;
-          const dist = Math.hypot(dx, dy);
-          if(dist === 0){
-            // center inside rect; push out upward
-            dx = 0; dy = -1;
-          } else {
-            dx /= dist; dy /= dist;
-          }
-          // push out so circle sits flush against wall
-          const push = (obj.radius - dist) + 2;
-          obj.cx += dx * push;
-          obj.cy += dy * push;
-          // reflect velocity along normal
-          const vn = obj.vx*dx + obj.vy*dy;
-          obj.vx = obj.vx - (1.9 * vn * dx);
-          obj.vy = obj.vy - (1.9 * vn * dy);
-          // damp
-          obj.vx *= 0.86; obj.vy *= 0.86;
-        }
-      }
-    }
-  }
-
-  // circle-circle collisions
-  const arr = Array.from(state.balloons.values());
-  for(let i=0;i<arr.length;i++){
-    const A = arr[i];
-    if(A.popping) continue;
-    for(let j=i+1;j<arr.length;j++){
-      const B = arr[j];
-      if(B.popping) continue;
-      const dx = B.cx - A.cx;
-      const dy = B.cy - A.cy;
-      const dist = Math.hypot(dx,dy);
-      const minD = A.radius + B.radius;
-      if(dist > 0 && dist < minD){
-        // resolve overlap
-        const overlap = (minD - dist);
-        const nx = dx/dist, ny = dy/dist;
-        // mass ~ area ~ r^2
-        const mA = A.radius*A.radius, mB = B.radius*B.radius;
-        const total = mA + mB;
-        const aMove = overlap * (mB / total);
-        const bMove = overlap * (mA / total);
-        A.cx -= nx * aMove;
-        A.cy -= ny * aMove;
-        B.cx += nx * bMove;
-        B.cy += ny * bMove;
-        // velocity exchange (approx elastic)
-        const dvx = B.vx - A.vx, dvy = B.vy - A.vy;
-        const impact = dvx*nx + dvy*ny;
-        if(impact > 0){
-          const impulse = impact * 0.9;
-          A.vx += nx * impulse * (mB/total);
-          A.vy += ny * impulse * (mB/total);
-          B.vx -= nx * impulse * (mA/total);
-          B.vy -= ny * impulse * (mA/total);
-        }
-      }
-    }
-  }
-
-  // friction & update DOM
-  for(const obj of state.balloons.values()){
-    if(!obj.dragging){
-      obj.vx *= Math.pow(CONFIG.friction, dt/16);
-      obj.vy *= Math.pow(CONFIG.friction, dt/16);
-    }
-    updateElemPosition(obj);
-  }
-
-  // update timer
-  const now = Date.now();
-  const remaining = Math.max(0, Math.ceil((state.roundEndsAt - now)/1000));
-  timerEl.textContent = `${remaining}s (Раунд ${state.round})`;
-  if(now >= state.roundEndsAt){
-    endRound();
-  }
-
-  refreshUI();
-  requestAnimationFrame(gameTick);
-}
-requestAnimationFrame(gameTick);
-
-// ----- pop and cash logic -----
-function doPop(obj, reason='') {
-  if(obj.popping) return;
-  obj.popping = true;
-  obj.state = 'popped';
-  // create burst at center (absolute)
-  const left = obj.cx;
-  const top = obj.cy;
-  const burst = document.createElement('div');
-  burst.className = 'burst';
-  burst.style.left = left + 'px';
-  burst.style.top = top + 'px';
-  burst.style.width = (obj.radius*2) + 'px';
-  burst.style.height = (obj.radius*2) + 'px';
-  burst.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(255,120,120,0.88))`;
-  burst.style.boxShadow = `0 10px 40px rgba(255,120,120,0.08), 0 0 80px rgba(255,80,80,0.04)`;
-  burst.style.animation = 'burstAnim .6s cubic-bezier(.2,.8,.2,1) forwards';
-  arena.appendChild(burst);
-
-  log(`Шар #${obj.id} лопнул (x${obj.multiplier.toFixed(2)})${reason? ' — '+reason : ''}. Проигрыш ${obj.price}.`);
-  pushResult(`#${obj.id} — POP (x${obj.multiplier.toFixed(2)})`);
-
-  try{ obj.el.remove() }catch(e){}
-  setTimeout(()=>{ try{ burst.remove() }catch(e){} }, 700);
-  state.balloons.delete(obj.id);
-  if(state.selectedBalloonId === obj.id) state.selectedBalloonId = null;
+function startBalloon(pointer){
+ pointerDown = true;
+ let x = pointer.x;
+ let y = pointer.y;
+ currentBalloon = createBalloon(x,y);
+ balloons.push(currentBalloon);
 }
 
-function cashOut(obj){
-  if(obj.popping) return;
-  const payout = obj.price * obj.multiplier;
-  state.balance += payout;
-  saveState();
-  log(`Шар #${obj.id} забран — выплата ${payout.toFixed(2)} (x${obj.multiplier.toFixed(2)}).`);
-  pushResult(`#${obj.id} — CASH (x${obj.multiplier.toFixed(2)}) → +${payout.toFixed(2)}`);
-  // small green burst
-  const burst = document.createElement('div');
-  burst.className = 'burst';
-  burst.style.left = obj.cx + 'px';
-  burst.style.top = obj.cy + 'px';
-  burst.style.width = (obj.radius*2) + 'px';
-  burst.style.height = (obj.radius*2) + 'px';
-  burst.style.background = `radial-gradient(circle at 30% 30%, rgba(200,255,240,0.95), rgba(120,255,200,0.85))`;
-  burst.style.animation = 'burstAnim .5s cubic-bezier(.2,.8,.2,1) forwards';
-  arena.appendChild(burst);
-
-  try{ obj.el.remove() }catch(e){}
-  setTimeout(()=>{ try{ burst.remove() }catch(e){} }, 600);
-  state.balloons.delete(obj.id);
-  if(state.selectedBalloonId === obj.id) state.selectedBalloonId = null;
-  refreshUI();
+function dragBalloon(pointer){
+ if(pointerDown && currentBalloon && currentBalloon.radius<35){
+  currentBalloon.sprite.x = pointer.x;
+  currentBalloon.sprite.y = pointer.y;
+ }
 }
 
-// cash selected balloon (manual)
-document.getElementById('cashBtn').addEventListener('click', () => {
-  const id = state.selectedBalloonId;
-  if(!id) return;
-  const obj = state.balloons.get(id);
-  if(!obj) return;
-  cashOut(obj);
-});
+function createBalloon(x,y){
+ let g = scene.add.circle(x,y,20,0x44aaff);
+ scene.physics.add.existing(g);
+ g.body.setCircle(20);
+ g.body.setBounce(0.8);
+ g.body.setCollideWorldBounds(true);
+ obstacles.forEach(o=>scene.physics.add.collider(g,o));
+ return { sprite:g, radius:20 };
+}
 
-// button controls
-buyBtn.addEventListener('click', ()=>{
-  if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return; }
-  state.balance -= CONFIG.basePrice; saveState();
-  const rect = arena.getBoundingClientRect();
-  const x = CONFIG.arenaPadding + Math.random()*(rect.width - CONFIG.arenaPadding*2);
-  const y = CONFIG.arenaPadding + Math.random()*(rect.height - CONFIG.arenaPadding*2);
-  const b = createBalloon(x,y, CONFIG.basePrice);
-  // auto-start inflate a bit
-  b.state = 'inflating';
-  setTimeout(()=>{ if(b && state.balloons.has(b.id)) b.state='idle' }, 800 + Math.random()*900);
-  refreshUI();
-});
+function update(time,delta){
+ balloons.forEach(b=>{
+  b.sprite.body.velocity.x += windForce * 0.01;
+ });
 
-demoBtn.addEventListener('click', ()=>{
-  for(let i=0;i<4;i++){
-    if(state.balance < CONFIG.basePrice) break;
-    state.balance -= CONFIG.basePrice; saveState();
-    const rect = arena.getBoundingClientRect();
-    const x = CONFIG.arenaPadding + Math.random()*(rect.width - CONFIG.arenaPadding*2);
-    const y = CONFIG.arenaPadding + Math.random()*(rect.height - CONFIG.arenaPadding*2);
-    const b = createBalloon(x,y, CONFIG.basePrice);
-    b.state='inflating';
-    setTimeout(()=>{ if(b && state.balloons.has(b.id)) b.state='idle' }, 400 + Math.random()*2100);
+ if(pointerDown && currentBalloon){ inflateBalloon(currentBalloon); }
+
+ // collisions between balloons
+ for(let i=0;i<balloons.length;i++){
+  for(let j=i+1;j<balloons.length;j++){
+   scene.physics.world.collide(balloons[i].sprite, balloons[j].sprite);
   }
-  refreshUI();
-});
-
-seedBtn.addEventListener('click', ()=>{
-  // clear balloons & obstacles, reset balance
-  for(const [id,obj] of state.balloons) try{ obj.el.remove() }catch(e){}
-  state.balloons.clear();
-  for(const o of state.obstacles) if(o.el) try{o.el.remove()}catch(e){}
-  state.obstacles = [];
-  state.selectedBalloonId = null;
-  state.balance = 1000; saveState();
-  state.round = 1;
-  state.roundEndsAt = Date.now() + CONFIG.roundDurationSec*1000;
-  randomMap();
-  log('Сессия сброшена.');
-  refreshUI();
-});
-
-rulesBtn.addEventListener('click', ()=> {
-  alert(`Правила:
-- Создай шар в пустом месте (списание цены).
-- Удерживай/перетаскивай шар, чтобы надувать — шар растёт из центра.
-- Отпустил — шар улетит и будет сталкиваться со стенами и другими шарами.
-- На карте есть препятствия: Ветер (двигает шар), Шипы (ломают шар при контакте) и Стены (отталкивают).
-- Раунд длится ${CONFIG.roundDurationSec} сек — когда раунд заканчивается, все оставшиеся шары автоматически выплачиваются, карта обновляется и начинается новый раунд.
-- Для реальных платежей перенести финансовую логику на сервер.`);
-});
-
-// arena placement: pointerdown in empty space creates a balloon and starts inflating (drag-enabled)
-let placing = null;
-arena.addEventListener('pointerdown', (ev)=>{
-  // avoid placing when clicking existing balloon
-  if(ev.target.closest('.balloon')) return;
-  if(state.balance < CONFIG.basePrice){ log('Недостаточно средств.'); return; }
-  state.balance -= CONFIG.basePrice; saveState();
-  const rect = arena.getBoundingClientRect();
-  const x = ev.clientX - rect.left;
-  const y = ev.clientY - rect.top;
-  const b = createBalloon(x,y, CONFIG.basePrice);
-  // start as dragging/inflating
-  b.state = 'inflating';
-  b.dragging = true;
-  // simulate pointerdown on it by setting lastPointer etc.
-  // note: we cannot re-dispatch pointer events; the balloon's pointer handlers will capture next pointermove/up
-  state.selectedBalloonId = b.id;
-  placing = b;
-  refreshUI();
-  ev.preventDefault();
-});
-
-// helper: clamp
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-
-// geometry helpers
-function circleRectIntersect(cx, cy, r, rx, ry, rw, rh){
-  // find closest point on rect to circle center
-  const closestX = clamp(cx, rx, rx + rw);
-  const closestY = clamp(cy, ry, ry + rh);
-  const dx = cx - closestX, dy = cy - closestY;
-  return (dx*dx + dy*dy) <= (r*r);
+ }
 }
 
-// ----- Round lifecycle -----
-function startRound(){
-  state.roundEndsAt = Date.now() + CONFIG.roundDurationSec*1000;
-  state.running = true;
-  randomMap();
-  log(`Раунд ${state.round} стартовал. Длительность ${CONFIG.roundDurationSec} секунд.`);
+function inflateBalloon(b){
+ if(b.radius>120) return explode(b);
+
+ let newR = b.radius + 0.35;
+ if(!canExpand(b, newR)) return;
+
+ b.radius = newR;
+ b.sprite.setRadius(newR);
+ b.sprite.body.setCircle(newR);
+ b.sprite.body.mass = newR/10;
+
+ if(Math.random()< (b.radius/2000)) explode(b);
 }
 
-function endRound(){
-  if(!state.running) return;
-  state.running = false;
-  // compute payouts for remaining balloons
-  const survivors = Array.from(state.balloons.values());
-  if(survivors.length === 0){
-    log(`Раунд ${state.round} завершён. Никто не остался.`);
-    pushResult(`Раунд ${state.round} — никто не остался.`);
-  } else {
-    log(`Раунд ${state.round} завершён. Выплаты ${survivors.length} шаров.`);
-    for(const obj of survivors){
-      // award payout (price * multiplier)
-      const payout = obj.price * obj.multiplier;
-      state.balance += payout;
-      pushResult(`#${obj.id} автомат. выплата x${obj.multiplier.toFixed(2)} → +${payout.toFixed(2)}`);
-      try{ obj.el.remove() }catch(e){}
-    }
-    saveState();
-  }
-  // clear balloons and obstacles
-  state.balloons.clear();
-  for(const o of state.obstacles) if(o.el) try{o.el.remove()}catch(e){}
-  state.obstacles = [];
-  state.selectedBalloonId = null;
-
-  // increment round and start new after short delay
-  state.round++;
-  refreshUI();
-  setTimeout(()=>{
-    startRound();
-  }, 1000);
+function canExpand(balloon, newR){
+ // check overlap with obstacles
+ for(let o of obstacles){
+  let dx = balloon.sprite.x - o.x;
+  let dy = balloon.sprite.y - o.y;
+  let dist = Math.sqrt(dx*dx+dy*dy);
+  if(dist < newR + 40 && o.width){ return false; }
+  if(o.isSpike && dist < newR + 30){ explode(balloon); return false; }
+ }
+ return true;
 }
 
-// initialize game
-randomMap();
-startRound();
-refreshUI();
+function explode(b){
+ let x = b.sprite.x, y = b.sprite.y;
+ let p = scene.add.particles("");
+ let emitter = p.createEmitter({
+  x, y,
+  speed: {min:-200,max:200},
+  scale: {start:0.5,end:0},
+  lifespan:600,
+  tint:0xff3355
+ });
+ setTimeout(()=>p.destroy(),600);
+ log("Шар лопнул! x"+(b.radius/30).toFixed(2));
+ scene.removeBalloon(b);
+}
 
-// expose debug for convenience
-window._bb = { state, CONFIG, createBalloon };
-
+Phaser.Scene.prototype.removeBalloon = function(b){
+ let idx = balloons.indexOf(b);
+ if(idx>=0) balloons.splice(idx,1);
+ b.sprite.destroy();
+};
 </script>
 </body>
 </html>
