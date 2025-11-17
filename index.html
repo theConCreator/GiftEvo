@@ -1,659 +1,776 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Balloon Arena — Stable Final</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mountain Drop — WebApp MVP</title>
 <style>
-:root{
-  --bg1:#071025; --bg2:#081733; --card:#071428;
-  --accent:#5ec0ff; --danger:#ff6b6b;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-}
-*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#eaf6ff;overflow:hidden}
-.app{width:520px;margin:12px auto;height:880px;display:flex;flex-direction:column;gap:12px}
-.header{display:flex;justify-content:space-between;align-items:center}
-.panel{background:rgba(255,255,255,0.03);border-radius:12px;padding:10px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-#arena{width:100%;height:660px;border-radius:12px;background:linear-gradient(180deg,#071022,#051223);position:relative;overflow:hidden}
-.balloon{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;box-shadow:0 8px 30px rgba(0,0,0,0.45)}
-.balloon .label{pointer-events:none;color:white;font-weight:800;font-size:12px;text-shadow:0 1px 0 rgba(0,0,0,0.5)}
-.line-vert{position:absolute;background:linear-gradient(180deg,#3ea6ff,#2b8ee6)}
-.line-horz{position:absolute;background:linear-gradient(90deg,#ff6b6b,#ff3a3a)}
-.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,15,0.6);z-index:50;pointer-events:none;font-weight:900;font-size:22px}
-.controls{display:flex;flex-direction:column;gap:8px}
-.btn{background:linear-gradient(180deg,#16325a,#0f2746);color:#e9f6ff;border-radius:10px;padding:10px;font-weight:800;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.hud{display:flex;gap:8px;align-items:center}
-.badge{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:8px}
-.small{font-size:12px;color:#9fb7d9}
-.results{height:120px;overflow:auto;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
-.footer{font-size:12px;color:#9fb7d9cc;margin-top:6px}
+  :root{
+    --bg:#0f1724;
+    --panel:#0b1220;
+    --accent:#7dd3fc;
+    --muted:#94a3b8;
+    --card:#0f1724;
+  }
+  *{box-sizing:border-box;font-family:Inter, Roboto, "Helvetica Neue", Arial, sans-serif}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#020617 0%, #071228 100%);color:#e6eef6}
+  .app{
+    display:flex;
+    gap:16px;
+    padding:16px;
+    height:100vh;
+    align-items:stretch;
+  }
+  .left{
+    width:360px;
+    min-width:280px;
+    max-width:420px;
+    background:rgba(255,255,255,0.03);
+    border-radius:12px;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    box-shadow:0 6px 18px rgba(2,6,23,0.6);
+  }
+  h1{margin:0;font-size:20px}
+  .meta{font-size:13px;color:var(--muted)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    background:var(--accent);
+    border:none;
+    color:#06202a;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  button.ghost{
+    background:transparent;color:var(--accent);border:1px solid rgba(125,211,252,0.15)
+  }
+  .small{font-size:13px;padding:6px 10px}
+  .panel{
+    background:rgba(255,255,255,0.02);
+    padding:12px;border-radius:10px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  canvas{background:linear-gradient(180deg,#071228 0%, #092034 100%);border-radius:10px;display:block;width:100%;height:100%}
+  .players{display:flex;flex-direction:column;gap:6px}
+  .player{
+    display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)
+  }
+  .player .name{font-weight:600}
+  .row{display:flex;gap:8px;align-items:center}
+  footer{margin-top:auto;font-size:12px;color:var(--muted)}
+  .score{font-weight:700;color:var(--accent)}
+  .hud{display:flex;gap:12px;align-items:center}
+  .countdown{font-size:18px;font-weight:700}
+  .muted{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="header panel">
+  <div class="left">
     <div>
-      <div style="font-weight:900">Balloon Arena</div>
-      <div class="small">Покупки → Размещение → Раунд (всё автоматизировано)</div>
+      <h1>Mountain Drop</h1>
+      <div class="meta">Минималистичный фронтенд — раунды, физика шаров, рандомная гора</div>
     </div>
-    <div class="hud">
-      <div class="badge">Фаза: <span id="phase">BUY</span></div>
-      <div class="badge">Таймер: <span id="timer">—</span>s</div>
-      <div class="badge">Слоты: <span id="slots">0</span></div>
+
+    <div class="panel">
+      <div class="hud">
+        <div>
+          <div class="muted">Режим раунда</div>
+          <div id="roundMode" class="countdown">Подготовка</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="muted">Таймер</div>
+          <div id="countdown" class="countdown">--</div>
+        </div>
+      </div>
+
+      <div class="controls" style="margin-top:6px">
+        <button id="buyBtn" class="small">Купить шар</button>
+        <button id="startBtn" class="small ghost">Принудительно начать</button>
+        <button id="regenBtn" class="small ghost">Сгенерировать гору</button>
+        <div style="flex:1"></div>
+        <div class="muted">Шары в очереди: <span id="queued">0</span></div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <div class="muted">Скорость симуляции</div>
+        <input id="speed" type="range" min="0.2" max="2" step="0.1" value="1" />
+        <div id="speedVal" class="muted">1.0x</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <div class="muted">Шаров одновременно на поле</div>
+        <div id="ballsCount" class="muted">0</div>
+      </div>
     </div>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="muted">Игроки (локально)</div>
+        <button id="addPlayer" class="small ghost">Добавить тест игрока</button>
+      </div>
+      <div id="players" class="players"></div>
+    </div>
+
+    <div class="panel">
+      <div class="muted">Лунки на карте: попадание = очки</div>
+      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+        <div class="muted">Лунок:</div>
+        <div id="holesCount" class="muted">0</div>
+        <div style="flex:1"></div>
+        <div class="muted">Очки:</div>
+        <div id="totalScore" class="score">0</div>
+      </div>
+    </div>
+
+    <footer>Это локальный демо-фронтенд. Позже добавим интеграцию с Telegram и текстуры.</footer>
   </div>
 
-  <div id="arena" class="panel"></div>
-
-  <div class="panel controls">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>Баланс: <b id="balance">1000</b></div>
-      <div class="small">Локальная демо-версия — сервер для реала</div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="flex:1;display:flex;flex-direction:column">
+      <canvas id="gameCanvas"></canvas>
+      <div style="margin-top:8px;color:var(--muted);font-size:13px">
+        Подсказки: покупай шары во время подготовки, затем они одновременно отправляются вниз по склону.
+      </div>
     </div>
-
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button id="buyBtn" class="btn">Купить слот (10)</button>
-      <button id="startPlacementBtn" class="btn" disabled>Перейти к размещению</button>
-      <button id="startRunBtn" class="btn" disabled>Старт раунда</button>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-      <div class="small">Событие:</div><div id="event" class="small">—</div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-      <div class="small">Ветер:</div><div id="wind" class="small">0.0, 0.0</div>
-    </div>
-
-    <div id="results" class="results"></div>
-    <div class="footer">Центр более свободен — стены генерируются кластерами у краёв. Шары нельзя надувать в перекрытые зоны.</div>
   </div>
 </div>
 
 <script>
-/* ===== CONFIG ===== */
-const CFG = {
-  price: 10,
-  buySec: 5,
-  placeSec: 8,
-  runSec: 15,
-  minR: 18,
-  maxR: 300, // large to approach screen-fill
-  inflatePerSec: 2.8 * 10, // tuned to reach quickly
-  popBase: 0.0015,
-  popR: 0.0006,
-  friction: 0.995,
-  bounce: 0.86,
-  windStrength: 3.0,
-  grid: 7, // 7x7
-  lineThickness: 8,
-  eventChance: 0.7
-};
-
-/* ===== STATE ===== */
-const state = {
-  balance: Number(localStorage.getItem('bb_balance')) || 1000,
-  phase: 'buy', // buy, place, run, transition
-  buyTimer: CFG.buySec,
-  placeTimer: CFG.placeSec,
-  runTimer: CFG.runSec,
-  purchasedSlots: 0,
-  placedCount: 0,
-  balloons: new Map(),
-  lines: [], // {type,x,y,w,h,el}
-  nextId: 1,
-  event: null,
-  wind: {x:0,y:0},
-  overlayTimer: 0,
-  overlayText: null
-};
-
-/* ===== DOM ===== */
-const arena = document.getElementById('arena');
-const balanceEl = document.getElementById('balance');
-const phaseEl = document.getElementById('phase');
-const timerEl = document.getElementById('timer');
-const slotsEl = document.getElementById('slots');
-const buyBtn = document.getElementById('buyBtn');
-const startPlacementBtn = document.getElementById('startPlacementBtn');
-const startRunBtn = document.getElementById('startRunBtn');
-const eventEl = document.getElementById('event');
-const windEl = document.getElementById('wind');
-const resultsEl = document.getElementById('results');
-
-/* overlay element */
-let overlay = null;
-function showOverlay(text, ms=1200){
-  if(overlay) overlay.remove();
-  overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.textContent = text;
-  arena.appendChild(overlay);
-  setTimeout(()=>{ try{ overlay.remove(); overlay=null; }catch{} }, ms);
-}
-
-/* ===== UTIL ===== */
-function save(){ localStorage.setItem('bb_balance', state.balance); }
-function log(msg){ const t=new Date().toLocaleTimeString(); resultsEl.insertAdjacentHTML('afterbegin', `<div><b>[${t}]</b> ${msg}</div>`); }
-function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-function uiUpdate(){
-  balanceEl.textContent = state.balance.toFixed(2);
-  phaseEl.textContent = state.phase.toUpperCase();
-  const t = state.phase === 'buy' ? Math.ceil(state.buyTimer) : state.phase === 'place' ? Math.ceil(state.placeTimer) : state.phase === 'run' ? Math.ceil(state.runTimer) : 0;
-  timerEl.textContent = t;
-  slotsEl.textContent = Math.max(0, state.purchasedSlots - state.placedCount);
-  eventEl.textContent = state.event || '—';
-  windEl.textContent = `${state.wind.x.toFixed(1)}, ${state.wind.y.toFixed(1)}`;
-  buyBtn.disabled = state.phase !== 'buy';
-  startPlacementBtn.disabled = state.phase !== 'buy' || state.purchasedSlots === 0;
-  startRunBtn.disabled = state.phase !== 'place';
-}
-
-/* ===== LINES (walls & spikes) generation =====
-   - grid 7x7
-   - clusters at edges: we sample cells with higher prob near edges
-   - groups: when we place a line, place neighbors with some chance
-   - center avoidance: skip central radius
+/*
+  Mountain Drop — single-file frontend MVP
+  Features:
+  - Random terrain (polyline) generated left->right with variable slopes
+  - Circular holes on terrain (if ball center within hole radius -> score)
+  - Balls: identical size, local "buy" to add to queue; after buy-window they are spawned and physics runs
+  - Physics: gravity, integration, circle-circle collisions, circle-segment collisions with friction/tangential velocity reduction
+  - Round logic: buy phase = 10s, then run physics until all balls stopped or timeout
 */
-function clearLines(){
-  for(const L of state.lines){ try{ L.el.remove(); }catch{} }
-  state.lines = [];
-}
-function generateLines(){
-  clearLines();
-  const W = arena.clientWidth, H = arena.clientHeight;
-  const stepX = W / CFG.grid, stepY = H / CFG.grid;
-  const cx = W/2, cy = H/2;
-  const centerRadius = Math.min(W,H) * 0.22; // center mostly free
 
-  // helper for edge bias
-  function edgeBias(gx, gy){
-    const gxCenter = (CFG.grid-1)/2, gyCenter = (CFG.grid-1)/2;
-    const dx = Math.abs(gx - gxCenter), dy = Math.abs(gy - gyCenter);
-    // larger dx/dy (closer to edges) => higher bias
-    return (dx + dy) / (gxCenter + gyCenter + 0.0001);
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+
+  // UI elements
+  const buyBtn = document.getElementById('buyBtn');
+  const startBtn = document.getElementById('startBtn');
+  const regenBtn = document.getElementById('regenBtn');
+  const countdownEl = document.getElementById('countdown');
+  const roundModeEl = document.getElementById('roundMode');
+  const queuedEl = document.getElementById('queued');
+  const playersEl = document.getElementById('players');
+  const addPlayerBtn = document.getElementById('addPlayer');
+  const holesCountEl = document.getElementById('holesCount');
+  const totalScoreEl = document.getElementById('totalScore');
+  const ballsCountEl = document.getElementById('ballsCount');
+  const speedEl = document.getElementById('speed');
+  const speedValEl = document.getElementById('speedVal');
+
+  // Canvas sizing
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(canvas.clientWidth * dpr);
+    canvas.height = Math.floor(canvas.clientHeight * dpr || 600 * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  // initial size
+  canvas.style.height = 'calc(100vh - 64px)';
+  canvas.style.width = '100%';
+  resize();
+
+  // Simulation parameters (tweakable)
+  const GRAVITY = 1200; // pixels/s^2 (large because canvas pixels)
+  const BALL_RADIUS = 12; // px
+  const BALL_MASS = 1;
+  const RESTITUTION = 0.15; // bounce factor
+  const FRICTION_GROUND = 0.995; // per-frame multiplier of tangential velocity when on surface
+  const AIR_FRICTION = 0.999; // small damping in air
+  const SUBSTEPS = 3; // physics substeps per frame for stability
+  const ROUND_BUY_SECONDS = 10;
+  const MAX_SIM_SECONDS = 40; // safety cap for simulation duration after launch
+
+  // World
+  let terrain = null; // {points: [{x,y}], segments: [{a,b,nx,ny,len}]}
+  let holes = []; // {x,y,r}
+  let balls = []; // {x,y,vx,vy,r,mass,owner,id,active,scored}
+  let queued = []; // queue of owners waiting to launch
+  let players = []; // {id,name,score,color}
+  let totalScore = 0;
+
+  let lastTime = performance.now();
+  let running = true;
+  let simTime = 0; // seconds since launch
+  let roundTimer = null;
+  let roundPhase = 'idle'; // 'buy', 'running', 'idle'
+  let buyRemaining = ROUND_BUY_SECONDS;
+  let roundTimeoutHandle = null;
+
+  // Helpers
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function dist2(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; }
+  function dist(ax,ay,bx,by){ return Math.sqrt(dist2(ax,ay,bx,by)); }
+
+  // ID generators
+  let _ballId = 1;
+  let _playerId = 1;
+
+  // Initialize sample players (so buy has owners)
+  function addTestPlayer(name){
+    const p = { id: 'p' + (_playerId++), name: name || 'Player ' + _playerId, score: 0, color: randomColor() };
+    players.push(p);
+    renderPlayers();
+    return p;
   }
 
-  // candidate matrix
-  const occupied = Array.from({length:CFG.grid}, ()=>Array(CFG.grid).fill(false));
+  // random pleasing color
+  function randomColor(){
+    const hues = [190,200,210,220,240,260,280];
+    const h = hues[Math.floor(Math.random()*hues.length)] + Math.floor(rand(-10,10));
+    return `hsl(${h} 80% 60%)`;
+  }
 
-  for(let gx=0; gx<CFG.grid; gx++){
-    for(let gy=0; gy<CFG.grid; gy++){
-      const cellCenterX = gx*stepX + stepX/2;
-      const cellCenterY = gy*stepY + stepY/2;
-      const distToCenter = Math.hypot(cellCenterX - cx, cellCenterY - cy);
-      if(distToCenter < centerRadius) continue; // keep center freer
+  // Render players panel
+  function renderPlayers(){
+    playersEl.innerHTML = '';
+    players.forEach(p=>{
+      const div = document.createElement('div');
+      div.className = 'player';
+      div.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+        <div style="width:12px;height:12px;border-radius:50%;background:${p.color}"></div>
+        <div>
+          <div class="name">${p.name}</div>
+          <div class="muted" style="font-size:12px">id: ${p.id}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="score">${p.score}</div>
+        <div class="muted" style="font-size:12px">очки</div>
+      </div>`;
+      playersEl.appendChild(div);
+    });
+  }
 
-      const bias = edgeBias(gx,gy);
-      // cluster formation: if neighbor already used, higher chance
-      let base = 0.08 + bias*0.18; // base probability
-      // if neighbor occupied increase probability (we'll check occupied around)
-      const neighCount = ((occupied[gx-1] && occupied[gx-1][gy])?1:0) + ((occupied[gx+1] && occupied[gx+1][gy])?1:0) + (occupied[gx][gy-1]?1:0) + (occupied[gx][gy+1]?1:0);
-      base += neighCount * 0.18;
-      if(Math.random() < base){
-        // choose vertical/horizontal (walls vs spikes)
-        if(Math.random() < 0.6){ // more walls than spikes
-          const x = gx*stepX + stepX/2 - CFG.lineThickness/2;
-          const y = gy*stepY;
-          const w = CFG.lineThickness, h = stepY;
-          const el = document.createElement('div'); el.className='line-vert';
-          el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px';
-          arena.appendChild(el);
-          state.lines.push({type:'wall', x, y, w, h, el});
-          occupied[gx][gy] = true;
-          // try to extend cluster horizontally or vertically:
-          if(Math.random()<0.45){
-            const ext = Math.random()<0.5 ? [[gx+1,gy],[gx+2,gy]] : [[gx,gy+1],[gx,gy+2]];
-            for(const [ex,ey] of ext){
-              if(ex>=0 && ex<CFG.grid && ey>=0 && ey<CFG.grid && Math.random()<0.5 && !occupied[ex][ey]){
-                const exx = ex*stepX + stepX/2 - CFG.lineThickness/2;
-                const eyy = ey*stepY;
-                const el2 = document.createElement('div'); el2.className='line-vert';
-                el2.style.left = exx + 'px'; el2.style.top = eyy + 'px'; el2.style.width = CFG.lineThickness + 'px'; el2.style.height = stepY + 'px';
-                arena.appendChild(el2);
-                state.lines.push({type:'wall', x:exx, y:eyy, w:CFG.lineThickness, h:stepY, el:el2});
-                occupied[ex][ey] = true;
-              }
-            }
+  // Generate random terrain: polyline from left to right
+  function generateTerrain(width, height){
+    const marginTop = 40;
+    const marginBottom = 80;
+    const leftX = 40;
+    const rightX = width - 40;
+    const points = [];
+    // We'll generate N control points
+    const N = Math.floor(rand(6,10));
+    // x step
+    for(let i=0;i<=N;i++){
+      const t = i / N;
+      const x = leftX + t * (rightX - leftX);
+      // create y so that slope overall goes down left->right, but with variability
+      const base = marginTop + t * (height - marginTop - marginBottom);
+      const wobble = Math.sin(t*6 + rand(0,6)) * (height*0.06) * rand(0.6,1.2);
+      const y = base + wobble;
+      points.push({x, y});
+    }
+    // Smooth points via simple moving average
+    for(let iter=0;iter<2;iter++){
+      for(let i=1;i<points.length-1;i++){
+        points[i].y = (points[i-1].y + points[i].y*2 + points[i+1].y)/4;
+      }
+    }
+    // Build segments with normals
+    const segments = [];
+    for(let i=0;i<points.length-1;i++){
+      const a = points[i], b = points[i+1];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.hypot(dx,dy) || 1;
+      const nx = -dy / len; // normal (pointing roughly up)
+      const ny = dx / len;
+      segments.push({a:a, b:b, dx, dy, len, nx, ny});
+    }
+    return {points, segments};
+  }
+
+  // Create holes placed near segments (randomly)
+  function generateHoles(terrain, count){
+    const holes = [];
+    const segCount = terrain.segments.length;
+    for(let i=0;i<count;i++){
+      const si = Math.floor(rand(0, segCount));
+      const seg = terrain.segments[si];
+      // choose t along segment
+      const t = rand(0.15, 0.85);
+      const x = seg.a.x + seg.dx * t;
+      const y = seg.a.y + seg.dy * t;
+      const r = rand(18, 28);
+      holes.push({x,y,r});
+    }
+    return holes;
+  }
+
+  // Spawn balls from queued owners: place slightly above left-most segment
+  function spawnBalls(){
+    const leftTopX = terrain.points[0].x + 10;
+    // find y at a small x offset by interpolating segment
+    const firstSeg = terrain.segments[0];
+    const spawnBaseX = terrain.points[0].x + 6;
+    const spawnBaseY = terrain.points[0].y - 24;
+    const spacing = BALL_RADIUS*2.4;
+    for(let i=0;i<queued.length;i++){
+      const owner = queued[i];
+      const offsetX = i * (spacing);
+      // Place above the slope so gravity will make them settle on surface
+      const x = spawnBaseX + offsetX;
+      const y = spawnBaseY - Math.min(40, i*6);
+      const ball = {
+        id: 'b' + (_ballId++),
+        x, y, vx:0, vy:0,
+        r: BALL_RADIUS,
+        mass: BALL_MASS,
+        owner: owner,
+        active: true,
+        scored: false
+      };
+      balls.push(ball);
+    }
+    queued = [];
+    updateUI();
+  }
+
+  // Physics: integrate (semi-implicit Euler), collisions resolution
+  function stepPhysics(dt){
+    const invMass = 1 / BALL_MASS;
+
+    // substeps for stability
+    const subDt = dt / SUBSTEPS;
+    for(let s=0;s<SUBSTEPS;s++){
+      // apply forces -> velocity
+      for(const b of balls){
+        if(!b.active) continue;
+        // gravity
+        b.vy += GRAVITY * subDt;
+        // simple air damping
+        b.vx *= AIR_FRICTION;
+        b.vy *= AIR_FRICTION;
+        // integrate velocity -> position (semi-implicit)
+        b.x += b.vx * subDt;
+        b.y += b.vy * subDt;
+      }
+
+      // Ball - terrain collisions (segments)
+      for(const seg of terrain.segments){
+        for(const b of balls){
+          if(!b.active) continue;
+          // project circle center onto segment
+          const ax = seg.a.x, ay = seg.a.y;
+          const bx = seg.b.x, by = seg.b.y;
+          const vx = b.x - ax, vy = b.y - ay;
+          const segLen2 = seg.dx*seg.dx + seg.dy*seg.dy;
+          let t = 0;
+          if(segLen2 > 0){
+            t = (vx*seg.dx + vy*seg.dy) / segLen2;
+            t = Math.max(0, Math.min(1, t));
           }
-        } else {
-          // spike (horizontal)
-          const x = gx*stepX;
-          const y = gy*stepY + stepY/2 - CFG.lineThickness/2;
-          const w = stepX, h = CFG.lineThickness;
-          const el = document.createElement('div'); el.className='line-horz';
-          el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px';
-          arena.appendChild(el);
-          state.lines.push({type:'spike', x, y, w, h, el});
-          occupied[gx][gy] = true;
-          // cluster extension
-          if(Math.random()<0.45){
-            const ext = Math.random()<0.5 ? [[gx+1,gy],[gx+2,gy]] : [[gx-1,gy],[gx-2,gy]];
-            for(const [ex,ey] of ext){
-              if(ex>=0 && ex<CFG.grid && ey>=0 && ey<CFG.grid && Math.random()<0.45 && !occupied[ex][ey]){
-                const exx = ex*stepX;
-                const eyy = ey*stepY + stepY/2 - CFG.lineThickness/2;
-                const el2 = document.createElement('div'); el2.className='line-horz';
-                el2.style.left = exx + 'px'; el2.style.top = eyy + 'px'; el2.style.width = stepX + 'px'; el2.style.height = CFG.lineThickness + 'px';
-                arena.appendChild(el2);
-                state.lines.push({type:'spike', x:exx, y:eyy, w:stepX, h:CFG.lineThickness, el:el2});
-                occupied[ex][ey] = true;
-              }
-            }
+          const projX = ax + seg.dx * t;
+          const projY = ay + seg.dy * t;
+          const nx = b.x - projX;
+          const ny = b.y - projY;
+          const d2 = nx*nx + ny*ny;
+          const r = b.r;
+          if(d2 < r*r - 0.5){ // penetration
+            const d = Math.sqrt(Math.max(1e-6, d2));
+            const pen = r - d;
+            // normal
+            const nxu = nx / d;
+            const nyu = ny / d;
+            // push ball out along normal
+            b.x += nxu * pen;
+            b.y += nyu * pen;
+            // relative velocity along normal
+            const relVelN = b.vx * nxu + b.vy * nyu;
+            // reflect normal component with restitution
+            const vn = - (1 + RESTITUTION) * relVelN;
+            b.vx += vn * nxu;
+            b.vy += vn * nyu;
+
+            // approximate friction / tangential damping when touching surface
+            // compute tangent
+            const tx = -nyu, ty = nxu;
+            const relVelT = b.vx * tx + b.vy * ty;
+            // reduce tangential velocity when on surface (simulate rolling friction)
+            const newRelT = relVelT * FRICTION_GROUND;
+            const dvT = newRelT - relVelT;
+            b.vx += dvT * tx;
+            b.vy += dvT * ty;
           }
         }
       }
+
+      // Ball - ball collisions (pairwise)
+      for(let i=0;i<balls.length;i++){
+        const A = balls[i];
+        if(!A.active) continue;
+        for(let j=i+1;j<balls.length;j++){
+          const B = balls[j];
+          if(!B.active) continue;
+          const dx = B.x - A.x;
+          const dy = B.y - A.y;
+          const d2 = dx*dx + dy*dy;
+          const rsum = A.r + B.r;
+          if(d2 < rsum*rsum && d2 > 0){
+            const d = Math.sqrt(d2);
+            const nx = dx / d;
+            const ny = dy / d;
+            const pen = rsum - d;
+            // push out equally (same mass)
+            const push = 0.5 * pen + 1e-3;
+            A.x -= nx * push;
+            A.y -= ny * push;
+            B.x += nx * push;
+            B.y += ny * push;
+            // relative velocity
+            const rvx = B.vx - A.vx;
+            const rvy = B.vy - A.vy;
+            const relN = rvx * nx + rvy * ny;
+            if(relN > 0) continue; // separating
+            // compute impulse scalar
+            const e = Math.min(RESTITUTION, 0.5);
+            const jimp = -(1 + e) * relN / (invMass + invMass);
+            const jx = jimp * nx;
+            const jy = jimp * ny;
+            A.vx -= jx * invMass;
+            A.vy -= jy * invMass;
+            B.vx += jx * invMass;
+            B.vy += jy * invMass;
+            // tangential damping to avoid jitter
+            A.vx *= 0.999;
+            A.vy *= 0.999;
+            B.vx *= 0.999;
+            B.vy *= 0.999;
+          }
+        }
+      }
+
+      // Check holes: if ball center within hole radius -> score
+      for(const b of balls){
+        if(!b.active || b.scored) continue;
+        for(const h of holes){
+          const d2 = (b.x - h.x)*(b.x - h.x) + (b.y - h.y)*(b.y - h.y);
+          if(d2 < (h.r - 4)*(h.r - 4)){ // margin
+            // Score: credit to owner
+            b.scored = true;
+            b.active = false;
+            // award points
+            const owner = b.owner;
+            if(owner){
+              owner.score = (owner.score || 0) + 1;
+              totalScore++;
+              totalScoreEl.textContent = totalScore;
+            }
+            break;
+          }
+        }
+      }
+
+      // Deactivate balls if they fall below bottom of canvas or move out far
+      const H = canvas.clientHeight;
+      for(const b of balls){
+        if(!b.active) continue;
+        if(b.y > H + 120){ b.active = false; }
+      }
+    } // end substeps
+  }
+
+  // Draw everything
+  function render(){
+    const W = canvas.clientWidth;
+    const H = canvas.clientHeight;
+    // Clear
+    ctx.fillStyle = '#071228';
+    ctx.fillRect(0,0,W,H);
+
+    // draw terrain fill
+    ctx.beginPath();
+    const pts = terrain.points;
+    ctx.moveTo(pts[0].x, pts[0].y - 400); // extend top for nice fill
+    // mountain shape: draw through points then down to bottom
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length;i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
     }
-  }
-}
+    ctx.lineTo(pts[pts.length-1].x, H + 400);
+    ctx.lineTo(pts[0].x, H + 400);
+    ctx.closePath();
+    // gradient fill
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#112134');
+    g.addColorStop(1,'#08131b');
+    ctx.fillStyle = g;
+    ctx.fill();
 
-/* ===== EVENTS ===== */
-function chooseEvent(){
-  if(Math.random() > CFG.eventChance) return null;
-  const arr = ['wind','blackhole','bounce'];
-  return arr[Math.floor(Math.random()*arr.length)];
-}
-function setupEventForRun(){
-  state.event = chooseEvent();
-  if(state.event === 'wind'){
-    state.wind.x = (Math.random()*2-1) * CFG.windStrength * 1.4;
-    state.wind.y = (Math.random()*2-1) * CFG.windStrength * 1.4;
-  } else {
-    state.wind.x = (Math.random()*2-1) * CFG.windStrength;
-    state.wind.y = (Math.random()*2-1) * CFG.windStrength;
-  }
-}
+    // draw terrain outline
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1f6b9b';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length;i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
 
-/* ===== BALLOONS ===== */
-let pointerCaptureId = null;
-function createBall(cx, cy, price, autoDrag=true){
-  const id = state.nextId++;
-  const el = document.createElement('div'); el.className = 'balloon'; el.dataset.id = id;
-  el.style.left = (cx - CFG.minR) + 'px'; el.style.top = (cy - CFG.minR) + 'px';
-  el.style.width = (CFG.minR*2) + 'px'; el.style.height = (CFG.minR*2) + 'px';
-  el.style.background = `hsl(${Math.floor(Math.random()*360)} 90% 55%)`;
-  const label = document.createElement('div'); label.className='label'; label.textContent='x0.50'; el.appendChild(label);
-  arena.appendChild(el);
-  const obj = {
-    id, el, x:cx, y:cy, vx:0, vy:0, r:CFG.minR, price,
-    state: 'inflating', popping:false, dragging:!!autoDrag, lastPointer: null, recentVel:{x:0,y:0}, multiplier:0.5
+    // draw holes (as dark circles with rim)
+    for(const h of holes){
+      // rim
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r + 2, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r, 0, Math.PI*2);
+      ctx.fillStyle = '#071523';
+      ctx.fill();
+
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#063b4c';
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, h.r, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // draw balls
+    for(const b of balls){
+      // shadow
+      ctx.beginPath();
+      ctx.ellipse(b.x+4, b.y+6, b.r*0.9, b.r*0.45, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fill();
+
+      // main
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fillStyle = b.owner ? b.owner.color : '#7dd3fc';
+      ctx.fill();
+
+      // rim
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.stroke();
+
+      // if scored or inactive, cross out
+      if(b.scored){
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.r*0.6, b.y - b.r*0.6);
+        ctx.lineTo(b.x + b.r*0.6, b.y + b.r*0.6);
+        ctx.moveTo(b.x + b.r*0.6, b.y - b.r*0.6);
+        ctx.lineTo(b.x - b.r*0.6, b.y + b.r*0.6);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    // overlay UI text: balls count
+    ballsCountEl.textContent = balls.length;
+
+    // optionally draw debug: segment normals
+    // for(const s of terrain.segments){
+    //   const mx = (s.a.x + s.b.x)/2;
+    //   const my = (s.a.y + s.b.y)/2;
+    //   ctx.beginPath();
+    //   ctx.moveTo(mx, my);
+    //   ctx.lineTo(mx + s.nx*16, my + s.ny*16);
+    //   ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+    //   ctx.stroke();
+    // }
+
+    // HUD: small text bottom-left with simTime
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(10,10,220,36);
+    ctx.fillStyle = '#cfeefb';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText(`Sim time: ${simTime.toFixed(2)} s`, 18, 30);
+  }
+
+  // Update UI counters
+  function updateUI(){
+    queuedEl.textContent = queued.length;
+    holesCountEl.textContent = holes.length;
+    ballsCountEl.textContent = balls.length;
+    totalScoreEl.textContent = totalScore;
+    renderPlayers();
+  }
+
+  // Game loop
+  function loop(now){
+    if(!running) return;
+    const dtMs = Math.min(60, now - lastTime);
+    lastTime = now;
+    const speed = parseFloat(speedEl.value) || 1.0;
+    const dt = (dtMs / 1000) * speed;
+
+    if(roundPhase === 'running'){
+      simTime += dt;
+      stepPhysics(dt);
+      // end conditions: all balls inactive OR max sim time reached
+      const anyActive = balls.some(b => b.active);
+      if(!anyActive || simTime > MAX_SIM_SECONDS){
+        endRound();
+      }
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // Round control
+  function startBuyPhase(){
+    // reset round state
+    roundPhase = 'buy';
+    buyRemaining = ROUND_BUY_SECONDS;
+    roundModeEl.textContent = 'Покупка';
+    countdownEl.textContent = buyRemaining.toFixed(0) + 's';
+    // start countdown
+    if(roundTimer) clearInterval(roundTimer);
+    roundTimer = setInterval(()=>{
+      buyRemaining -= 1;
+      if(buyRemaining <= 0){
+        clearInterval(roundTimer);
+        countdownEl.textContent = '0s';
+        queuedToRun();
+      } else {
+        countdownEl.textContent = buyRemaining.toFixed(0) + 's';
+      }
+    }, 1000);
+  }
+
+  function queuedToRun(){
+    // spawn all queued balls into balls[], then set roundPhase running
+    if(queued.length === 0){
+      // nothing to run -> immediately regenerate and restart buy
+      startBuyPhase();
+      return;
+    }
+    spawnBalls();
+    // small settling: let balls fall a little before starting sim? We'll just start running
+    roundPhase = 'running';
+    roundModeEl.textContent = 'Запуск';
+    simTime = 0;
+    // ensure totalScore UI etc
+    updateUI();
+  }
+
+  function endRound(){
+    roundPhase = 'idle';
+    roundModeEl.textContent = 'Завершено';
+    // cleanup: remove inactive balls after delay
+    setTimeout(()=>{
+      // keep scored ones for inspection, but remove deactivated
+      balls = balls.filter(b => b.active || b.scored);
+      updateUI();
+      // restart buy phase automatically
+      startBuyPhase();
+    }, 800);
+  }
+
+  // UI actions
+  buyBtn.addEventListener('click', ()=>{
+    if(players.length === 0){
+      alert('Добавьте хотя бы одного тест-игрока (справа) чтобы купить шар.');
+      return;
+    }
+    // assign to a random player among players
+    const owner = players[Math.floor(Math.random()*players.length)];
+    queued.push(owner);
+    updateUI();
+  });
+
+  startBtn.addEventListener('click', ()=>{
+    if(roundPhase === 'buy'){
+      // force start
+      clearInterval(roundTimer);
+      countdownEl.textContent = '0s';
+      queuedToRun();
+    } else {
+      // restart buy phase
+      startBuyPhase();
+    }
+  });
+
+  regenBtn.addEventListener('click', ()=>{
+    resetWorld();
+  });
+
+  addPlayerBtn.addEventListener('click', ()=>{
+    addTestPlayer('Игрок ' + (_playerId));
+    updateUI();
+  });
+
+  speedEl.addEventListener('input', ()=>{
+    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1) + 'x';
+  });
+
+  // Initial world setup
+  function resetWorld(){
+    const W = canvas.clientWidth;
+    const H = canvas.clientHeight;
+    terrain = generateTerrain(W, H);
+    holes = generateHoles(terrain, Math.floor(rand(2,5)));
+    balls = [];
+    queued = [];
+    totalScore = 0;
+    players.forEach(p => p.score = 0);
+    holesCountEl.textContent = holes.length;
+    totalScoreEl.textContent = totalScore;
+    updateUI();
+  }
+
+  // start
+  addTestPlayer('Alice');
+  addTestPlayer('Bob');
+  resetWorld();
+  startBuyPhase();
+
+  // begin loop
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+
+  // allow clicking canvas to add debug ball
+  canvas.addEventListener('click', (ev)=>{
+    // convert client coords to canvas coords
+    const rect = canvas.getBoundingClientRect();
+    const cx = ev.clientX - rect.left;
+    const cy = ev.clientY - rect.top;
+    const b = {
+      id: 'dbg' + (_ballId++),
+      x: cx, y: cy, vx: 0, vy: 0, r: BALL_RADIUS, mass: BALL_MASS,
+      owner: null, active: true, scored: false
+    };
+    balls.push(b);
+    updateUI();
+  });
+
+  // Expose some debug functions in console
+  window.MountainDrop = {
+    resetWorld,
+    terrain,
+    balls,
+    holes,
+    players,
+    spawnBalls,
+    startBuyPhase,
+    queued
   };
 
-  // pointer handlers for drag/inflate
-  let pid = null;
-  function onDown(e){
-    if(obj.popping) return;
-    el.setPointerCapture(e.pointerId);
-    pid = e.pointerId;
-    obj.dragging = true;
-    obj.state = 'inflating';
-    obj.lastPointer = {x:e.clientX, y:e.clientY, t: performance.now()};
-    pointerCaptureId = pid;
-  }
-  function onMove(e){
-    if(pid !== e.pointerId) return;
-    const rect = arena.getBoundingClientRect();
-    obj.x = clamp(e.clientX - rect.left, obj.r, rect.width - obj.r);
-    obj.y = clamp(e.clientY - rect.top, obj.r, rect.height - obj.r);
-    const now = performance.now(), dt = Math.max(6, now - (obj.lastPointer?.t || now));
-    const dx = e.clientX - (obj.lastPointer?.x || e.clientX), dy = e.clientY - (obj.lastPointer?.y || e.clientY);
-    obj.recentVel = { x: dx/dt*1000, y: dy/dt*1000 };
-    obj.lastPointer = {x:e.clientX, y:e.clientY, t: now};
-  }
-  function onUp(e){
-    if(pid !== e.pointerId) return;
-    el.releasePointerCapture(e.pointerId);
-    pid = null;
-    obj.dragging = false;
-    obj.state = 'idle';
-    obj.vx = obj.recentVel.x * 0.008;
-    obj.vy = obj.recentVel.y * 0.008;
-    pointerCaptureId = null;
-  }
+  // Utility: ensure canvas not blurry on high dpi when client size changes
+  new ResizeObserver(()=>{
+    resize();
+    // regenerate terrain to avoid misplacement on width change? keep as is
+  }).observe(canvas);
 
-  el.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-
-  state.balloons.set(id, obj);
-  return obj;
-}
-
-/* overlap helpers */
-function circleRectOverlap(cx,cy,r,rx,ry,rw,rh){
-  const closestX = Math.max(rx, Math.min(cx, rx + rw));
-  const closestY = Math.max(ry, Math.min(cy, ry + rh));
-  const dx = cx - closestX, dy = cy - closestY;
-  return (dx*dx + dy*dy) < (r*r);
-}
-function overlapsAny(cx,cy,r,ignoreId=null){
-  for(const L of state.lines){
-    if(circleRectOverlap(cx,cy,r,L.x,L.y,L.w,L.h)) return true;
-  }
-  for(const b of state.balloons.values()){
-    if(b.id === ignoreId || b.popping) continue;
-    const d = Math.hypot(b.x - cx, b.y - cy);
-    if(d < b.r + r + 0.5) return true;
-  }
-  return false;
-}
-
-/* pop */
-function popBalloon(b, reason=''){
-  if(b.popping) return;
-  b.popping = true;
-  b.state = 'popped';
-  const burst = document.createElement('div'); burst.className='burst';
-  burst.style.left = b.x + 'px'; burst.style.top = b.y + 'px';
-  burst.style.width = (b.r*2) + 'px'; burst.style.height = (b.r*2) + 'px';
-  burst.style.background = 'radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,255,255,0.1))';
-  burst.style.animation = 'burstAnim .45s cubic-bezier(.2,.8,.2,1) forwards';
-  arena.appendChild(burst);
-  try{ b.el.remove(); }catch{}
-  setTimeout(()=>{ try{ burst.remove(); }catch{} }, 500);
-  state.balloons.delete(b.id);
-  log(`Шар #${b.id} лопнул ${reason?('('+reason+')'):''}`);
-}
-
-/* collisions */
-function resolveCircleCircle(A,B){
-  const dx = B.x - A.x, dy = B.y - A.y; const dist = Math.hypot(dx,dy);
-  if(dist === 0) return;
-  const overlap = A.r + B.r - dist;
-  if(overlap <= 0) return;
-  const nx = dx/dist, ny = dy/dist;
-  const mA = Math.max(1, A.r*A.r), mB = Math.max(1, B.r*B.r);
-  A.x -= nx * (overlap * (mB/(mA+mB)));
-  A.y -= ny * (overlap * (mB/(mA+mB)));
-  B.x += nx * (overlap * (mA/(mA+mB)));
-  B.y += ny * (overlap * (mA/(mA+mB)));
-  // velocities
-  const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
-  const rel = rvx*nx + rvy*ny;
-  if(rel > 0) return;
-  const e = 0.92;
-  const j = -(1+e)*rel / (1/mA + 1/mB);
-  const jx = j*nx, jy = j*ny;
-  A.vx -= jx/mA; A.vy -= jy/mA; B.vx += jx/mB; B.vy += jy/mB;
-}
-
-/* resolve circle-line as rigid obstacle */
-function resolveCircleLine(ball, L, bounceFactor=1){
-  const closestX = clamp(ball.x, L.x, L.x + L.w);
-  const closestY = clamp(ball.y, L.y, L.y + L.h);
-  const dx = ball.x - closestX, dy = ball.y - closestY;
-  const dist = Math.hypot(dx,dy);
-  if(dist === 0) return false;
-  if(dist < ball.r){
-    const overlap = ball.r - dist;
-    const nx = dx / dist, ny = dy / dist;
-    // strong positional correction (rigid)
-    ball.x += nx * overlap;
-    ball.y += ny * overlap;
-    // reflect velocity along normal
-    const vn = ball.vx*nx + ball.vy*ny;
-    ball.vx -= (1.9 * bounceFactor) * vn * nx;
-    ball.vy -= (1.9 * bounceFactor) * vn * ny;
-    // damping
-    ball.vx *= 0.92; ball.vy *= 0.92;
-    return true;
-  }
-  return false;
-}
-
-/* ===== PHASES & FLOW ===== */
-function startBuy(){
-  state.phase = 'buy';
-  state.buyTimer = CFG.buySec;
-  state.purchasedSlots = 0;
-  state.placedCount = 0;
-  state.event = null;
-  state.wind = {x:0,y:0};
-  clearBalloons();
-  generateLines();
-  showOverlay('Фаза покупок', 900);
-  log('Фаза покупок началась');
-  uiUpdate();
-}
-function enterPlacement(){
-  state.phase = 'place';
-  state.placeTimer = CFG.placeSec;
-  showOverlay('Фаза размещения', 900);
-  log('Фаза размещения началась');
-  uiUpdate();
-}
-function startRun(){
-  state.phase = 'run';
-  setupEventForRun();
-  state.runTimer = CFG.runSec;
-  showOverlay(state.event ? `Раунд — ${state.event.toUpperCase()}` : 'Раунд — НЕТ события', 1000);
-  log('Раунд стартовал. Событие: ' + (state.event || 'none'));
-  uiUpdate();
-}
-function transitionToBuy(){
-  state.phase = 'transition';
-  showOverlay('Раунд завершён', 1000);
-  setTimeout(()=> startBuy(), 1000);
-}
-
-/* clear balloons helper */
-function clearBalloons(){
-  for(const b of state.balloons.values()){
-    try{ b.el.remove(); }catch{}
-  }
-  state.balloons.clear();
-}
-
-/* ===== PURCHASE HANDLERS ===== */
-buyBtn.addEventListener('click', ()=>{
-  if(state.phase !== 'buy') return;
-  if(state.balance < CFG.price){ log('Недостаточно средств'); return; }
-  state.balance -= CFG.price; state.purchasedSlots++; save(); log('Куплен слот'); uiUpdate();
-  startPlacementBtn.disabled = state.purchasedSlots === 0;
-});
-
-startPlacementBtn.addEventListener('click', ()=>{
-  if(state.phase !== 'buy') return;
-  if(state.purchasedSlots === 0){ log('Нет купленных слотов'); return; }
-  enterPlacement();
-});
-
-startRunBtn.addEventListener('click', ()=>{
-  if(state.phase !== 'place') return;
-  startRun();
-});
-
-/* ===== PLACEMENT: click & hold to place/inflate ===== */
-arena.addEventListener('pointerdown', (e)=>{
-  if(state.phase !== 'place') return;
-  if(state.purchasedSlots <= 0){ log('Нет свободных слотов'); return; }
-  const rect = arena.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top;
-  // ensure not overlapping with lines/balls
-  if(overlapsAny(x,y, CFG.minR, null)){
-    log('Занято — выберите другое место');
-    return;
-  }
-  const b = createBall(x,y, CFG.price, true);
-  // multiplier initial 0.5 shown, label updated in loop
-  state.purchasedSlots--; state.placedCount++;
-  log('Размещен шар #' + b.id);
-  uiUpdate();
-});
-
-/* ===== MAIN LOOP (physics + phase timers) ===== */
-let last = performance.now();
-function mainLoop(now){
-  const dtms = Math.min(40, now - last); last = now; const dt = dtms/1000;
-
-  // phase timers & automatic transitions
-  if(state.phase === 'buy'){
-    state.buyTimer -= dt;
-    if(state.buyTimer <= 0){
-      if(state.purchasedSlots > 0) enterPlacement();
-      else { state.buyTimer = CFG.buySec; log('Нет покупок — снова фаза покупок'); }
-    }
-  } else if(state.phase === 'place'){
-    state.placeTimer -= dt;
-    if(state.placeTimer <= 0){
-      // auto start run even if not all placed
-      startRun();
-    }
-  } else if(state.phase === 'run'){
-    // physics-driven; last - end check after physics
-  }
-
-  // physics updates (during place and run we must update objects)
-  physicsStep(dtms);
-
-  // run timer end handling
-  if(state.phase === 'run'){
-    state.runTimer -= dt;
-    if(state.runTimer <= 0){
-      // payout survivors
-      for(const b of Array.from(state.balloons.values())){
-        if(!b.popping){
-          const payout = b.price * (b.multiplier || 0.5);
-          state.balance += payout;
-          log(`Авто-выигрыш #${b.id} x${(b.multiplier || 0.5).toFixed(2)} +${payout.toFixed(2)}`);
-          try{ b.el.remove(); }catch{}
-        }
-      }
-      clearBalloons();
-      save();
-      transitionToBuy();
-    }
-  }
-
-  uiUpdate();
-  requestAnimationFrame(mainLoop);
-}
-requestAnimationFrame(mainLoop);
-
-/* ===== PHYSICS STEP ===== */
-function physicsStep(dtms){
-  const dt = Math.min(40, dtms)/1000;
-  const arr = Array.from(state.balloons.values());
-
-  // inflation logic + multiplier mapping: r_map -> multiplier 0.5..5
-  function radiusToMultiplier(r){
-    // linear map r = minR -> 0.5 ; r = maxR -> 5.0
-    const t = (r - CFG.minR) / (CFG.maxR - CFG.minR);
-    return 0.5 + t * (5.0 - 0.5);
-  }
-
-  // inflate where state === 'inflating' and no overlaps
-  for(const b of arr){
-    if(b.state === 'inflating'){
-      const desired = Math.min(CFG.maxR, b.r + CFG.inflatePerSec * dt);
-      if(!overlapsAny(b.x, b.y, desired, b.id)){
-        b.r = desired;
-        b.multiplier = radiusToMultiplier(b.r);
-      } else {
-        // blocked inflation — do nothing (user must move)
-      }
-    }
-  }
-
-  // integrate velocities
-  for(const b of arr){
-    if(b.popping) continue;
-    if(!b.dragging){
-      // event forces
-      if(state.event === 'blackhole'){
-        const cx = arena.clientWidth/2, cy = arena.clientHeight/2;
-        const dx = cx - b.x, dy = cy - b.y; const d = Math.hypot(dx,dy) + 1;
-        const pull = (80 / Math.max(120, d*d)) * dt * 100;
-        b.vx += dx/d * pull; b.vy += dy/d * pull;
-      }
-      // wind
-      b.vx += state.wind.x * dt * 0.16; b.vy += state.wind.y * dt * 0.16;
-      // integrate position (scaled to be stable)
-      b.x += b.vx * dt * 60 * 0.06;
-      b.y += b.vy * dt * 60 * 0.06;
-    }
-    // bounds collision rigid (same as wall)
-    const W = arena.clientWidth, H = arena.clientHeight;
-    if(b.x - b.r < 0){
-      b.x = b.r;
-      b.vx = -b.vx * (state.event === 'bounce' ? CFG.bounce*1.4 : CFG.bounce);
-    }
-    if(b.x + b.r > W){
-      b.x = W - b.r;
-      b.vx = -b.vx * (state.event === 'bounce' ? CFG.bounce*1.4 : CFG.bounce);
-    }
-    if(b.y - b.r < 0){
-      b.y = b.r;
-      b.vy = -b.vy * (state.event === 'bounce' ? CFG.bounce*1.4 : CFG.bounce);
-    }
-    if(b.y + b.r > H){
-      b.y = H - b.r;
-      b.vy = -b.vy * (state.event === 'bounce' ? CFG.bounce*1.4 : CFG.bounce);
-    }
-    b.vx *= Math.pow(CFG.friction, dtms/16);
-    b.vy *= Math.pow(CFG.friction, dtms/16);
-  }
-
-  // collision resolution (multi-iteration)
-  for(let iter=0; iter<3; iter++){
-    // ball-ball
-    for(let i=0;i<arr.length;i++){
-      for(let j=i+1;j<arr.length;j++){
-        const A = arr[i], B = arr[j];
-        if(A.popping || B.popping) continue;
-        resolveCircleCircle(A,B);
-      }
-    }
-    // ball-line (rigid)
-    for(const b of arr){
-      if(b.popping) continue;
-      for(const L of state.lines){
-        const collided = resolveCircleLine(b, L, state.event === 'bounce' ? 1.6 : 1);
-        if(collided && L.type === 'spike'){
-          popBalloon(b, 'spike');
-          break;
-        }
-      }
-    }
-  }
-
-  // update DOM
-  for(const b of arr){
-    if(b.popping) continue;
-    b.el.style.width = (b.r*2) + 'px';
-    b.el.style.height = (b.r*2) + 'px';
-    b.el.style.left = (b.x - b.r) + 'px';
-    b.el.style.top = (b.y - b.r) + 'px';
-    b.el.querySelector('.label').textContent = `x${(b.multiplier || 0.5).toFixed(2)}`;
-  }
-}
-
-/* ===== Helpers: start phases on load ===== */
-function startFresh(){
-  generateLines();
-  state.phase = 'buy';
-  state.buyTimer = CFG.buySec;
-  state.placeTimer = CFG.placeSec;
-  state.runTimer = CFG.runSec;
-  state.purchasedSlots = 0;
-  state.placedCount = 0;
-  state.event = null;
-  state.wind = {x:0,y:0};
-  uiUpdate();
-  showOverlay('Готово — фаза покупок', 1000);
-}
-startFresh();
-
-/* ===== start/controls for convenience ===== */
-// allow start placement and start run buttons also for manual flow control
-// startRun and enterPlacement bound above
-
-/* Prevent scroll on mobile */
-document.addEventListener('touchmove', (e)=>{ e.preventDefault(); }, {passive:false});
-
-/* ===== Save balance on unload ===== */
-window.addEventListener('beforeunload', ()=> save() );
-
+})();
 </script>
 </body>
 </html>
