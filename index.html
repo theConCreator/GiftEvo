@@ -1,337 +1,968 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no" />
 <title>Mountain Drop — Enhanced</title>
 <style>
-html, body {
-  margin:0; padding:0; overflow:hidden;
-  width:100%; height:100%;
-  font-family:'Inter', sans-serif;
-  background:linear-gradient(180deg,#0a1b33,#071228);
-  color:#f0f4f8;
-}
-#gameContainer { width:100%; height:100%; position:relative; }
-canvas { display:block; background:linear-gradient(180deg,#0a1b33,#071228); }
-#ui {
-  position:absolute; top:16px; left:16px;
-  background:rgba(0,0,0,0.35); padding:12px; border-radius:12px;
-  backdrop-filter:blur(6px); z-index:10;
-  min-width:180px;
-}
-#ui button {
-  margin:2px; padding:8px 14px;
-  border:none; border-radius:8px;
-  background:#4fd1c5; color:#0a1b33; font-weight:600; cursor:pointer;
-  transition:all 0.2s ease;
-}
-#ui button:hover { background:#38b2ac; }
-#ui .player {
-  display:flex; justify-content:space-between; margin:2px 0; font-size:14px;
-}
-#ui .label { font-weight:600; font-size:13px; margin-top:6px; display:block; }
+  /* Reset & base */
+  :root{
+    --bg1:#041125;
+    --bg2:#071a2a;
+    --panel: rgba(255,255,255,0.04);
+    --accent:#5eead4;
+    --accent-2:#60a5fa;
+    --muted:#9fb4c7;
+    --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box;font-family:Inter, Inter var, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f0f8;overflow:hidden}
+  #app{width:100%;height:100%;position:relative;display:flex;align-items:stretch}
+
+  /* Canvas fills area */
+  .game-wrap{flex:1;position:relative;display:flex;align-items:stretch;justify-content:center}
+  canvas{display:block;width:100%;height:100%;background:linear-gradient(180deg,#081426,#041426);}
+
+  /* UI panel */
+  .ui {
+    position:absolute;
+    left:18px;
+    top:18px;
+    width:320px;
+    max-width:44%;
+    background:var(--panel);
+    border-radius:14px;
+    padding:12px;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+    z-index: 50;
+  }
+  .ui h1{margin:0;font-size:18px;color:#e8f8ff}
+  .ui .muted{color:var(--muted);font-size:13px;margin-top:4px}
+  .row{display:flex;gap:8px;align-items:center}
+  .btn {
+    background:linear-gradient(180deg,var(--accent),#34d399);
+    border:none;color:#04201f;font-weight:700;padding:8px 12px;border-radius:10px;cursor:pointer;
+    box-shadow: 0 6px 14px rgba(46,229,197,0.08);
+  }
+  .ghost {
+    background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent-2);padding:8px 10px;border-radius:10px;cursor:pointer;
+  }
+  .small {font-size:13px;padding:6px 8px}
+  .toggle {
+    display:flex;gap:6px;align-items:center;padding:6px;background:rgba(255,255,255,0.02);border-radius:8px;
+  }
+  .players{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  .player{display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:8px;background:rgba(255,255,255,0.01)}
+  .player .name{font-weight:700}
+  .hud{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .label{font-size:13px;color:var(--muted)}
+  .bigstat{font-weight:800;color:var(--accent);font-size:18px}
+  .footer {
+    position:absolute;right:18px;bottom:18px;background:rgba(0,0,0,0.24);padding:10px;border-radius:12px;backdrop-filter:blur(6px);
+    color:var(--muted);font-size:13px;
+  }
+
+  /* control mobile-friendly */
+  @media (max-width:720px){
+    .ui{left:10px;top:10px;width:calc(100% - 20px);max-width:unset}
+    .footer{left:10px;right:10px}
+  }
 </style>
 </head>
 <body>
-<div id="gameContainer">
-  <canvas id="gameCanvas"></canvas>
-  <div id="ui">
-    <div>
-      <button id="buyBtn">Купить шар</button>
-      <button id="startBtn">Старт</button>
-      <button id="regenBtn">Новая гора</button>
+<div id="app">
+  <div class="game-wrap">
+    <canvas id="canvas"></canvas>
+
+    <div class="ui" id="uiPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h1>Mountain Drop</h1>
+          <div class="muted">Экшн-демо — пилы, батуты, бамперы, камера и крутой уклон</div>
+        </div>
+        <div style="text-align:right">
+          <div class="label">Режим</div>
+          <div id="modeLabel" class="bigstat">Готов</div>
+        </div>
+      </div>
+
+      <div class="hud" style="margin-top:12px">
+        <button id="buyBtn" class="btn small">Купить шар</button>
+        <button id="spawnBtn" class="ghost small">Разбросать</button>
+        <button id="startBtn" class="ghost small">Старт раунда</button>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+        <div class="toggle" style="flex:1">
+          <input type="checkbox" id="camToggle" checked />
+          <label for="camToggle" style="font-size:13px;color:var(--muted)">Авто-камера</label>
+        </div>
+        <button id="regenBtn" class="ghost small">Новая гора</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="label">Игроки (локально)</div>
+        <div class="players" id="players"></div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="addPlayer" class="ghost small">Добавить игрока</button>
+          <button id="clearBtn" class="ghost small">Очистить шары</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+        <div>
+          <div class="label">Шаров в очереди</div>
+          <div id="queued" class="bigstat">0</div>
+        </div>
+        <div>
+          <div class="label">На поле</div>
+          <div id="onfield" class="bigstat">0</div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="text-align:right">
+          <div class="label">Счёт</div>
+          <div id="score" class="bigstat">0</div>
+        </div>
+      </div>
     </div>
-    <div id="playerList" style="margin-top:10px;"><strong>Игроки:</strong></div>
-    <span class="label">Шары в очереди: <span id="queued">0</span></span>
-    <span class="label">Общий счёт: <span id="totalScore">0</span></span>
+
+    <div class="footer">Поддерживает drag/перетаскивание камеры • Касание = добавить тест-шар</div>
   </div>
 </div>
 
 <script>
-(() => {
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  let W = window.innerWidth, H = window.innerHeight;
-  canvas.width = W; canvas.height = H;
+/*
+  Mountain Drop — Advanced single-file demo
+  - Long map (8000x2000) with steep slopes (up to -60°)
+  - Camera: auto-follow (toggle) and free drag
+  - Hazards: saws (destroy), trampolines (bounce), bumpers
+  - Balls spawn from a point with spread
+  - Better physical behavior, collisions, visual cues
+*/
 
-  // UI Elements
+(() => {
+  // Canvas & hi-dpi
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', {alpha:false});
+  function dprResize(){
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    W = window.innerWidth; H = window.innerHeight;
+  }
+  window.addEventListener('resize', dprResize);
+  let W = window.innerWidth, H = window.innerHeight;
+  dprResize();
+
+  // UI elements
   const buyBtn = document.getElementById('buyBtn');
+  const spawnBtn = document.getElementById('spawnBtn');
   const startBtn = document.getElementById('startBtn');
   const regenBtn = document.getElementById('regenBtn');
-  const playersEl = document.getElementById('playerList');
+  const addPlayerBtn = document.getElementById('addPlayer');
+  const clearBtn = document.getElementById('clearBtn');
+  const camToggle = document.getElementById('camToggle');
+  const playersEl = document.getElementById('players');
   const queuedEl = document.getElementById('queued');
-  const totalScoreEl = document.getElementById('totalScore');
+  const onfieldEl = document.getElementById('onfield');
+  const scoreEl = document.getElementById('score');
+  const modeLabel = document.getElementById('modeLabel');
 
-  // World
-  let terrain = null;
-  let balls = [];
-  let queued = [];
-  let players = [];
-  let totalScore = 0;
-
-  const GRAVITY = 1500;
-  const BALL_RADIUS = 12;
+  // Simulation params
+  const MAP_WIDTH = 9000;
+  const MAP_HEIGHT = 2200;
+  const GRAVITY = 1600;           // px/s^2
+  const BALL_RADIUS = 14;
   const BALL_MASS = 1;
-  const RESTITUTION = 0.5; // более "отскакивающие"
-  const FRICTION_GROUND = 0.995;
-  const AIR_FRICTION = 0.998;
+  const RESTITUTION = 0.45;      // bounce on terrain by default
+  const AIR_DAMP = 0.9985;
   const SUBSTEPS = 3;
 
-  const MAP_WIDTH = 8000;
-  const MAP_HEIGHT = 2000;
+  // Gameplay
+  let terrain = null;            // {points,segments}
+  let obstacles = [];            // {type='saw'|'trampoline'|'bumper', x,y, r, ...}
+  let balls = [];                // {id,x,y,vx,vy,r,mass,owner,active,scored}
+  let queued = [];               // owners queue
+  let players = [];
+  let totalScore = 0;
+  let _ballId = 1, _playerId = 1;
 
   // Camera
   let camX = 0, camY = 0, camZoom = 1;
   let targetCamX = 0, targetCamY = 0, targetZoom = 1;
 
-  // Drag
-  let isDragging = false, dragStartX = 0, dragStartY = 0, camStartX = 0, camStartY = 0;
+  // Drag camera free mode
+  let dragging = false, dragStart = null, camStart = null;
 
-  // IDs
-  let _ballId = 1;
-  let _playerId = 1;
+  // Round state
+  let roundPhase = 'idle'; // 'buy','running','idle'
+  let buyTimer = 0;
+  const BUY_SECONDS = 10;
 
-  function rand(min,max){return Math.random()*(max-min)+min;}
-  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
-  function randomColor(){return `hsl(${rand(150,290)},70%,60%)`; }
+  // Util
+  const rand = (a,b)=>Math.random()*(b-a)+a;
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const dist2 = (ax,ay,bx,by)=>{const dx=ax-bx,dy=ay-by;return dx*dx+dy*dy;}
+  const dist = (ax,ay,bx,by)=>Math.sqrt(dist2(ax,ay,bx,by));
+  const colorFor = (i)=>`hsl(${(i*77)%360} 78% 60%)`;
 
-  // Players
+  // --- players
   function addPlayer(name){
-    const p = {id:'p'+(_playerId++), name:name||('Player'+_playerId), score:0, color:randomColor()};
-    players.push(p);
-    renderPlayers();
-    return p;
+    const p = {id:'p'+(_playerId++), name: name||('Игрок ' + _playerId), score:0, color: colorFor(_playerId)};
+    players.push(p); renderPlayers();
   }
   function renderPlayers(){
-    playersEl.innerHTML='';
+    playersEl.innerHTML = '';
     players.forEach(p=>{
-      const div=document.createElement('div');
-      div.className='player';
-      div.innerHTML=`<span style="color:${p.color}">${p.name}</span><span>${p.score}</span>`;
-      playersEl.appendChild(div);
+      const el = document.createElement('div'); el.className='player';
+      el.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+                        <div style="width:12px;height:12px;border-radius:50%;background:${p.color}"></div>
+                        <div class="name">${p.name}</div>
+                      </div>
+                      <div style="text-align:right">
+                        <div style="font-weight:800;color:var(--accent)">${p.score}</div>
+                        <div style="font-size:12px;color:var(--muted)">очки</div>
+                      </div>`;
+      playersEl.appendChild(el);
     });
   }
 
-  // Terrain generation (more random, "rough")
+  // --- Terrain gen (more random, smaller bumps, steeper)
   function generateTerrain(){
+    // build polyline left->right with many segments.
     const points=[];
-    const N = 50; // больше сегментов
-    const marginTop = 50;
-    const marginBottom = 100;
-    const dx = MAP_WIDTH / N;
-    let lastY = rand(marginTop, MAP_HEIGHT*0.3);
+    const N = 200; // many small segments
+    const left = 50, right = MAP_WIDTH - 80;
+    const dx = (right - left) / N;
+    // start high-left (top-left)
+    let lastY = rand(60, 160);
     for(let i=0;i<=N;i++){
-      let x=i*dx;
-      let slopeDeg = rand(-35,-10);
-      let slopeRad = slopeDeg*Math.PI/180;
-      let dy = Math.tan(-slopeRad)*dx + rand(-15,15);
-      let y = clamp(lastY+dy, marginTop, MAP_HEIGHT-marginBottom);
-      points.push({x,y});
-      lastY=y;
+      const x = left + i*dx;
+      // slope base: strong downward trend
+      // user requested steeper: angle range -45 to -70 degrees (more steep)
+      const baseSlopeDeg = rand(-70, -45);
+      const baseSlope = Math.tan(-baseSlopeDeg * Math.PI/180) * dx;
+      // add micro noise
+      const wobble = Math.sin(i*0.25 + rand(0,6))*rand(6,30);
+      let y = lastY + baseSlope + wobble;
+      // clamp within map
+      y = clamp(y, 40, MAP_HEIGHT - 140);
+      points.push({x, y});
+      lastY = y;
     }
-    const segments=[];
+    // build segments with normals
+    const segments = [];
     for(let i=0;i<points.length-1;i++){
-      const a=points[i], b=points[i+1];
-      const dx=b.x-a.x, dy=b.y-a.y;
-      const len=Math.hypot(dx,dy)||1;
-      const nx=-dy/len, ny=dx/len;
-      segments.push({a,b,dx,dy,len,nx,ny});
+      const a = points[i], b = points[i+1];
+      const dxs = b.x - a.x, dys = b.y - a.y;
+      const len = Math.hypot(dxs, dys) || 1;
+      const nx = -dys / len, ny = dxs / len;
+      segments.push({a,b,dx:dxs,dy:dys,len,nx,ny});
     }
-    return {points,segments};
+    terrain = {points, segments};
+    // Place obstacles
+    generateObstacles();
   }
 
-  // Spawn balls
-  function spawnBalls(){
-    const spacing = BALL_RADIUS*2.5;
-    for(let i=0;i<queued.length;i++){
-      const owner=queued[i];
-      const x = terrain.points[0].x + i*spacing;
-      const y = terrain.points[0].y - 40 - i*4;
-      balls.push({id:'b'+(_ballId++), x,y,vx:0,vy:0,r:BALL_RADIUS,mass:BALL_MASS,owner:owner,active:true});
+  function generateObstacles(){
+    obstacles = [];
+    // Place some saws in air above terrain (randomly)
+    const segCount = terrain.segments.length;
+    // saws
+    const sawCount = Math.floor(rand(6,12));
+    for(let i=0;i<sawCount;i++){
+      const si = Math.floor(rand(10, segCount-40));
+      const seg = terrain.segments[si];
+      const t = rand(0.2, 0.8);
+      const x = seg.a.x + seg.dx*t + rand(-40,40);
+      const y = seg.a.y + seg.dy*t - rand(80,220); // above slope
+      const r = rand(22,36);
+      const speed = rand(2,5);
+      obstacles.push({type:'saw', x,y,r, ang:rand(0,Math.PI*2), speed, id:'saw'+i});
     }
-    queued=[];
+    // trampolines near slope / slightly above
+    const trampCount = Math.floor(rand(5,9));
+    for(let i=0;i<trampCount;i++){
+      const si = Math.floor(rand(15, segCount-35));
+      const seg = terrain.segments[si];
+      const t = rand(0.2, 0.85);
+      const x = seg.a.x + seg.dx*t;
+      const y = seg.a.y + seg.dy*t - rand(10,40); // close to slope
+      const w = rand(48,80);
+      obstacles.push({type:'trampoline', x,y,w,id:'tr'+i});
+    }
+    // bumpers: circular bumpers that give extra bounce
+    const bumperCount = Math.floor(rand(6,12));
+    for(let i=0;i<bumperCount;i++){
+      const si = Math.floor(rand(10, segCount-30));
+      const seg = terrain.segments[si];
+      const t = rand(0.15, 0.9);
+      const x = seg.a.x + seg.dx*t + rand(-20,20);
+      const y = seg.a.y + seg.dy*t - rand(40,140);
+      const r = rand(16,26);
+      obstacles.push({type:'bumper', x,y,r,id:'bp'+i});
+    }
+  }
+
+  // --- Spawning balls from a point with spread
+  const SPAWN_X = 120; // slightly right of left edge
+  const SPAWN_Y = 60;
+  function queueBallForRandomPlayer(){
+    if(players.length === 0) addPlayer('Игрок 1');
+    const owner = players[Math.floor(Math.random()*players.length)];
+    queued.push(owner);
+    updateUI();
+  }
+  function spawnQueuedSpread(){
+    // spawn all queued at once from spawn point with radial spread
+    const count = queued.length;
+    if(count === 0) return;
+    const angleCenter = Math.PI/6; // down-right
+    const spread = Math.PI/6;      // spread width
+    const speedBase = 160;         // initial impulse magnitude
+    for(let i=0;i<count;i++){
+      const owner = queued[i];
+      // distribute angles across spread, plus random jitter
+      const t = count > 1 ? i/(count-1) : 0.5;
+      const ang = angleCenter - spread/2 + t*spread + rand(-0.06,0.06);
+      const mag = speedBase * rand(0.7, 1.2);
+      const vx = Math.cos(ang) * mag;
+      const vy = Math.sin(ang) * mag;
+      // jitter position slightly so they don't perfectly stack
+      const px = SPAWN_X + rand(-6,6);
+      const py = SPAWN_Y + rand(-6,6);
+      balls.push({
+        id: 'ball' + (_ballId++),
+        x: px, y: py, vx, vy,
+        r: BALL_RADIUS, mass: BALL_MASS, owner,
+        active: true, scored: false, age:0
+      });
+    }
+    queued = [];
     updateUI();
   }
 
-  function updateUI(){
-    queuedEl.textContent = queued.length;
-    totalScoreEl.textContent = totalScore;
-    renderPlayers();
-  }
+  // Add single ball test by clicking anywhere
+  canvas.addEventListener('click', (ev)=>{
+    const rect = canvas.getBoundingClientRect();
+    const cx = ev.clientX - rect.left;
+    const cy = ev.clientY - rect.top;
+    // map screen -> world (approx with camera)
+    const world = screenToWorld(cx, cy);
+    balls.push({
+      id:'dbg' + (_ballId++),
+      x: world.x, y: world.y, vx: rand(-40,40), vy: rand(-20,20),
+      r: BALL_RADIUS, mass: BALL_MASS, owner: null, active:true, scored:false, age:0
+    });
+  });
 
-  // Physics
+  // --- Physics step (integrate + collisions)
   function stepPhysics(dt){
-    const invMass = 1/BALL_MASS;
-    const subDt = dt/SUBSTEPS;
+    // multiple substeps for stability
+    const subDt = dt / SUBSTEPS;
     for(let s=0;s<SUBSTEPS;s++){
+      // integrate forces
       for(const b of balls){
         if(!b.active) continue;
-        b.vy+=GRAVITY*subDt;
-        b.vx*=AIR_FRICTION;
-        b.vy*=AIR_FRICTION;
-        b.x+=b.vx*subDt;
-        b.y+=b.vy*subDt;
+        b.vy += GRAVITY * subDt;
+        b.vx *= AIR_DAMP;
+        b.vy *= AIR_DAMP;
+        b.x += b.vx * subDt;
+        b.y += b.vy * subDt;
+        b.age += subDt;
       }
-      // Terrain collisions
+
+      // collisions: ball - terrain (segment projection)
       for(const seg of terrain.segments){
         for(const b of balls){
           if(!b.active) continue;
-          const ax=seg.a.x, ay=seg.a.y;
-          const bx=seg.b.x, by=seg.b.y;
-          const vx=b.x-ax, vy=b.y-ay;
-          const segLen2=seg.dx*seg.dx+seg.dy*seg.dy;
-          let t=0;
-          if(segLen2>0) t=clamp((vx*seg.dx+vy*seg.dy)/segLen2,0,1);
-          const projX=ax+seg.dx*t;
-          const projY=ay+seg.dy*t;
-          const nx=b.x-projX, ny=b.y-projY;
-          const d2=nx*nx+ny*ny;
-          const r=b.r;
-          if(d2<r*r-0.5){
-            const d=Math.sqrt(Math.max(1e-6,d2));
-            const pen=r-d;
-            const nxu=nx/d, nyu=ny/d;
-            b.x+=nxu*pen;
-            b.y+=nyu*pen;
-            const relVelN=b.vx*nxu+b.vy*nyu;
-            const vn=-(1+RESTITUTION)*relVelN;
-            b.vx+=vn*nxu;
-            b.vy+=vn*nyu;
-            // Friction
-            const tx=-nyu, ty=nxu;
-            const relVelT=b.vx*tx+b.vy*ty;
-            const newRelT=relVelT*FRICTION_GROUND;
-            const dvT=newRelT-relVelT;
-            b.vx+=dvT*tx;
-            b.vy+=dvT*ty;
+          const ax = seg.a.x, ay = seg.a.y;
+          const bx = seg.b.x, by = seg.b.y;
+          const vx = b.x - ax, vy = b.y - ay;
+          const segLen2 = seg.dx*seg.dx + seg.dy*seg.dy;
+          let t = 0;
+          if(segLen2 > 0) {
+            t = clamp((vx*seg.dx + vy*seg.dy) / segLen2, 0, 1);
+          }
+          const projX = ax + seg.dx * t;
+          const projY = ay + seg.dy * t;
+          let nx = b.x - projX, ny = b.y - projY;
+          const d2 = nx*nx + ny*ny;
+          const r = b.r;
+          if(d2 < (r*r) - 0.1){
+            const d = Math.sqrt(Math.max(1e-6, d2));
+            const pen = r - d;
+            const nxu = nx / d, nyu = ny / d;
+            // push out
+            b.x += nxu * pen;
+            b.y += nyu * pen;
+            // relative normal velocity
+            const relN = b.vx * nxu + b.vy * nyu;
+            // add restitution (bounce) and some surface-dependent effect
+            const vn = -(1 + RESTITUTION) * relN;
+            b.vx += vn * nxu;
+            b.vy += vn * nyu;
+            // tangential friction/rolling
+            const tx = -nyu, ty = nxu;
+            const relT = b.vx * tx + b.vy * ty;
+            // more friction when contact is shallow (simulate gripping)
+            const frictionMul = clamp(0.98 - Math.abs(relN)*0.0015, 0.85, 0.999);
+            const newRelT = relT * frictionMul;
+            const dvT = newRelT - relT;
+            b.vx += dvT * tx;
+            b.vy += dvT * ty;
+            // small damping for deep slopes (simulate slide)
+            b.vx *= 0.999;
+            b.vy *= 0.999;
           }
         }
       }
-      // Ball-ball collisions
+
+      // collisions: ball - obstacle
+      for(const o of obstacles){
+        if(o.type === 'saw'){
+          // rotating saw treated as circle hazard; kill if overlap
+          for(const b of balls){
+            if(!b.active) continue;
+            const d2 = dist2(b.x,b.y,o.x,o.y);
+            const rsum = (b.r + o.r) * 0.9; // safety margin
+            if(d2 < rsum*rsum){
+              // destroyed
+              b.active = false;
+              // small particle effect (spawn inert fragments)
+              spawnFragments(b.x,b.y, b.owner ? b.owner.color : '#fff');
+            }
+          }
+          // update rotation
+          o.ang += o.speed * subDt;
+        } else if(o.type === 'trampoline'){
+          // if ball intersects trampoline area, give strong impulse perpendicular to trampoline plane (we approximate as flat horizontal)
+          for(const b of balls){
+            if(!b.active) continue;
+            const dx = b.x - o.x, dy = b.y - o.y;
+            // trampoline is drawn as ellipse (w wide), use ellipse distance approximation
+            const rx = o.w/2, ry = 12;
+            const nx = dx/rx, ny = dy/ry;
+            if(nx*nx + ny*ny < 1){
+              // push ball slightly up and give impulse
+              // stronger bounce than normal
+              b.vy = Math.min(b.vy, -350 - Math.abs(b.vx)*0.4); // vertical impulse
+              b.vx += (b.x - o.x) * 0.6; // slight horizontal scatter
+              // visual bounce indicator
+              o.pulse = 1.0;
+            }
+          }
+          // decay pulse
+          o.pulse = Math.max(0, (o.pulse||0) - subDt*3);
+        } else if(o.type === 'bumper'){
+          for(const b of balls){
+            if(!b.active) continue;
+            const d2 = dist2(b.x,b.y,o.x,o.y);
+            const rsum = (b.r + o.r);
+            if(d2 < rsum*rsum){
+              const d = Math.sqrt(Math.max(1e-6, d2));
+              const nx = (b.x - o.x) / d, ny = (b.y - o.y) / d;
+              // push ball out
+              const pen = rsum - d;
+              b.x += nx * pen;
+              b.y += ny * pen;
+              // bounce stronger
+              const relN = b.vx*nx + b.vy*ny;
+              const j = -(1 + 0.9) * relN;
+              b.vx += j * nx;
+              b.vy += j * ny;
+            }
+          }
+        }
+      }
+
+      // collisions: ball - ball (pairwise)
       for(let i=0;i<balls.length;i++){
-        const A=balls[i]; if(!A.active) continue;
+        const A = balls[i];
+        if(!A.active) continue;
         for(let j=i+1;j<balls.length;j++){
-          const B=balls[j]; if(!B.active) continue;
-          const dx=B.x-A.x, dy=B.y-A.y;
-          const d2=dx*dx+dy*dy;
-          const rsum=A.r+B.r;
-          if(d2<rsum*rsum && d2>0){
-            const d=Math.sqrt(d2);
-            const nx=dx/d, ny=dy/d;
-            const pen=rsum-d;
-            const push=0.5*pen+1e-3;
-            A.x-=nx*push; A.y-=ny*push;
-            B.x+=nx*push; B.y+=ny*push;
-            const rvx=B.vx-A.vx, rvy=B.vy-A.vy;
-            const relN=rvx*nx+rvy*ny;
-            if(relN>0) continue;
-            const e=0.4;
-            const jimp=-(1+e)*relN/(invMass+invMass);
-            const jx=jimp*nx, jy=jimp*ny;
-            A.vx-=jx*invMass; A.vy-=jy*invMass;
-            B.vx+=jx*invMass; B.vy+=jy*invMass;
+          const B = balls[j];
+          if(!B.active) continue;
+          const dx = B.x - A.x, dy = B.y - A.y;
+          const d2 = dx*dx + dy*dy;
+          const rsum = A.r + B.r;
+          if(d2 < rsum*rsum && d2 > 0){
+            const d = Math.sqrt(d2);
+            const nx = dx / d, ny = dy / d;
+            const pen = rsum - d;
+            const push = 0.5 * pen + 1e-3;
+            A.x -= nx * push; A.y -= ny * push;
+            B.x += nx * push; B.y += ny * push;
+            // compute relative normal velocity
+            const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
+            const relN = rvx*nx + rvy*ny;
+            if(relN < 0){
+              const e = 0.25;
+              const j = -(1 + e) * relN / (1/A.mass + 1/B.mass);
+              const jx = j * nx, jy = j * ny;
+              A.vx -= jx / A.mass; A.vy -= jy / A.mass;
+              B.vx += jx / B.mass; B.vy += jy / B.mass;
+            }
+            // tangential damping to reduce jitter
+            A.vx *= 0.999; A.vy *= 0.999; B.vx *= 0.999; B.vy *= 0.999;
           }
         }
       }
+
+      // deactivate balls falling off the bottom or far out
+      for(const b of balls){
+        if(!b.active) continue;
+        if(b.y > MAP_HEIGHT + 400 || b.x > MAP_WIDTH + 400 || b.x < -400){
+          b.active = false;
+        }
+      }
+
+    } // end substeps
+  }
+
+  // fragment particles for destroy effect (simple)
+  let fragments = [];
+  function spawnFragments(x,y,color){
+    for(let i=0;i<12;i++){
+      fragments.push({
+        x,y,vx:rand(-160,160),vy:rand(-200,30),
+        life: rand(0.5,1.2), color, r: rand(2,4)
+      });
     }
   }
 
-  // Camera
-  function updateCamera(dt){
-    const activeBalls=balls.filter(b=>b.active);
-    if(activeBalls.length>0){
-      let lead=activeBalls.reduce((a,b)=>b.x>a.x?b:a);
-      targetCamX=lead.x-W/2;
-      targetCamY=lead.y-H/2;
-      const speed=Math.hypot(lead.vx,lead.vy);
-      targetZoom=clamp(1-0.0003*speed,0.5,1);
-    } else { targetCamX=0; targetCamY=0; targetZoom=1; }
-    camX+=(targetCamX-camX)*dt*3;
-    camY+=(targetCamY-camY)*dt*3;
-    camZoom+=(targetZoom-camZoom)*dt*3;
+  function stepFragments(dt){
+    fragments = fragments.filter(p => p.life > 0);
+    for(const p of fragments){
+      p.vy += GRAVITY * dt * 0.2;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx *= 0.99; p.vy *= 0.995;
+      p.life -= dt;
+    }
   }
 
-  // Render
-  function render(){
-    ctx.save();
-    ctx.clearRect(0,0,W,H);
-    ctx.translate(-camX,-camY);
-    ctx.scale(camZoom,camZoom);
+  // --- Camera system
+  function updateCamera(dt){
+    // If auto camera (camToggle.checked) follow lead ball
+    if(camToggle.checked){
+      // find most advanced ball (largest x)
+      const active = balls.filter(b => b.active);
+      if(active.length > 0){
+        let lead = active.reduce((a,b) => (b.x > a.x ? b : a));
+        // center at lead.x with offset downwards a bit
+        targetCamX = lead.x - W/2 / 1.0;
+        targetCamY = lead.y - H/2 / 1.4;
+        // zoom based on speed: more speed -> zoom out (smaller zoom)
+        const speed = Math.hypot(lead.vx, lead.vy);
+        targetZoom = clamp(1 - (speed * 0.0012), 0.45, 1.15);
+      } else {
+        targetCamX = 0; targetCamY = 0; targetZoom = 1;
+      }
+    } else {
+      // free camera: target stays current camX,camY (we don't change target to keep manual drag)
+      targetCamX = camX;
+      targetCamY = camY;
+      targetZoom = camZoom;
+    }
+    // Lerp
+    const lerp = 1 - Math.pow(0.001, dt); // smoothing factor scaled with dt
+    camX += (targetCamX - camX) * clamp(8 * dt, 0, 1);
+    camY += (targetCamY - camY) * clamp(8 * dt, 0, 1);
+    camZoom += (targetZoom - camZoom) * clamp(4 * dt, 0, 1);
+  }
 
-    // Terrain
+  // Convert screen coords to world coords (account camera)
+  function screenToWorld(sx, sy){
+    // inverse of: ctx.translate(-camX, -camY); ctx.scale(camZoom, camZoom)
+    const wx = (sx / camZoom) + camX;
+    const wy = (sy / camZoom) + camY;
+    return {x: wx, y: wy};
+  }
+
+  // --- Rendering
+  function render(){
+    // clear
+    ctx.fillStyle = '#071726';
+    ctx.fillRect(0,0,W,H);
+
+    // world transform (camera)
+    ctx.save();
+    ctx.translate(-camX, -camY);
+    ctx.scale(camZoom, camZoom);
+
+    // sky gradient (behind world)
+    // draw extended mountain fill
+    drawTerrainFill();
+
+    // obstacles
+    for(const o of obstacles){
+      if(o.type === 'saw'){
+        drawSaw(o);
+      } else if(o.type === 'trampoline'){
+        drawTrampoline(o);
+      } else if(o.type === 'bumper'){
+        drawBumper(o);
+      }
+    }
+
+    // balls (draw from back to front)
+    balls.sort((a,b)=>a.y - b.y);
+    for(const b of balls){
+      drawBall(b);
+    }
+
+    // fragments on top
+    for(const p of fragments){
+      drawFragment(p);
+    }
+
+    // debug: spawn point
+    drawSpawnPoint();
+
+    ctx.restore();
+
+    // HUD (some info)
+    onfieldEl.textContent = balls.filter(b=>b.active).length;
+    queuedEl.textContent = queued.length;
+    scoreEl.textContent = totalScore;
+  }
+
+  function drawTerrainFill(){
+    // fill under polyline to bottom
+    const pts = terrain.points;
+    // shadow fill
     ctx.beginPath();
-    const pts=terrain.points;
-    ctx.moveTo(pts[0].x,pts[0].y);
-    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
-    ctx.strokeStyle='#4fd1c5';
-    ctx.lineWidth=3;
+    ctx.moveTo(pts[0].x, pts[0].y - 600);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineTo(pts[pts.length-1].x, MAP_HEIGHT + 600);
+    ctx.lineTo(pts[0].x, MAP_HEIGHT + 600);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0,0,0,MAP_HEIGHT);
+    g.addColorStop(0, '#083048');
+    g.addColorStop(1, '#031623');
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // outline
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length;i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = '#3fd6c2';
+    ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Balls
-    for(const b of balls){
+    // small texture: draw little stones / bumps along
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    for(let i=0;i<pts.length-1;i+=6){
+      const a = pts[i], b = pts[i+1];
       ctx.beginPath();
-      ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-      ctx.fillStyle=b.owner?b.owner.color:'#4fd1c5';
-      ctx.fill();
-      ctx.lineWidth=1;
-      ctx.strokeStyle='rgba(255,255,255,0.2)';
+      ctx.moveTo(a.x + rand(-2,2), a.y + rand(-2,2));
+      ctx.lineTo(b.x + rand(-2,2), b.y + rand(-2,2));
       ctx.stroke();
     }
+  }
 
+  function drawSaw(o){
+    // rotating disk with blades
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    ctx.rotate(o.ang);
+    // rim
+    ctx.beginPath();
+    ctx.arc(0,0,o.r,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(8,15,18,0.9)';
+    ctx.fill();
+    // blades (draw 6 triangles)
+    const blades = 8;
+    for(let i=0;i<blades;i++){
+      const a = (i/blades)*Math.PI*2;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(o.r*0.2, -o.r*0.1);
+      ctx.lineTo(o.r*1.05, 0);
+      ctx.lineTo(o.r*0.2, o.r*0.1);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(220,220,220,0.12)';
+      ctx.fill();
+      ctx.restore();
+    }
+    // center
+    ctx.beginPath();
+    ctx.arc(0,0,o.r*0.32,0,Math.PI*2);
+    ctx.fillStyle = '#3f5863';
+    ctx.fill();
     ctx.restore();
   }
 
-  let lastTime=performance.now();
+  function drawTrampoline(o){
+    ctx.save();
+    // slight pulse scale
+    const pulse = 1 + (o.pulse||0)*0.06;
+    ctx.translate(o.x, o.y);
+    ctx.scale(pulse, pulse);
+    // draw ellipse
+    const w = o.w, h = 12;
+    ctx.beginPath();
+    ctx.ellipse(0,0,w/2,h,0,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(96,165,250,0.12)';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#60a5fa';
+    ctx.stroke();
+    // inner highlight
+    ctx.beginPath();
+    ctx.ellipse(0,0,w/3,h*0.6,0,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(96,165,250,0.25)';
+    ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBumper(o){
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#86efac';
+    ctx.stroke();
+  }
+
+  function drawBall(b){
+    if(!b.active){
+      // faded
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(180,180,180,0.14)';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    // shadow
+    ctx.beginPath();
+    ctx.ellipse(b.x + 6, b.y + b.r*0.6, b.r*0.9, b.r*0.45, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fill();
+
+    // main circle
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+    const c = b.owner ? b.owner.color : '#7dd3fc';
+    ctx.fillStyle = c;
+    ctx.fill();
+
+    // rim
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.stroke();
+
+    // velocity indicator small arc
+    const speed = Math.hypot(b.vx, b.vy);
+    const angle = Math.atan2(b.vy, b.vx);
+    if(speed > 20){
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r*0.65, angle - 0.6, angle + 0.6);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  function drawFragment(p){
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+
+  function drawSpawnPoint(){
+    // visual spawn marker
+    ctx.beginPath();
+    ctx.arc(SPAWN_X, SPAWN_Y, 6,0,Math.PI*2);
+    ctx.fillStyle = '#ffd166';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.stroke();
+  }
+
+  // --- Utility: place balls along spawn with initial spread
+  function spawnSpreadFromPoint(count){
+    const angleCenter = Math.PI/6; // towards down-right
+    const spread = Math.PI/3;
+    const speedBase = rand(180, 260);
+    for(let i=0;i<count;i++){
+      const ang = angleCenter - spread/2 + (i/(Math.max(1,count-1)))*spread + rand(-0.08,0.08);
+      const mag = speedBase * rand(0.6, 1.2);
+      const vx = Math.cos(ang) * mag;
+      const vy = Math.sin(ang) * mag;
+      const px = SPAWN_X + rand(-8,8);
+      const py = SPAWN_Y + rand(-8,8);
+      balls.push({
+        id: 'ball' + (_ballId++),
+        x: px, y: py, vx, vy,
+        r: BALL_RADIUS, mass: BALL_MASS,
+        owner: queued.length ? queued.shift() : (players.length ? players[Math.floor(rand(0, players.length))] : null),
+        active: true, scored: false, age: 0
+      });
+    }
+    updateUI();
+  }
+
+  // --- Spawn control
+  function spawnQueuedNice(){
+    const cnt = queued.length;
+    if(cnt === 0) return;
+    spawnSpreadFromPoint(cnt);
+    queued = [];
+    updateUI();
+  }
+
+  // --- Obstacles interaction effects
+  // (already in physics)
+
+  // --- Particles step already implemented
+
+  // --- UI & controls binding
+  buyBtn.addEventListener('click', () => {
+    queueBallForRandomPlayer();
+  });
+  spawnBtn.addEventListener('click', () => {
+    spawnQueuedNice();
+  });
+  startBtn.addEventListener('click', () => {
+    // spawn and set round running
+    spawnQueuedNice();
+    roundPhase = 'running';
+    modeLabel.textContent = 'Игровой раунд';
+    buyTimer = 0;
+  });
+  regenBtn.addEventListener('click', () => {
+    resetWorld();
+  });
+  addPlayerBtn.addEventListener('click', () => {
+    addPlayer('Игрок ' + (_playerId));
+  });
+  clearBtn.addEventListener('click', () => {
+    balls = [];
+    queued = [];
+    updateUI();
+  });
+
+  // camera drag handlers for free mode
+  canvas.addEventListener('mousedown', (e) => {
+    if(camToggle.checked) return; // if auto mode, disable manual drag
+    dragging = true;
+    dragStart = {x: e.clientX, y: e.clientY};
+    camStart = {x: camX, y: camY};
+  });
+  window.addEventListener('mousemove', (e) => {
+    if(!dragging) return;
+    const dx = (e.clientX - dragStart.x) / camZoom;
+    const dy = (e.clientY - dragStart.y) / camZoom;
+    camX = camStart.x - dx;
+    camY = camStart.y - dy;
+  });
+  window.addEventListener('mouseup', () => { dragging = false; });
+
+  // touch
+  canvas.addEventListener('touchstart', (e) => {
+    if(camToggle.checked) return;
+    if(e.touches.length === 1){
+      dragging = true;
+      dragStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      camStart = {x: camX, y: camY};
+    }
+  }, {passive:true});
+  canvas.addEventListener('touchmove', (e) => {
+    if(!dragging) return;
+    if(e.touches.length === 1){
+      const dx = (e.touches[0].clientX - dragStart.x) / camZoom;
+      const dy = (e.touches[0].clientY - dragStart.y) / camZoom;
+      camX = camStart.x - dx;
+      camY = camStart.y - dy;
+    }
+  }, {passive:true});
+  canvas.addEventListener('touchend', () => { dragging = false; });
+
+  // keyboard debug shortcuts
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'r') resetWorld();
+    if(e.key === ' ') { spawnQueuedNice(); }
+  });
+
+  // updateUI
+  function updateUI(){
+    queuedEl.textContent = queued.length;
+    onfieldEl.textContent = balls.filter(b=>b.active).length;
+    scoreEl.textContent = totalScore;
+    renderPlayers();
+  }
+
+  // --- Reset world / init
+  function resetWorld(){
+    generateTerrain();
+    balls = [];
+    queued = [];
+    fragments = [];
+    totalScore = 0;
+    players.forEach(p => p.score = 0);
+    // camera initial pos near left
+    camX = 0; camY = 0; camZoom = 1;
+    targetCamX = 0; targetCamY = 0; targetZoom = 1;
+    updateUI();
+    modeLabel.textContent = 'Готов';
+  }
+
+  // --- Fragments step called each frame
+  function updateFragments(dt){ stepFragments(dt); }
+
+  // --- Main loop
+  let last = performance.now();
   function loop(now){
-    const dt=(now-lastTime)/1000;
-    lastTime=now;
+    const dt = Math.min(1/30, (now - last) / 1000);
+    last = now;
+
+    // physics
     stepPhysics(dt);
+    updateFragments(dt);
+
+    // camera
     updateCamera(dt);
+
+    // render
     render();
+
     requestAnimationFrame(loop);
   }
 
-  function resetWorld(){
-    terrain=generateTerrain();
-    balls=[];
-    queued=[];
-    totalScore=0;
-    players.forEach(p=>p.score=0);
-    updateUI();
-  }
+  // --- initial players
+  addPlayer('Alice'); addPlayer('Bob');
+  // pre-queue a few
+  queued.push(players[0], players[1], players[0]);
+  updateUI();
 
-  // UI actions
-  buyBtn.addEventListener('click',()=>{
-    if(players.length===0){addPlayer('Alice'); addPlayer('Bob');}
-    const owner=players[Math.floor(Math.random()*players.length)];
-    queued.push(owner);
-    updateUI();
-  });
-  startBtn.addEventListener('click',()=>{spawnBalls();});
-  regenBtn.addEventListener('click',()=>{resetWorld();});
+  // spawn point constant
+  // defined earlier SPAWN_X, SPAWN_Y
+  // start world
+  resetWorld();
+  requestAnimationFrame(loop);
 
-  // Drag camera
-  canvas.addEventListener('mousedown',e=>{
-    isDragging=true; dragStartX=e.clientX; dragStartY=e.clientY;
-    camStartX=camX; camStartY=camY;
-  });
-  window.addEventListener('mousemove',e=>{
-    if(isDragging){ camX=camStartX-(e.clientX-dragStartX)/camZoom; camY=camStartY-(e.clientY-dragStartY)/camZoom; }
-  });
-  window.addEventListener('mouseup',()=>{isDragging=false;});
-  canvas.addEventListener('touchstart',e=>{
-    isDragging=true; dragStartX=e.touches[0].clientX; dragStartY=e.touches[0].clientY;
-    camStartX=camX; camStartY=camY;
-  });
-  canvas.addEventListener('touchmove',e=>{
-    if(isDragging){ camX=camStartX-(e.touches[0].clientX-dragStartX)/camZoom; camY=camStartY-(e.touches[0].clientY-dragStartY)/camZoom; }
-  });
-  canvas.addEventListener('touchend',()=>{isDragging=false;});
+  // expose some debug helpers (console)
+  window.MD = {
+    resetWorld, balls, obstacles, terrain, players, queued, spawnSpreadFromPoint
+  };
 
-  // Init
-  addPlayer('Alice'); addPlayer('Bob'); resetWorld();
-  loop(performance.now());
 })();
 </script>
 </body>
