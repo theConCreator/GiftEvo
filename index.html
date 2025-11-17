@@ -1,774 +1,381 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mountain Drop — WebApp MVP</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mountain Drop — Long Map</title>
 <style>
-  :root{
-    --bg:#0f1724;
-    --panel:#0b1220;
-    --accent:#7dd3fc;
-    --muted:#94a3b8;
-    --card:#0f1724;
+  html, body {
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    width:100%;
+    height:100%;
+    font-family:Inter, sans-serif;
+    background:linear-gradient(180deg,#071228,#0b1b33);
+    color:#e6eef6;
   }
-  *{box-sizing:border-box;font-family:Inter, Roboto, "Helvetica Neue", Arial, sans-serif}
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,#020617 0%, #071228 100%);color:#e6eef6}
-  .app{
+  #gameContainer {
     display:flex;
-    gap:16px;
-    padding:16px;
-    height:100vh;
-    align-items:stretch;
+    width:100%;
+    height:100%;
+    position:relative;
   }
-  .left{
-    width:360px;
-    min-width:280px;
-    max-width:420px;
-    background:rgba(255,255,255,0.03);
-    border-radius:12px;
-    padding:16px;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    box-shadow:0 6px 18px rgba(2,6,23,0.6);
+  #ui {
+    position:absolute;
+    top:16px;
+    left:16px;
+    background:rgba(0,0,0,0.2);
+    padding:12px;
+    border-radius:10px;
+    backdrop-filter:blur(6px);
+    z-index:10;
   }
-  h1{margin:0;font-size:20px}
-  .meta{font-size:13px;color:var(--muted)}
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  button{
-    background:var(--accent);
+  #ui button{
+    margin:2px;
+    padding:6px 10px;
     border:none;
+    border-radius:6px;
+    background:#7dd3fc;
     color:#06202a;
-    padding:8px 12px;
-    border-radius:8px;
-    cursor:pointer;
     font-weight:600;
+    cursor:pointer;
   }
-  button.ghost{
-    background:transparent;color:var(--accent);border:1px solid rgba(125,211,252,0.15)
+  #ui .player{
+    display:flex;
+    justify-content:space-between;
+    margin:2px 0;
+    font-size:13px;
   }
-  .small{font-size:13px;padding:6px 10px}
-  .panel{
-    background:rgba(255,255,255,0.02);
-    padding:12px;border-radius:10px;
-    display:flex;flex-direction:column;gap:8px;
+  canvas{
+    display:block;
+    background:linear-gradient(180deg,#071228,#0b1b33);
   }
-  canvas{background:linear-gradient(180deg,#071228 0%, #092034 100%);border-radius:10px;display:block;width:100%;height:100%}
-  .players{display:flex;flex-direction:column;gap:6px}
-  .player{
-    display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)
-  }
-  .player .name{font-weight:600}
-  .row{display:flex;gap:8px;align-items:center}
-  footer{margin-top:auto;font-size:12px;color:var(--muted)}
-  .score{font-weight:700;color:var(--accent)}
-  .hud{display:flex;gap:12px;align-items:center}
-  .countdown{font-size:18px;font-weight:700}
-  .muted{color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="left">
+<div id="gameContainer">
+  <canvas id="gameCanvas"></canvas>
+  <div id="ui">
     <div>
-      <h1>Mountain Drop</h1>
-      <div class="meta">Минималистичный фронтенд — раунды, физика шаров, рандомная гора</div>
+      <button id="buyBtn">Купить шар</button>
+      <button id="startBtn">Старт</button>
+      <button id="regenBtn">Новая гора</button>
     </div>
-
-    <div class="panel">
-      <div class="hud">
-        <div>
-          <div class="muted">Режим раунда</div>
-          <div id="roundMode" class="countdown">Подготовка</div>
-        </div>
-        <div style="margin-left:auto;text-align:right">
-          <div class="muted">Таймер</div>
-          <div id="countdown" class="countdown">--</div>
-        </div>
-      </div>
-
-      <div class="controls" style="margin-top:6px">
-        <button id="buyBtn" class="small">Купить шар</button>
-        <button id="startBtn" class="small ghost">Принудительно начать</button>
-        <button id="regenBtn" class="small ghost">Сгенерировать гору</button>
-        <div style="flex:1"></div>
-        <div class="muted">Шары в очереди: <span id="queued">0</span></div>
-      </div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-        <div class="muted">Скорость симуляции</div>
-        <input id="speed" type="range" min="0.2" max="2" step="0.1" value="1" />
-        <div id="speedVal" class="muted">1.0x</div>
-      </div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
-        <div class="muted">Шаров одновременно на поле</div>
-        <div id="ballsCount" class="muted">0</div>
-      </div>
+    <div style="margin-top:8px;">
+      <strong>Игроки:</strong>
+      <div id="players"></div>
     </div>
-
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="muted">Игроки (локально)</div>
-        <button id="addPlayer" class="small ghost">Добавить тест игрока</button>
-      </div>
-      <div id="players" class="players"></div>
-    </div>
-
-    <div class="panel">
-      <div class="muted">Лунки на карте: попадание = очки</div>
-      <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
-        <div class="muted">Лунок:</div>
-        <div id="holesCount" class="muted">0</div>
-        <div style="flex:1"></div>
-        <div class="muted">Очки:</div>
-        <div id="totalScore" class="score">0</div>
-      </div>
-    </div>
-
-    <footer>Это локальный демо-фронтенд. Позже добавим интеграцию с Telegram и текстуры.</footer>
-  </div>
-
-  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
-    <div style="flex:1;display:flex;flex-direction:column">
-      <canvas id="gameCanvas"></canvas>
-      <div style="margin-top:8px;color:var(--muted);font-size:13px">
-        Подсказки: покупай шары во время подготовки, затем они одновременно отправляются вниз по склону.
-      </div>
+    <div style="margin-top:8px;">
+      <strong>Шары в очереди:</strong> <span id="queued">0</span><br>
+      <strong>Общий счёт:</strong> <span id="totalScore">0</span>
     </div>
   </div>
 </div>
 
 <script>
-/*
-  Mountain Drop — single-file frontend MVP
-  Features:
-  - Random terrain (polyline) generated left->right with variable slopes
-  - Circular holes on terrain (if ball center within hole radius -> score)
-  - Balls: identical size, local "buy" to add to queue; after buy-window they are spawned and physics runs
-  - Physics: gravity, integration, circle-circle collisions, circle-segment collisions with friction/tangential velocity reduction
-  - Round logic: buy phase = 10s, then run physics until all balls stopped or timeout
-*/
-
 (() => {
   const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d', { alpha: false });
+  const ctx = canvas.getContext('2d');
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
 
-  // UI elements
+  // --- UI ---
   const buyBtn = document.getElementById('buyBtn');
   const startBtn = document.getElementById('startBtn');
   const regenBtn = document.getElementById('regenBtn');
-  const countdownEl = document.getElementById('countdown');
-  const roundModeEl = document.getElementById('roundMode');
-  const queuedEl = document.getElementById('queued');
   const playersEl = document.getElementById('players');
-  const addPlayerBtn = document.getElementById('addPlayer');
-  const holesCountEl = document.getElementById('holesCount');
+  const queuedEl = document.getElementById('queued');
   const totalScoreEl = document.getElementById('totalScore');
-  const ballsCountEl = document.getElementById('ballsCount');
-  const speedEl = document.getElementById('speed');
-  const speedValEl = document.getElementById('speedVal');
 
-  // Canvas sizing
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(canvas.clientWidth * dpr);
-    canvas.height = Math.floor(canvas.clientHeight * dpr || 600 * dpr);
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  window.addEventListener('resize', resize);
-  // initial size
-  canvas.style.height = 'calc(100vh - 64px)';
-  canvas.style.width = '100%';
-  resize();
-
-  // Simulation parameters (tweakable)
-  const GRAVITY = 1200; // pixels/s^2 (large because canvas pixels)
-  const BALL_RADIUS = 12; // px
-  const BALL_MASS = 1;
-  const RESTITUTION = 0.15; // bounce factor
-  const FRICTION_GROUND = 0.995; // per-frame multiplier of tangential velocity when on surface
-  const AIR_FRICTION = 0.999; // small damping in air
-  const SUBSTEPS = 3; // physics substeps per frame for stability
-  const ROUND_BUY_SECONDS = 10;
-  const MAX_SIM_SECONDS = 40; // safety cap for simulation duration after launch
-
-  // World
-  let terrain = null; // {points: [{x,y}], segments: [{a,b,nx,ny,len}]}
-  let holes = []; // {x,y,r}
-  let balls = []; // {x,y,vx,vy,r,mass,owner,id,active,scored}
-  let queued = []; // queue of owners waiting to launch
-  let players = []; // {id,name,score,color}
+  // --- World ---
+  let terrain = null;
+  let balls = [];
+  let queued = [];
+  let players = [];
   let totalScore = 0;
 
-  let lastTime = performance.now();
-  let running = true;
-  let simTime = 0; // seconds since launch
-  let roundTimer = null;
-  let roundPhase = 'idle'; // 'buy', 'running', 'idle'
-  let buyRemaining = ROUND_BUY_SECONDS;
-  let roundTimeoutHandle = null;
+  const GRAVITY = 1200;
+  const BALL_RADIUS = 12;
+  const BALL_MASS = 1;
+  const RESTITUTION = 0.15;
+  const FRICTION_GROUND = 0.995;
+  const AIR_FRICTION = 0.999;
+  const SUBSTEPS = 3;
+  const ROUND_BUY_SECONDS = 10;
+  const MAX_SIM_SECONDS = 40;
 
-  // Helpers
-  function rand(min, max) { return Math.random() * (max - min) + min; }
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-  function dist2(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return dx*dx+dy*dy; }
-  function dist(ax,ay,bx,by){ return Math.sqrt(dist2(ax,ay,bx,by)); }
+  // Map size
+  const MAP_WIDTH = 8000;
+  const MAP_HEIGHT = 2000;
 
-  // ID generators
+  // Camera
+  let camX = 0, camY = 0, camZoom = 1;
+  let targetCamX = 0, targetCamY = 0, targetZoom = 1;
+
+  // Drag
+  let isDragging = false, dragStartX = 0, dragStartY = 0, camStartX = 0, camStartY = 0;
+
+  // Ball ID / Player ID
   let _ballId = 1;
   let _playerId = 1;
 
-  // Initialize sample players (so buy has owners)
-  function addTestPlayer(name){
-    const p = { id: 'p' + (_playerId++), name: name || 'Player ' + _playerId, score: 0, color: randomColor() };
+  function rand(min,max){return Math.random()*(max-min)+min;}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function dist(ax,ay,bx,by){const dx=ax-bx,dy=ay-by;return Math.sqrt(dx*dx+dy*dy);}
+  function randomColor(){return `hsl(${rand(180,280)} 80% 60%)`;}
+
+  function addPlayer(name){
+    const p = {id:'p'+(_playerId++), name:name||('Player '+_playerId), score:0, color:randomColor()};
     players.push(p);
     renderPlayers();
     return p;
   }
-
-  // random pleasing color
-  function randomColor(){
-    const hues = [190,200,210,220,240,260,280];
-    const h = hues[Math.floor(Math.random()*hues.length)] + Math.floor(rand(-10,10));
-    return `hsl(${h} 80% 60%)`;
-  }
-
-  // Render players panel
   function renderPlayers(){
-    playersEl.innerHTML = '';
+    playersEl.innerHTML='';
     players.forEach(p=>{
       const div = document.createElement('div');
-      div.className = 'player';
-      div.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
-        <div style="width:12px;height:12px;border-radius:50%;background:${p.color}"></div>
-        <div>
-          <div class="name">${p.name}</div>
-          <div class="muted" style="font-size:12px">id: ${p.id}</div>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div class="score">${p.score}</div>
-        <div class="muted" style="font-size:12px">очки</div>
-      </div>`;
+      div.className='player';
+      div.innerHTML=`<span style="color:${p.color}">${p.name}</span> <span>${p.score}</span>`;
       playersEl.appendChild(div);
     });
   }
 
-  // Generate random terrain: polyline from left to right
-  function generateTerrain(width, height){
-    const marginTop = 40;
-    const marginBottom = 80;
-    const leftX = 40;
-    const rightX = width - 40;
-    const points = [];
-    // We'll generate N control points
-    const N = Math.floor(rand(6,10));
-    // x step
+  function generateTerrain(){
+    const points=[];
+    const N = 25;
+    const marginTop = 50;
+    const marginBottom = 100;
+    const dx = MAP_WIDTH / N;
+    let lastY = rand(marginTop, MAP_HEIGHT*0.3);
     for(let i=0;i<=N;i++){
-      const t = i / N;
-      const x = leftX + t * (rightX - leftX);
-      // create y so that slope overall goes down left->right, but with variability
-      const base = marginTop + t * (height - marginTop - marginBottom);
-      const wobble = Math.sin(t*6 + rand(0,6)) * (height*0.06) * rand(0.6,1.2);
-      const y = base + wobble;
-      points.push({x, y});
+      let x = i*dx;
+      let slopeDeg = rand(-35,-10);
+      let slopeRad = slopeDeg*Math.PI/180;
+      let dy = Math.tan(-slopeRad)*dx;
+      let y = clamp(lastY+dy, marginTop, MAP_HEIGHT-marginBottom);
+      points.push({x,y});
+      lastY = y;
     }
-    // Smooth points via simple moving average
-    for(let iter=0;iter<2;iter++){
-      for(let i=1;i<points.length-1;i++){
-        points[i].y = (points[i-1].y + points[i].y*2 + points[i+1].y)/4;
-      }
-    }
-    // Build segments with normals
-    const segments = [];
+    const segments=[];
     for(let i=0;i<points.length-1;i++){
-      const a = points[i], b = points[i+1];
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const len = Math.hypot(dx,dy) || 1;
-      const nx = -dy / len; // normal (pointing roughly up)
-      const ny = dx / len;
-      segments.push({a:a, b:b, dx, dy, len, nx, ny});
+      const a=points[i], b=points[i+1];
+      const dx=b.x-a.x, dy=b.y-a.y;
+      const len=Math.hypot(dx,dy)||1;
+      const nx=-dy/len, ny=dx/len;
+      segments.push({a,b,dx,dy,len,nx,ny});
     }
-    return {points, segments};
+    return {points,segments};
   }
 
-  // Create holes placed near segments (randomly)
-  function generateHoles(terrain, count){
-    const holes = [];
-    const segCount = terrain.segments.length;
-    for(let i=0;i<count;i++){
-      const si = Math.floor(rand(0, segCount));
-      const seg = terrain.segments[si];
-      // choose t along segment
-      const t = rand(0.15, 0.85);
-      const x = seg.a.x + seg.dx * t;
-      const y = seg.a.y + seg.dy * t;
-      const r = rand(18, 28);
-      holes.push({x,y,r});
-    }
-    return holes;
-  }
-
-  // Spawn balls from queued owners: place slightly above left-most segment
   function spawnBalls(){
-    const leftTopX = terrain.points[0].x + 10;
-    // find y at a small x offset by interpolating segment
-    const firstSeg = terrain.segments[0];
-    const spawnBaseX = terrain.points[0].x + 6;
-    const spawnBaseY = terrain.points[0].y - 24;
-    const spacing = BALL_RADIUS*2.4;
+    const spacing = BALL_RADIUS*2.5;
     for(let i=0;i<queued.length;i++){
-      const owner = queued[i];
-      const offsetX = i * (spacing);
-      // Place above the slope so gravity will make them settle on surface
-      const x = spawnBaseX + offsetX;
-      const y = spawnBaseY - Math.min(40, i*6);
-      const ball = {
-        id: 'b' + (_ballId++),
-        x, y, vx:0, vy:0,
-        r: BALL_RADIUS,
-        mass: BALL_MASS,
-        owner: owner,
-        active: true,
-        scored: false
-      };
-      balls.push(ball);
+      const owner=queued[i];
+      const x = terrain.points[0].x + i*spacing;
+      const y = terrain.points[0].y - 40 - i*4;
+      balls.push({id:'b'+(_ballId++), x,y,vx:0,vy:0,r:BALL_RADIUS,mass:BALL_MASS,owner:owner,active:true,scored:false});
     }
-    queued = [];
+    queued=[];
     updateUI();
   }
 
-  // Physics: integrate (semi-implicit Euler), collisions resolution
-  function stepPhysics(dt){
-    const invMass = 1 / BALL_MASS;
-
-    // substeps for stability
-    const subDt = dt / SUBSTEPS;
-    for(let s=0;s<SUBSTEPS;s++){
-      // apply forces -> velocity
-      for(const b of balls){
-        if(!b.active) continue;
-        // gravity
-        b.vy += GRAVITY * subDt;
-        // simple air damping
-        b.vx *= AIR_FRICTION;
-        b.vy *= AIR_FRICTION;
-        // integrate velocity -> position (semi-implicit)
-        b.x += b.vx * subDt;
-        b.y += b.vy * subDt;
-      }
-
-      // Ball - terrain collisions (segments)
-      for(const seg of terrain.segments){
-        for(const b of balls){
-          if(!b.active) continue;
-          // project circle center onto segment
-          const ax = seg.a.x, ay = seg.a.y;
-          const bx = seg.b.x, by = seg.b.y;
-          const vx = b.x - ax, vy = b.y - ay;
-          const segLen2 = seg.dx*seg.dx + seg.dy*seg.dy;
-          let t = 0;
-          if(segLen2 > 0){
-            t = (vx*seg.dx + vy*seg.dy) / segLen2;
-            t = Math.max(0, Math.min(1, t));
-          }
-          const projX = ax + seg.dx * t;
-          const projY = ay + seg.dy * t;
-          const nx = b.x - projX;
-          const ny = b.y - projY;
-          const d2 = nx*nx + ny*ny;
-          const r = b.r;
-          if(d2 < r*r - 0.5){ // penetration
-            const d = Math.sqrt(Math.max(1e-6, d2));
-            const pen = r - d;
-            // normal
-            const nxu = nx / d;
-            const nyu = ny / d;
-            // push ball out along normal
-            b.x += nxu * pen;
-            b.y += nyu * pen;
-            // relative velocity along normal
-            const relVelN = b.vx * nxu + b.vy * nyu;
-            // reflect normal component with restitution
-            const vn = - (1 + RESTITUTION) * relVelN;
-            b.vx += vn * nxu;
-            b.vy += vn * nyu;
-
-            // approximate friction / tangential damping when touching surface
-            // compute tangent
-            const tx = -nyu, ty = nxu;
-            const relVelT = b.vx * tx + b.vy * ty;
-            // reduce tangential velocity when on surface (simulate rolling friction)
-            const newRelT = relVelT * FRICTION_GROUND;
-            const dvT = newRelT - relVelT;
-            b.vx += dvT * tx;
-            b.vy += dvT * ty;
-          }
-        }
-      }
-
-      // Ball - ball collisions (pairwise)
-      for(let i=0;i<balls.length;i++){
-        const A = balls[i];
-        if(!A.active) continue;
-        for(let j=i+1;j<balls.length;j++){
-          const B = balls[j];
-          if(!B.active) continue;
-          const dx = B.x - A.x;
-          const dy = B.y - A.y;
-          const d2 = dx*dx + dy*dy;
-          const rsum = A.r + B.r;
-          if(d2 < rsum*rsum && d2 > 0){
-            const d = Math.sqrt(d2);
-            const nx = dx / d;
-            const ny = dy / d;
-            const pen = rsum - d;
-            // push out equally (same mass)
-            const push = 0.5 * pen + 1e-3;
-            A.x -= nx * push;
-            A.y -= ny * push;
-            B.x += nx * push;
-            B.y += ny * push;
-            // relative velocity
-            const rvx = B.vx - A.vx;
-            const rvy = B.vy - A.vy;
-            const relN = rvx * nx + rvy * ny;
-            if(relN > 0) continue; // separating
-            // compute impulse scalar
-            const e = Math.min(RESTITUTION, 0.5);
-            const jimp = -(1 + e) * relN / (invMass + invMass);
-            const jx = jimp * nx;
-            const jy = jimp * ny;
-            A.vx -= jx * invMass;
-            A.vy -= jy * invMass;
-            B.vx += jx * invMass;
-            B.vy += jy * invMass;
-            // tangential damping to avoid jitter
-            A.vx *= 0.999;
-            A.vy *= 0.999;
-            B.vx *= 0.999;
-            B.vy *= 0.999;
-          }
-        }
-      }
-
-      // Check holes: if ball center within hole radius -> score
-      for(const b of balls){
-        if(!b.active || b.scored) continue;
-        for(const h of holes){
-          const d2 = (b.x - h.x)*(b.x - h.x) + (b.y - h.y)*(b.y - h.y);
-          if(d2 < (h.r - 4)*(h.r - 4)){ // margin
-            // Score: credit to owner
-            b.scored = true;
-            b.active = false;
-            // award points
-            const owner = b.owner;
-            if(owner){
-              owner.score = (owner.score || 0) + 1;
-              totalScore++;
-              totalScoreEl.textContent = totalScore;
-            }
-            break;
-          }
-        }
-      }
-
-      // Deactivate balls if they fall below bottom of canvas or move out far
-      const H = canvas.clientHeight;
-      for(const b of balls){
-        if(!b.active) continue;
-        if(b.y > H + 120){ b.active = false; }
-      }
-    } // end substeps
-  }
-
-  // Draw everything
-  function render(){
-    const W = canvas.clientWidth;
-    const H = canvas.clientHeight;
-    // Clear
-    ctx.fillStyle = '#071228';
-    ctx.fillRect(0,0,W,H);
-
-    // draw terrain fill
-    ctx.beginPath();
-    const pts = terrain.points;
-    ctx.moveTo(pts[0].x, pts[0].y - 400); // extend top for nice fill
-    // mountain shape: draw through points then down to bottom
-    ctx.lineTo(pts[0].x, pts[0].y);
-    for(let i=1;i<pts.length;i++){
-      ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.lineTo(pts[pts.length-1].x, H + 400);
-    ctx.lineTo(pts[0].x, H + 400);
-    ctx.closePath();
-    // gradient fill
-    const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#112134');
-    g.addColorStop(1,'#08131b');
-    ctx.fillStyle = g;
-    ctx.fill();
-
-    // draw terrain outline
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#1f6b9b';
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1;i<pts.length;i++){
-      ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    // draw holes (as dark circles with rim)
-    for(const h of holes){
-      // rim
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, h.r + 2, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, h.r, 0, Math.PI*2);
-      ctx.fillStyle = '#071523';
-      ctx.fill();
-
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#063b4c';
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, h.r, 0, Math.PI*2);
-      ctx.stroke();
-    }
-
-    // draw balls
-    for(const b of balls){
-      // shadow
-      ctx.beginPath();
-      ctx.ellipse(b.x+4, b.y+6, b.r*0.9, b.r*0.45, 0, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      ctx.fill();
-
-      // main
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-      ctx.fillStyle = b.owner ? b.owner.color : '#7dd3fc';
-      ctx.fill();
-
-      // rim
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.stroke();
-
-      // if scored or inactive, cross out
-      if(b.scored){
-        ctx.beginPath();
-        ctx.moveTo(b.x - b.r*0.6, b.y - b.r*0.6);
-        ctx.lineTo(b.x + b.r*0.6, b.y + b.r*0.6);
-        ctx.moveTo(b.x + b.r*0.6, b.y - b.r*0.6);
-        ctx.lineTo(b.x - b.r*0.6, b.y + b.r*0.6);
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    }
-
-    // overlay UI text: balls count
-    ballsCountEl.textContent = balls.length;
-
-    // optionally draw debug: segment normals
-    // for(const s of terrain.segments){
-    //   const mx = (s.a.x + s.b.x)/2;
-    //   const my = (s.a.y + s.b.y)/2;
-    //   ctx.beginPath();
-    //   ctx.moveTo(mx, my);
-    //   ctx.lineTo(mx + s.nx*16, my + s.ny*16);
-    //   ctx.strokeStyle = 'rgba(255,0,0,0.3)';
-    //   ctx.stroke();
-    // }
-
-    // HUD: small text bottom-left with simTime
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fillRect(10,10,220,36);
-    ctx.fillStyle = '#cfeefb';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(`Sim time: ${simTime.toFixed(2)} s`, 18, 30);
-  }
-
-  // Update UI counters
   function updateUI(){
     queuedEl.textContent = queued.length;
-    holesCountEl.textContent = holes.length;
-    ballsCountEl.textContent = balls.length;
     totalScoreEl.textContent = totalScore;
     renderPlayers();
   }
 
-  // Game loop
-  function loop(now){
-    if(!running) return;
-    const dtMs = Math.min(60, now - lastTime);
-    lastTime = now;
-    const speed = parseFloat(speedEl.value) || 1.0;
-    const dt = (dtMs / 1000) * speed;
-
-    if(roundPhase === 'running'){
-      simTime += dt;
-      stepPhysics(dt);
-      // end conditions: all balls inactive OR max sim time reached
-      const anyActive = balls.some(b => b.active);
-      if(!anyActive || simTime > MAX_SIM_SECONDS){
-        endRound();
+  // Physics
+  function stepPhysics(dt){
+    const invMass = 1/BALL_MASS;
+    const subDt = dt/SUBSTEPS;
+    for(let s=0;s<SUBSTEPS;s++){
+      for(const b of balls){
+        if(!b.active) continue;
+        b.vy+=GRAVITY*subDt;
+        b.vx*=AIR_FRICTION;
+        b.vy*=AIR_FRICTION;
+        b.x+=b.vx*subDt;
+        b.y+=b.vy*subDt;
+      }
+      // collisions with terrain
+      for(const seg of terrain.segments){
+        for(const b of balls){
+          if(!b.active) continue;
+          const ax=seg.a.x, ay=seg.a.y;
+          const bx=seg.b.x, by=seg.b.y;
+          const vx=b.x-ax, vy=b.y-ay;
+          const segLen2=seg.dx*seg.dx+seg.dy*seg.dy;
+          let t=0;
+          if(segLen2>0){ t=clamp((vx*seg.dx+vy*seg.dy)/segLen2,0,1);}
+          const projX=ax+seg.dx*t;
+          const projY=ay+seg.dy*t;
+          const nx=b.x-projX, ny=b.y-projY;
+          const d2=nx*nx+ny*ny;
+          const r=b.r;
+          if(d2<r*r-0.5){
+            const d=Math.sqrt(Math.max(1e-6,d2));
+            const pen=r-d;
+            const nxu=nx/d, nyu=ny/d;
+            b.x+=nxu*pen;
+            b.y+=nyu*pen;
+            const relVelN=b.vx*nxu+b.vy*nyu;
+            const vn=-(1+RESTITUTION)*relVelN;
+            b.vx+=vn*nxu;
+            b.vy+=vn*nyu;
+            const tx=-nyu, ty=nxu;
+            const relVelT=b.vx*tx+b.vy*ty;
+            const newRelT=relVelT*FRICTION_GROUND;
+            const dvT=newRelT-relVelT;
+            b.vx+=dvT*tx;
+            b.vy+=dvT*ty;
+          }
+        }
+      }
+      // ball-ball collisions
+      for(let i=0;i<balls.length;i++){
+        const A=balls[i]; if(!A.active) continue;
+        for(let j=i+1;j<balls.length;j++){
+          const B=balls[j]; if(!B.active) continue;
+          const dx=B.x-A.x, dy=B.y-A.y;
+          const d2=dx*dx+dy*dy;
+          const rsum=A.r+B.r;
+          if(d2<rsum*rsum && d2>0){
+            const d=Math.sqrt(d2);
+            const nx=dx/d, ny=dy/d;
+            const pen=rsum-d;
+            const push=0.5*pen+1e-3;
+            A.x-=nx*push; A.y-=ny*push;
+            B.x+=nx*push; B.y+=ny*push;
+            const rvx=B.vx-A.vx, rvy=B.vy-A.vy;
+            const relN=rvx*nx+rvy*ny;
+            if(relN>0) continue;
+            const e=0.3;
+            const jimp=-(1+e)*relN/(invMass+invMass);
+            const jx=jimp*nx, jy=jimp*ny;
+            A.vx-=jx*invMass; A.vy-=jy*invMass;
+            B.vx+=jx*invMass; B.vy+=jy*invMass;
+          }
+        }
       }
     }
+  }
+
+  // Camera update
+  function updateCamera(dt){
+    // target: most advanced ball
+    const activeBalls=balls.filter(b=>b.active);
+    if(activeBalls.length>0){
+      let lead=activeBalls.reduce((a,b)=>b.x>a.x?b:a);
+      targetCamX=lead.x-W/2;
+      targetCamY=lead.y-H/2;
+      const speed=Math.hypot(lead.vx,lead.vy);
+      targetZoom=clamp(1-0.0002*speed,0.5,1);
+    } else {
+      targetCamX=0; targetCamY=0; targetZoom=1;
+    }
+    // lerp
+    camX+=(targetCamX-camX)*dt*3;
+    camY+=(targetCamY-camY)*dt*3;
+    camZoom+=(targetZoom-camZoom)*dt*3;
+  }
+
+  // Draw
+  function render(){
+    ctx.save();
+    ctx.clearRect(0,0,W,H);
+    ctx.translate(-camX,-camY);
+    ctx.scale(camZoom,camZoom);
+
+    // Terrain
+    ctx.beginPath();
+    const pts=terrain.points;
+    ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle='#7dd3fc';
+    ctx.lineWidth=4;
+    ctx.stroke();
+
+    // Balls
+    for(const b of balls){
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fillStyle=b.owner?b.owner.color:'#7dd3fc';
+      ctx.fill();
+      ctx.lineWidth=2;
+      ctx.strokeStyle='rgba(255,255,255,0.1)';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  let lastTime = performance.now();
+  function loop(now){
+    const dt=(now-lastTime)/1000;
+    lastTime=now;
+    stepPhysics(dt);
+    updateCamera(dt);
     render();
     requestAnimationFrame(loop);
   }
 
-  // Round control
-  function startBuyPhase(){
-    // reset round state
-    roundPhase = 'buy';
-    buyRemaining = ROUND_BUY_SECONDS;
-    roundModeEl.textContent = 'Покупка';
-    countdownEl.textContent = buyRemaining.toFixed(0) + 's';
-    // start countdown
-    if(roundTimer) clearInterval(roundTimer);
-    roundTimer = setInterval(()=>{
-      buyRemaining -= 1;
-      if(buyRemaining <= 0){
-        clearInterval(roundTimer);
-        countdownEl.textContent = '0s';
-        queuedToRun();
-      } else {
-        countdownEl.textContent = buyRemaining.toFixed(0) + 's';
-      }
-    }, 1000);
-  }
-
-  function queuedToRun(){
-    // spawn all queued balls into balls[], then set roundPhase running
-    if(queued.length === 0){
-      // nothing to run -> immediately regenerate and restart buy
-      startBuyPhase();
-      return;
-    }
-    spawnBalls();
-    // small settling: let balls fall a little before starting sim? We'll just start running
-    roundPhase = 'running';
-    roundModeEl.textContent = 'Запуск';
-    simTime = 0;
-    // ensure totalScore UI etc
+  function resetWorld(){
+    terrain=generateTerrain();
+    balls=[];
+    queued=[];
+    totalScore=0;
+    players.forEach(p=>p.score=0);
     updateUI();
   }
 
-  function endRound(){
-    roundPhase = 'idle';
-    roundModeEl.textContent = 'Завершено';
-    // cleanup: remove inactive balls after delay
-    setTimeout(()=>{
-      // keep scored ones for inspection, but remove deactivated
-      balls = balls.filter(b => b.active || b.scored);
-      updateUI();
-      // restart buy phase automatically
-      startBuyPhase();
-    }, 800);
-  }
-
-  // UI actions
-  buyBtn.addEventListener('click', ()=>{
-    if(players.length === 0){
-      alert('Добавьте хотя бы одного тест-игрока (справа) чтобы купить шар.');
-      return;
-    }
-    // assign to a random player among players
-    const owner = players[Math.floor(Math.random()*players.length)];
+  // --- UI actions ---
+  buyBtn.addEventListener('click',()=>{
+    if(players.length===0){addPlayer('Player1');}
+    const owner=players[Math.floor(Math.random()*players.length)];
     queued.push(owner);
     updateUI();
   });
-
-  startBtn.addEventListener('click', ()=>{
-    if(roundPhase === 'buy'){
-      // force start
-      clearInterval(roundTimer);
-      countdownEl.textContent = '0s';
-      queuedToRun();
-    } else {
-      // restart buy phase
-      startBuyPhase();
-    }
+  startBtn.addEventListener('click',()=>{
+    spawnBalls();
   });
-
-  regenBtn.addEventListener('click', ()=>{
+  regenBtn.addEventListener('click',()=>{
     resetWorld();
   });
 
-  addPlayerBtn.addEventListener('click', ()=>{
-    addTestPlayer('Игрок ' + (_playerId));
-    updateUI();
+  // Drag camera
+  canvas.addEventListener('mousedown',e=>{
+    isDragging=true;
+    dragStartX=e.clientX; dragStartY=e.clientY;
+    camStartX=camX; camStartY=camY;
   });
-
-  speedEl.addEventListener('input', ()=>{
-    speedValEl.textContent = parseFloat(speedEl.value).toFixed(1) + 'x';
+  window.addEventListener('mousemove',e=>{
+    if(isDragging){
+      camX=camStartX-(e.clientX-dragStartX)/camZoom;
+      camY=camStartY-(e.clientY-dragStartY)/camZoom;
+    }
   });
+  window.addEventListener('mouseup',()=>{isDragging=false;});
+  canvas.addEventListener('touchstart',e=>{
+    isDragging=true;
+    dragStartX=e.touches[0].clientX; dragStartY=e.touches[0].clientY;
+    camStartX=camX; camStartY=camY;
+  });
+  canvas.addEventListener('touchmove',e=>{
+    if(isDragging){
+      camX=camStartX-(e.touches[0].clientX-dragStartX)/camZoom;
+      camY=camStartY-(e.touches[0].clientY-dragStartY)/camZoom;
+    }
+  });
+  canvas.addEventListener('touchend',()=>{isDragging=false;});
 
-  // Initial world setup
-  function resetWorld(){
-    const W = canvas.clientWidth;
-    const H = canvas.clientHeight;
-    terrain = generateTerrain(W, H);
-    holes = generateHoles(terrain, Math.floor(rand(2,5)));
-    balls = [];
-    queued = [];
-    totalScore = 0;
-    players.forEach(p => p.score = 0);
-    holesCountEl.textContent = holes.length;
-    totalScoreEl.textContent = totalScore;
-    updateUI();
-  }
-
-  // start
-  addTestPlayer('Alice');
-  addTestPlayer('Bob');
+  // Init
+  addPlayer('Alice');
+  addPlayer('Bob');
   resetWorld();
-  startBuyPhase();
-
-  // begin loop
-  lastTime = performance.now();
-  requestAnimationFrame(loop);
-
-  // allow clicking canvas to add debug ball
-  canvas.addEventListener('click', (ev)=>{
-    // convert client coords to canvas coords
-    const rect = canvas.getBoundingClientRect();
-    const cx = ev.clientX - rect.left;
-    const cy = ev.clientY - rect.top;
-    const b = {
-      id: 'dbg' + (_ballId++),
-      x: cx, y: cy, vx: 0, vy: 0, r: BALL_RADIUS, mass: BALL_MASS,
-      owner: null, active: true, scored: false
-    };
-    balls.push(b);
-    updateUI();
-  });
-
-  // Expose some debug functions in console
-  window.MountainDrop = {
-    resetWorld,
-    terrain,
-    balls,
-    holes,
-    players,
-    spawnBalls,
-    startBuyPhase,
-    queued
-  };
-
-  // Utility: ensure canvas not blurry on high dpi when client size changes
-  new ResizeObserver(()=>{
-    resize();
-    // regenerate terrain to avoid misplacement on width change? keep as is
-  }).observe(canvas);
+  loop(performance.now());
 
 })();
 </script>
