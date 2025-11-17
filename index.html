@@ -152,7 +152,7 @@
     let lastY = rand(marginTop, MAP_HEIGHT*0.3);
     for(let i=0;i<=N;i++){
       let x = i*dx;
-      let slopeDeg = rand(-80,-30);
+      let slopeDeg = rand(-95,-50);
       let slopeRad = slopeDeg*Math.PI/180;
       let dy = Math.tan(-slopeRad)*dx;
       let y = clamp(lastY+dy, marginTop, MAP_HEIGHT-marginBottom);
