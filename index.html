@@ -26,17 +26,18 @@
             background-color: #2c2c2c;
             border-left: 2px solid #555;
             border-right: 2px solid #555;
-            position: relative; /* Для позиционирования кирки */
+            position: relative; 
             box-sizing: border-box;
-            -webkit-overflow-scrolling: touch; /* Улучшение прокрутки на iOS */
+            -webkit-overflow-scrolling: touch; 
         }
 
         /* --- 2. Стиль Арены и Блоков --- */
         #arena {
             display: grid;
-            /* 1fr стена | 6 колонок блоков | 1fr стена */
-            grid-template-columns: 1fr repeat(6, 40px) 1fr; 
-            grid-auto-rows: 40px; 
+            /* Изменено: 1fr стена (узкая) | 6 колонок блоков (по 50px) | 1fr стена (узкая) */
+            grid-template-columns: 1fr repeat(6, 50px) 1fr; 
+            grid-auto-rows: 50px; /* Увеличенная высота блока */
+            min-height: 100%; /* Гарантируем, что арена занимает минимум высоту контейнера */
         }
 
         /* Боковые стены */
@@ -54,13 +55,13 @@
 
         /* Стиль для блока */
         .block {
-            width: 40px;
-            height: 40px;
+            width: 50px; /* Увеличенная ширина */
+            height: 50px; /* Увеличенная высота */
             border: 1px solid black;
             box-sizing: border-box;
             text-align: center;
-            line-height: 38px;
-            font-size: 10px;
+            line-height: 48px; /* Выравнивание текста */
+            font-size: 12px;
             font-weight: bold;
             color: #eee;
             box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
@@ -78,8 +79,8 @@
 
         /* --- 3. Стиль Кирки (Физический Объект) --- */
         #pickaxe {
-            width: 30px; 
-            height: 30px;
+            width: 40px; /* Увеличенная ширина кирки */
+            height: 40px; /* Увеличенная высота кирки */
             background-color: #ffd700; 
             border-radius: 5px;
             position: absolute; 
@@ -88,10 +89,9 @@
             transform: translateX(-50%);
             box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
             display: none; 
-            transition: box-shadow 0.1s;
             text-align: center;
-            line-height: 30px;
-            font-size: 14px;
+            line-height: 40px;
+            font-size: 20px; /* Увеличенный размер эмодзи */
             z-index: 10;
         }
 
@@ -100,7 +100,7 @@
         .pickaxe-iron { background-color: #808080; }
         .pickaxe-diamond { background-color: #00bcd4; box-shadow: 0 0 10px rgba(0, 255, 255, 0.7); }
 
-        /* --- 4. Элементы Управления --- */
+        /* --- 4. Элементы Управления (Остаются прежними) --- */
         #controls {
             padding: 10px;
             width: 100%;
@@ -159,13 +159,14 @@
     </div>
     
     <script>
-        // --- 1. Инициализация и Константы ---
+        // --- 1. Инициализация и Константы (ОБНОВЛЕНЫ) ---
         const Telegram = window.Telegram ? window.Telegram.WebApp : null;
         if (Telegram) Telegram.ready();
         
         const ARENA_WIDTH_BLOCKS = 6;
-        const BLOCK_SIZE_PX = 40;
-        const WALL_WIDTH_PX = 40; 
+        const BLOCK_SIZE_PX = 50; // НОВЫЙ РАЗМЕР БЛОКА
+        const PICKAXE_SIZE_PX = 40; // НОВЫЙ РАЗМЕР КИРКИ
+        const WALL_WIDTH_PX = 30; // УЗКАЯ СТЕНА (примерное значение 1fr из CSS)
         const GAME_WIDTH_PX = (ARENA_WIDTH_BLOCKS * BLOCK_SIZE_PX) + (2 * WALL_WIDTH_PX);
 
         const arena = document.getElementById('arena');
@@ -174,8 +175,8 @@
         const balanceElement = document.getElementById('balance');
         const messageElement = document.getElementById('message');
         
-        const GRAVITY = 0.5; // Ускорение (пикселей/кадр^2)
-        const INITIAL_SPEED_MAX = 8; // Максимальная начальная скорость
+        const GRAVITY = 0.5; 
+        const INITIAL_SPEED_MAX = 8; 
 
         let playerBalance = 1000;
         let activePickaxe = null; 
@@ -186,21 +187,24 @@
             constructor(type) {
                 this.type = type;
                 this.element = pickaxeElement;
-                this.width = 30;
-                this.height = 30;
+                this.width = PICKAXE_SIZE_PX;
+                this.height = PICKAXE_SIZE_PX;
                 
                 // Рандомная начальная позиция X в пределах арены
                 const arenaInnerWidth = GAME_WIDTH_PX - 2 * WALL_WIDTH_PX - this.width;
                 this.x = WALL_WIDTH_PX + (Math.random() * arenaInnerWidth);
                 
-                // Начальная позиция Y: немного над верхней видимой частью
-                this.y = gameContainer.scrollTop - 50; 
+                // Начальная позиция Y: НЕМНОГО выше текущего верха контейнера
+                this.y = gameContainer.scrollTop - PICKAXE_SIZE_PX; 
                 
                 // Рандомная начальная скорость (включая небольшую вертикальную скорость)
                 this.vx = (Math.random() * INITIAL_SPEED_MAX * 2) - INITIAL_SPEED_MAX; 
                 this.vy = -(Math.random() * INITIAL_SPEED_MAX / 2); 
                 
                 this.element.className = `pickaxe-placeholder pickaxe-${type}`;
+                this.element.style.width = `${this.width}px`;
+                this.element.style.height = `${this.height}px`;
+                this.element.style.lineHeight = `${this.height}px`;
                 this.element.style.display = 'block';
                 this.updateDOM();
             }
@@ -211,7 +215,6 @@
             }
 
             update(deltaTime) {
-                // 1. Применяем физику
                 this.vy += GRAVITY * deltaTime; 
                 this.x += this.vx * deltaTime;
                 this.y += this.vy * deltaTime;
@@ -222,18 +225,18 @@
 
                 if (this.x < minX) {
                     this.x = minX;
-                    this.vx *= -0.7; // Отскок
+                    this.vx *= -0.7;
                 } else if (this.x > maxX) {
                     this.x = maxX;
-                    this.vx *= -0.7; // Отскок
+                    this.vx *= -0.7;
                 }
                 
                 // 3. Коллизия с блоками
-                if (this.y + this.height > 0) {
+                if (this.y + this.height > gameContainer.scrollTop) { // Начинаем проверку, только когда кирка входит в видимую область
                     const blockHit = this.checkCollisionWithBlocks();
                     if (blockHit) {
                         this.handleHit(blockHit);
-                        return false; // Завершить полет
+                        return false; 
                     }
                 }
                 
@@ -242,11 +245,9 @@
             }
             
             checkCollisionWithBlocks() {
-                // Проверяем только блоки, которые находятся ниже текущей позиции кирки
                 const relativeX = this.x - WALL_WIDTH_PX + (this.width / 2);
                 const colIndex = Math.floor(relativeX / BLOCK_SIZE_PX);
                 
-                // Ряд, в который кирка врезалась бы снизу
                 const rowIndex = Math.floor((this.y + this.height) / BLOCK_SIZE_PX); 
 
                 const blockElement = arena.querySelector(`[data-row="${rowIndex}"][data-col="${colIndex}"]`);
@@ -255,7 +256,6 @@
                     const blockRect = blockElement.getBoundingClientRect();
                     const containerRect = gameContainer.getBoundingClientRect();
                     
-                    // Y блока относительно верха game-container (с учетом прокрутки)
                     const blockY = blockRect.top - containerRect.top + gameContainer.scrollTop; 
                     
                     if (this.y + this.height > blockY) {
@@ -266,8 +266,6 @@
             }
 
             handleHit(blockElement) {
-                // --- СИМУЛЯЦИЯ ОТПРАВКИ ДАННЫХ НА СЕРВЕР ---
-                
                 const dataToSend = { 
                     action: 'mine', 
                     row: blockElement.dataset.row, 
@@ -277,15 +275,11 @@
                 
                 messageElement.textContent = `💥 Кирка ${this.type} ударила блок (${blockElement.textContent})! Отправляем данные на сервер...`;
                 
-                // В реальном боте вы будете использовать:
-                // if (Telegram) Telegram.sendData(JSON.stringify(dataToSend));
-                
-                // Для наглядности фронтенд-симуляции:
                 // Визуальный отскок
-                this.vy = -this.vy * 0.4; // Отскок вверх, потеря 60% энергии
-                this.vx *= 0.3; // Почти полная остановка горизонтальной скорости
+                this.vy = -this.vy * 0.4; 
+                this.vx *= 0.3; 
 
-                // Симуляция разрушения блока (нужно удалить эту часть при интеграции с сервером!)
+                // Симуляция разрушения блока 
                 if (blockElement.classList.contains('block-diamond') || Math.random() < 0.2) {
                      blockElement.style.opacity = 0;
                      setTimeout(() => blockElement.remove(), 200);
@@ -294,19 +288,18 @@
                      messageElement.textContent += " Блок слишком прочный. Кирка отскочила.";
                 }
                 
-                // Кирка "завершила" свой основной бросок
                 this.element.style.display = 'none';
                 activePickaxe = null; 
             }
         }
         
-        // --- 3. Игровой Цикл (Основа симуляции) ---
+        // --- 3. Игровой Цикл ---
         function gameLoop(currentTime) {
             const deltaTime = (currentTime - lastTime) / 16.67; 
             lastTime = currentTime;
             
             if (activePickaxe) {
-                const isActive = activePickaxe.update(Math.min(deltaTime, 3)); // Ограничиваем dTime
+                const isActive = activePickaxe.update(Math.min(deltaTime, 3)); 
                 
                 // Если кирка упала слишком далеко вниз (вне поля зрения)
                 if (!isActive || activePickaxe.y > gameContainer.scrollTop + gameContainer.clientHeight + 300) {
@@ -320,6 +313,10 @@
         }
 
         // --- 4. Генерация Арены и Логика Кнопок ---
+        
+        // Генерируем всего 10 рядов в начале!
+        const INITIAL_ROWS = 10; 
+        
         function generateInitialArena(rows) {
             for (let r = 0; r < rows; r++) {
                 const wallLeft = document.createElement('div');
@@ -329,7 +326,6 @@
                 for (let c = 0; c < ARENA_WIDTH_BLOCKS; c++) {
                     const block = document.createElement('div');
                     
-                    // Генерация блоков (для симуляции: 10% Diamond, 50% Dirt, 40% Stone)
                     const rand = Math.random();
                     let blockType;
                     if (rand < 0.1) blockType = 'diamond';
@@ -337,7 +333,7 @@
                     else blockType = 'stone';
                     
                     block.className = `block block-${blockType}`;
-                    block.textContent = r > 20 ? '' : blockType.toUpperCase(); // Убираем текст глубоко вниз
+                    block.textContent = r > 20 ? '' : blockType.toUpperCase();
                     block.dataset.row = r;
                     block.dataset.col = c;
                     
@@ -373,8 +369,8 @@
         });
         
         // --- 5. Запуск ---
-        generateInitialArena(70); // Генерируем 70 рядов
-        requestAnimationFrame(gameLoop); // Запускаем цикл
+        generateInitialArena(INITIAL_ROWS); 
+        requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
