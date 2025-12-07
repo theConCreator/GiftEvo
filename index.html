@@ -5,47 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Web App Game</title>
     <style>
-        /* Базовые стили для игрового поля */
+        /* --- 1. Базовые Стили и Контейнер --- */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #1a1a1a; /* Темный фон для игрового настроения */
+            background-color: #1a1a1a; 
             color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100vh;
         }
 
         #game-container {
             width: 100%;
-            max-width: 600px; /* Ограничиваем ширину для мобильных устройств */
-            height: 100vh; /* Занимает всю высоту видимой области */
-            overflow-y: scroll; /* Прокрутка для "бесконечной" арены */
+            max-width: 600px;
+            height: calc(100vh - 120px); /* Высота минус панель управления */
+            overflow-y: scroll; 
+            background-color: #2c2c2c;
             border-left: 2px solid #555;
             border-right: 2px solid #555;
-            position: relative; /* Для позиционирования кирки и блоков */
+            position: relative; /* Для позиционирования кирки */
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch; /* Улучшение прокрутки на iOS */
         }
 
+        /* --- 2. Стиль Арены и Блоков --- */
         #arena {
             display: grid;
-            /* 6 колонок для блоков + 2 колонки для стен */
+            /* 1fr стена | 6 колонок блоков | 1fr стена */
             grid-template-columns: 1fr repeat(6, 40px) 1fr; 
-            grid-auto-rows: 40px; /* Высота каждого блока */
-            padding-top: 10px;
+            grid-auto-rows: 40px; 
         }
 
-        /* Стиль для боковых "стен" */
+        /* Боковые стены */
         .wall {
             background-color: #333;
             border: 1px solid #444;
-            grid-column: 1 / 2; /* Первая колонка */
+            opacity: 0.9;
+        }
+        .wall.left {
+            grid-column: 1 / 2;
         }
         .wall.right {
-            grid-column: 8 / 9; /* Последняя колонка */
+            grid-column: 8 / 9;
         }
 
-        /* Стиль для блока (заглушка) */
+        /* Стиль для блока */
         .block {
             width: 40px;
             height: 40px;
@@ -54,114 +61,302 @@
             text-align: center;
             line-height: 38px;
             font-size: 10px;
-            cursor: pointer;
-            transition: background-color 0.1s;
-        }
-
-        .block:hover {
-            opacity: 0.8;
+            font-weight: bold;
+            color: #eee;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
         }
         
-        /* Примеры цветов для разных типов блоков (нужно будет расширить) */
-        .block-dirt { background-color: #8b572a; }
-        .block-stone { background-color: #808080; }
-        .block-diamond { background-color: #4682b4; } /* Блок с призом */
+        /* Цвета для разных типов блоков */
+        .block-dirt { background-color: #8b572a; border-color: #633e1e; }
+        .block-stone { background-color: #808080; border-color: #5d5d5d; }
+        .block-diamond { 
+            background-color: #4682b4; 
+            border-color: #316089; 
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.7);
+            color: white;
+        }
 
-        /* Элементы управления */
+        /* --- 3. Стиль Кирки (Физический Объект) --- */
+        #pickaxe {
+            width: 30px; 
+            height: 30px;
+            background-color: #ffd700; 
+            border-radius: 5px;
+            position: absolute; 
+            top: -100px; 
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+            display: none; 
+            transition: box-shadow 0.1s;
+            text-align: center;
+            line-height: 30px;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        /* Цвета для разных типов кирки */
+        .pickaxe-wood { background-color: #a0522d; }
+        .pickaxe-iron { background-color: #808080; }
+        .pickaxe-diamond { background-color: #00bcd4; box-shadow: 0 0 10px rgba(0, 255, 255, 0.7); }
+
+        /* --- 4. Элементы Управления --- */
         #controls {
             padding: 10px;
             width: 100%;
             max-width: 600px;
             background-color: #2b2b2b;
             text-align: center;
-            position: fixed; /* Закрепляем внизу */
+            position: fixed; 
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            z-index: 20;
         }
 
         .pickaxe-button {
             padding: 10px 15px;
             margin: 5px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
             font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .pickaxe-button:active {
+            transform: scale(0.98);
+        }
+
+        .pickaxe-button[data-type="wood"] { background-color: #9c5e3d; color: white; }
+        .pickaxe-button[data-type="iron"] { background-color: #6a6a6a; color: white; }
+        .pickaxe-button[data-type="diamond"] { background-color: #00bcd4; color: #1a1a1a; }
+
+        #message {
+            margin-top: 5px;
+            min-height: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
     <div id="game-container">
+        <div id="pickaxe">⛏️</div> 
+        
         <div id="arena">
             </div>
     </div>
 
     <div id="controls">
-        <h3>💰 Ваши средства: <span id="balance">1000</span></h3>
-        <p>Выберите кирку для покупки:</p>
+        <h3>💰 Баланс: <span id="balance">1000</span></h3>
+        <p>Купите кирку:</p>
         <button class="pickaxe-button" data-type="wood" data-price="100">Деревянная (100)</button>
         <button class="pickaxe-button" data-type="iron" data-price="500">Железная (500)</button>
         <button class="pickaxe-button" data-type="diamond" data-price="2000">Алмазная (2000)</button>
-        <p id="message"></p>
+        <p id="message">Выберите кирку, чтобы начать!</p>
     </div>
     
     <script>
-        // Инициализация Telegram Web App
-        // Эта строка важна для работы с Telegram API
-        const Telegram = window.Telegram.WebApp;
-        Telegram.ready();
+        // --- 1. Инициализация и Константы ---
+        const Telegram = window.Telegram ? window.Telegram.WebApp : null;
+        if (Telegram) Telegram.ready();
         
         const ARENA_WIDTH_BLOCKS = 6;
         const BLOCK_SIZE_PX = 40;
+        const WALL_WIDTH_PX = 40; 
+        const GAME_WIDTH_PX = (ARENA_WIDTH_BLOCKS * BLOCK_SIZE_PX) + (2 * WALL_WIDTH_PX);
+
         const arena = document.getElementById('arena');
+        const pickaxeElement = document.getElementById('pickaxe');
+        const gameContainer = document.getElementById('game-container');
         const balanceElement = document.getElementById('balance');
         const messageElement = document.getElementById('message');
         
+        const GRAVITY = 0.5; // Ускорение (пикселей/кадр^2)
+        const INITIAL_SPEED_MAX = 8; // Максимальная начальная скорость
+
         let playerBalance = 1000;
-        let blocksData = []; // Массив для хранения данных о блоках
+        let activePickaxe = null; 
+        let lastTime = 0;
+
+        // --- 2. Класс Кирки (Физическая модель) ---
+        class Pickaxe {
+            constructor(type) {
+                this.type = type;
+                this.element = pickaxeElement;
+                this.width = 30;
+                this.height = 30;
+                
+                // Рандомная начальная позиция X в пределах арены
+                const arenaInnerWidth = GAME_WIDTH_PX - 2 * WALL_WIDTH_PX - this.width;
+                this.x = WALL_WIDTH_PX + (Math.random() * arenaInnerWidth);
+                
+                // Начальная позиция Y: немного над верхней видимой частью
+                this.y = gameContainer.scrollTop - 50; 
+                
+                // Рандомная начальная скорость (включая небольшую вертикальную скорость)
+                this.vx = (Math.random() * INITIAL_SPEED_MAX * 2) - INITIAL_SPEED_MAX; 
+                this.vy = -(Math.random() * INITIAL_SPEED_MAX / 2); 
+                
+                this.element.className = `pickaxe-placeholder pickaxe-${type}`;
+                this.element.style.display = 'block';
+                this.updateDOM();
+            }
+
+            updateDOM() {
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            update(deltaTime) {
+                // 1. Применяем физику
+                this.vy += GRAVITY * deltaTime; 
+                this.x += this.vx * deltaTime;
+                this.y += this.vy * deltaTime;
+
+                // 2. Коллизия со стенами
+                const minX = WALL_WIDTH_PX;
+                const maxX = GAME_WIDTH_PX - WALL_WIDTH_PX - this.width;
+
+                if (this.x < minX) {
+                    this.x = minX;
+                    this.vx *= -0.7; // Отскок
+                } else if (this.x > maxX) {
+                    this.x = maxX;
+                    this.vx *= -0.7; // Отскок
+                }
+                
+                // 3. Коллизия с блоками
+                if (this.y + this.height > 0) {
+                    const blockHit = this.checkCollisionWithBlocks();
+                    if (blockHit) {
+                        this.handleHit(blockHit);
+                        return false; // Завершить полет
+                    }
+                }
+                
+                this.updateDOM();
+                return true; 
+            }
+            
+            checkCollisionWithBlocks() {
+                // Проверяем только блоки, которые находятся ниже текущей позиции кирки
+                const relativeX = this.x - WALL_WIDTH_PX + (this.width / 2);
+                const colIndex = Math.floor(relativeX / BLOCK_SIZE_PX);
+                
+                // Ряд, в который кирка врезалась бы снизу
+                const rowIndex = Math.floor((this.y + this.height) / BLOCK_SIZE_PX); 
+
+                const blockElement = arena.querySelector(`[data-row="${rowIndex}"][data-col="${colIndex}"]`);
+
+                if (blockElement) {
+                    const blockRect = blockElement.getBoundingClientRect();
+                    const containerRect = gameContainer.getBoundingClientRect();
+                    
+                    // Y блока относительно верха game-container (с учетом прокрутки)
+                    const blockY = blockRect.top - containerRect.top + gameContainer.scrollTop; 
+                    
+                    if (this.y + this.height > blockY) {
+                         return blockElement;
+                    }
+                }
+                return null;
+            }
+
+            handleHit(blockElement) {
+                // --- СИМУЛЯЦИЯ ОТПРАВКИ ДАННЫХ НА СЕРВЕР ---
+                
+                const dataToSend = { 
+                    action: 'mine', 
+                    row: blockElement.dataset.row, 
+                    col: blockElement.dataset.col, 
+                    pickaxe: this.type 
+                };
+                
+                messageElement.textContent = `💥 Кирка ${this.type} ударила блок (${blockElement.textContent})! Отправляем данные на сервер...`;
+                
+                // В реальном боте вы будете использовать:
+                // if (Telegram) Telegram.sendData(JSON.stringify(dataToSend));
+                
+                // Для наглядности фронтенд-симуляции:
+                // Визуальный отскок
+                this.vy = -this.vy * 0.4; // Отскок вверх, потеря 60% энергии
+                this.vx *= 0.3; // Почти полная остановка горизонтальной скорости
+
+                // Симуляция разрушения блока (нужно удалить эту часть при интеграции с сервером!)
+                if (blockElement.classList.contains('block-diamond') || Math.random() < 0.2) {
+                     blockElement.style.opacity = 0;
+                     setTimeout(() => blockElement.remove(), 200);
+                     messageElement.textContent += " Блок сломан (симуляция)!";
+                } else {
+                     messageElement.textContent += " Блок слишком прочный. Кирка отскочила.";
+                }
+                
+                // Кирка "завершила" свой основной бросок
+                this.element.style.display = 'none';
+                activePickaxe = null; 
+            }
+        }
         
-        // --- 1. ФУНКЦИЯ ГЕНЕРАЦИИ АРЕНЫ ---
-        
+        // --- 3. Игровой Цикл (Основа симуляции) ---
+        function gameLoop(currentTime) {
+            const deltaTime = (currentTime - lastTime) / 16.67; 
+            lastTime = currentTime;
+            
+            if (activePickaxe) {
+                const isActive = activePickaxe.update(Math.min(deltaTime, 3)); // Ограничиваем dTime
+                
+                // Если кирка упала слишком далеко вниз (вне поля зрения)
+                if (!isActive || activePickaxe.y > gameContainer.scrollTop + gameContainer.clientHeight + 300) {
+                     activePickaxe = null;
+                     pickaxeElement.style.display = 'none';
+                     messageElement.textContent = "Кирка завершила свой полёт.";
+                }
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- 4. Генерация Арены и Логика Кнопок ---
         function generateInitialArena(rows) {
             for (let r = 0; r < rows; r++) {
-                // Создаем боковую стену слева
                 const wallLeft = document.createElement('div');
                 wallLeft.className = 'wall left';
                 arena.appendChild(wallLeft);
                 
-                // Генерируем 6 колонок блоков
                 for (let c = 0; c < ARENA_WIDTH_BLOCKS; c++) {
                     const block = document.createElement('div');
                     
-                    // Простая логика для примера: 10% шанс на блок с призом
-                    const blockType = Math.random() < 0.1 ? 'diamond' : (Math.random() < 0.6 ? 'dirt' : 'stone');
+                    // Генерация блоков (для симуляции: 10% Diamond, 50% Dirt, 40% Stone)
+                    const rand = Math.random();
+                    let blockType;
+                    if (rand < 0.1) blockType = 'diamond';
+                    else if (rand < 0.6) blockType = 'dirt';
+                    else blockType = 'stone';
                     
                     block.className = `block block-${blockType}`;
-                    block.textContent = blockType.toUpperCase();
+                    block.textContent = r > 20 ? '' : blockType.toUpperCase(); // Убираем текст глубоко вниз
                     block.dataset.row = r;
                     block.dataset.col = c;
-                    
-                    // В реальном проекте здесь будет интеграция с сервером
-                    // и установка ID блока и его прочности.
                     
                     arena.appendChild(block);
                 }
                 
-                // Создаем боковую стену справа
                 const wallRight = document.createElement('div');
                 wallRight.className = 'wall right';
                 arena.appendChild(wallRight);
             }
         }
         
-        // --- 2. ЛОГИКА ПОКУПКИ КИРКИ (Временная) ---
-        
         document.querySelectorAll('.pickaxe-button').forEach(button => {
             button.addEventListener('click', () => {
+                if (activePickaxe) {
+                    messageElement.textContent = '🛑 Дождитесь, пока кирка завершит бросок!';
+                    return;
+                }
+                
                 const price = parseInt(button.dataset.price);
                 const type = button.dataset.type;
                 
@@ -169,73 +364,17 @@
                     playerBalance -= price;
                     balanceElement.textContent = playerBalance;
                     
-                    messageElement.textContent = `Вы купили ${type} кирку за ${price}. Теперь кликните по блоку!`;
-                    
-                    // В реальном проекте здесь будет отправка запроса на сервер
-                    // и получение ID купленной кирки.
-                    activateMiningMode(type);
+                    activePickaxe = new Pickaxe(type);
+                    messageElement.textContent = `🚀 ${type.toUpperCase()} кирка запущена!`;
                 } else {
-                    messageElement.textContent = `Недостаточно средств. Вам не хватает ${price - playerBalance}.`;
+                    messageElement.textContent = `🚫 Недостаточно средств (${price - playerBalance} не хватает).`;
                 }
             });
         });
         
-        // --- 3. РЕЖИМ КОПАНИЯ (Заглушка для фронтенда) ---
-        
-        let activePickaxe = null;
-
-        function activateMiningMode(type) {
-            activePickaxe = {
-                type: type,
-                // В реальном проекте, физика и прочность будут на бэкенде
-                power: type === 'wood' ? 1 : (type === 'iron' ? 3 : 10)
-            };
-            arena.style.cursor = 'crosshair'; // Меняем курсор
-            
-            // Временное удаление слушателей, чтобы не было дублирования
-            document.querySelectorAll('.block').forEach(block => {
-                block.removeEventListener('click', handleBlockClick);
-                block.addEventListener('click', handleBlockClick);
-            });
-        }
-        
-        function handleBlockClick(event) {
-            if (!activePickaxe) {
-                messageElement.textContent = 'Сначала купите кирку!';
-                return;
-            }
-            
-            const blockElement = event.currentTarget;
-            
-            // --- СИМУЛЯЦИЯ ЛОМАНИЯ БЛОКА (ВРЕМЕННО) ---
-            
-            // В реальном проекте, здесь будет отправка координат и ID кирки на сервер:
-            // Telegram.sendData(JSON.stringify({ 
-            //     action: 'mine', 
-            //     row: blockElement.dataset.row, 
-            //     col: blockElement.dataset.col, 
-            //     pickaxe: activePickaxe.type 
-            // }));
-            
-            // Заглушка: мгновенно ломаем блок
-            const isPrizeBlock = blockElement.classList.contains('block-diamond');
-            
-            if (isPrizeBlock) {
-                messageElement.textContent = `🎉 ПОБЕДА! Вы сломали ${blockElement.textContent} и забрали приз!`;
-                // Здесь нужно обновить баланс через сервер
-            } else {
-                messageElement.textContent = `⛏️ Вы ударили по блоку ${blockElement.textContent}. Ожидаем ответа сервера о прочности.`;
-            }
-
-            blockElement.style.opacity = 0; // Имитация разрушения
-            setTimeout(() => blockElement.remove(), 300); // Удаляем блок после анимации
-            
-            activePickaxe = null; // Кирка "прыгнула" и использована (или приземлилась)
-            arena.style.cursor = 'default';
-        }
-
-        // Запускаем генерацию начальной арены
-        generateInitialArena(30); // Генерируем 30 рядов для начального просмотра
+        // --- 5. Запуск ---
+        generateInitialArena(70); // Генерируем 70 рядов
+        requestAnimationFrame(gameLoop); // Запускаем цикл
     </script>
 </body>
 </html>
