@@ -1,389 +1,241 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<title>Mountain Drop – Game</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<style>
-html, body {
-  margin:0; padding:0; width:100%; height:100%;
-  background:#0a0f1a; overflow:hidden; font-family:Arial, sans-serif;
-  color:white;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Web App Game</title>
+    <style>
+        /* Базовые стили для игрового поля */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a; /* Темный фон для игрового настроения */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-/* --- Layout --- */
-#container {
-  display:flex;
-  flex-direction:column;
-  width:100%; height:100%;
-}
+        #game-container {
+            width: 100%;
+            max-width: 600px; /* Ограничиваем ширину для мобильных устройств */
+            height: 100vh; /* Занимает всю высоту видимой области */
+            overflow-y: scroll; /* Прокрутка для "бесконечной" арены */
+            border-left: 2px solid #555;
+            border-right: 2px solid #555;
+            position: relative; /* Для позиционирования кирки и блоков */
+        }
 
-#gameWrapper {
-  margin-top:10px;
-  width:100%;
-  display:flex;
-  justify-content:center;
-}
+        #arena {
+            display: grid;
+            /* 6 колонок для блоков + 2 колонки для стен */
+            grid-template-columns: 1fr repeat(6, 40px) 1fr; 
+            grid-auto-rows: 40px; /* Высота каждого блока */
+            padding-top: 10px;
+        }
 
-#gameCanvas {
-  background:#06101f;
-  border:3px solid #2f465f;
-  border-radius:12px;
-  width:90vmin;
-  height:90vmin;
-  image-rendering:pixelated;
-}
+        /* Стиль для боковых "стен" */
+        .wall {
+            background-color: #333;
+            border: 1px solid #444;
+            grid-column: 1 / 2; /* Первая колонка */
+        }
+        .wall.right {
+            grid-column: 8 / 9; /* Последняя колонка */
+        }
 
-#controls {
-  margin-top:10px;
-  padding:15px;
-  width:100%;
-  display:flex;
-  justify-content:center;
-  gap:20px;
-}
+        /* Стиль для блока (заглушка) */
+        .block {
+            width: 40px;
+            height: 40px;
+            border: 1px solid black;
+            box-sizing: border-box;
+            text-align: center;
+            line-height: 38px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
 
-button {
-  padding:12px 28px;
-  border-radius:10px;
-  font-size:18px;
-  border:none;
-  cursor:pointer;
-  background:#38b2ac;
-  color:#002f34;
-  font-weight:bold;
-  transition:0.2s;
-}
-button:hover { background:#2aa19c; }
+        .block:hover {
+            opacity: 0.8;
+        }
+        
+        /* Примеры цветов для разных типов блоков (нужно будет расширить) */
+        .block-dirt { background-color: #8b572a; }
+        .block-stone { background-color: #808080; }
+        .block-diamond { background-color: #4682b4; } /* Блок с призом */
 
-#info {
-  margin-top:5px;
-  text-align:center;
-  font-size:16px;
-  opacity:0.8;
-}
-</style>
+        /* Элементы управления */
+        #controls {
+            padding: 10px;
+            width: 100%;
+            max-width: 600px;
+            background-color: #2b2b2b;
+            text-align: center;
+            position: fixed; /* Закрепляем внизу */
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .pickaxe-button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
 </head>
-
 <body>
-<div id="container">
 
-  <div id="gameWrapper">
-    <canvas id="gameCanvas"></canvas>
-  </div>
+    <div id="game-container">
+        <div id="arena">
+            </div>
+    </div>
 
-  <div id="controls">
-    <button id="buyBtn">Купить шар</button>
-    <button id="camModeBtn">Режим камеры: Авто</button>
-  </div>
-  <div id="info">
-    <div>Раунд: <span id="roundState">Покупка шаров</span></div>
-    <div>Осталось времени: <span id="roundTimer">8</span></div>
-    <div>Очередь шаров: <span id="queueCount">0</span></div>
-  </div>
+    <div id="controls">
+        <h3>💰 Ваши средства: <span id="balance">1000</span></h3>
+        <p>Выберите кирку для покупки:</p>
+        <button class="pickaxe-button" data-type="wood" data-price="100">Деревянная (100)</button>
+        <button class="pickaxe-button" data-type="iron" data-price="500">Железная (500)</button>
+        <button class="pickaxe-button" data-type="diamond" data-price="2000">Алмазная (2000)</button>
+        <p id="message"></p>
+    </div>
+    
+    <script>
+        // Инициализация Telegram Web App
+        // Эта строка важна для работы с Telegram API
+        const Telegram = window.Telegram.WebApp;
+        Telegram.ready();
+        
+        const ARENA_WIDTH_BLOCKS = 6;
+        const BLOCK_SIZE_PX = 40;
+        const arena = document.getElementById('arena');
+        const balanceElement = document.getElementById('balance');
+        const messageElement = document.getElementById('message');
+        
+        let playerBalance = 1000;
+        let blocksData = []; // Массив для хранения данных о блоках
+        
+        // --- 1. ФУНКЦИЯ ГЕНЕРАЦИИ АРЕНЫ ---
+        
+        function generateInitialArena(rows) {
+            for (let r = 0; r < rows; r++) {
+                // Создаем боковую стену слева
+                const wallLeft = document.createElement('div');
+                wallLeft.className = 'wall left';
+                arena.appendChild(wallLeft);
+                
+                // Генерируем 6 колонок блоков
+                for (let c = 0; c < ARENA_WIDTH_BLOCKS; c++) {
+                    const block = document.createElement('div');
+                    
+                    // Простая логика для примера: 10% шанс на блок с призом
+                    const blockType = Math.random() < 0.1 ? 'diamond' : (Math.random() < 0.6 ? 'dirt' : 'stone');
+                    
+                    block.className = `block block-${blockType}`;
+                    block.textContent = blockType.toUpperCase();
+                    block.dataset.row = r;
+                    block.dataset.col = c;
+                    
+                    // В реальном проекте здесь будет интеграция с сервером
+                    // и установка ID блока и его прочности.
+                    
+                    arena.appendChild(block);
+                }
+                
+                // Создаем боковую стену справа
+                const wallRight = document.createElement('div');
+                wallRight.className = 'wall right';
+                arena.appendChild(wallRight);
+            }
+        }
+        
+        // --- 2. ЛОГИКА ПОКУПКИ КИРКИ (Временная) ---
+        
+        document.querySelectorAll('.pickaxe-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const price = parseInt(button.dataset.price);
+                const type = button.dataset.type;
+                
+                if (playerBalance >= price) {
+                    playerBalance -= price;
+                    balanceElement.textContent = playerBalance;
+                    
+                    messageElement.textContent = `Вы купили ${type} кирку за ${price}. Теперь кликните по блоку!`;
+                    
+                    // В реальном проекте здесь будет отправка запроса на сервер
+                    // и получение ID купленной кирки.
+                    activateMiningMode(type);
+                } else {
+                    messageElement.textContent = `Недостаточно средств. Вам не хватает ${price - playerBalance}.`;
+                }
+            });
+        });
+        
+        // --- 3. РЕЖИМ КОПАНИЯ (Заглушка для фронтенда) ---
+        
+        let activePickaxe = null;
 
-</div>
+        function activateMiningMode(type) {
+            activePickaxe = {
+                type: type,
+                // В реальном проекте, физика и прочность будут на бэкенде
+                power: type === 'wood' ? 1 : (type === 'iron' ? 3 : 10)
+            };
+            arena.style.cursor = 'crosshair'; // Меняем курсор
+            
+            // Временное удаление слушателей, чтобы не было дублирования
+            document.querySelectorAll('.block').forEach(block => {
+                block.removeEventListener('click', handleBlockClick);
+                block.addEventListener('click', handleBlockClick);
+            });
+        }
+        
+        function handleBlockClick(event) {
+            if (!activePickaxe) {
+                messageElement.textContent = 'Сначала купите кирку!';
+                return;
+            }
+            
+            const blockElement = event.currentTarget;
+            
+            // --- СИМУЛЯЦИЯ ЛОМАНИЯ БЛОКА (ВРЕМЕННО) ---
+            
+            // В реальном проекте, здесь будет отправка координат и ID кирки на сервер:
+            // Telegram.sendData(JSON.stringify({ 
+            //     action: 'mine', 
+            //     row: blockElement.dataset.row, 
+            //     col: blockElement.dataset.col, 
+            //     pickaxe: activePickaxe.type 
+            // }));
+            
+            // Заглушка: мгновенно ломаем блок
+            const isPrizeBlock = blockElement.classList.contains('block-diamond');
+            
+            if (isPrizeBlock) {
+                messageElement.textContent = `🎉 ПОБЕДА! Вы сломали ${blockElement.textContent} и забрали приз!`;
+                // Здесь нужно обновить баланс через сервер
+            } else {
+                messageElement.textContent = `⛏️ Вы ударили по блоку ${blockElement.textContent}. Ожидаем ответа сервера о прочности.`;
+            }
 
-<script>
-/* ---------------------------------------------------
-   CANVAS INIT
---------------------------------------------------- */
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-resizeCanvas();
+            blockElement.style.opacity = 0; // Имитация разрушения
+            setTimeout(() => blockElement.remove(), 300); // Удаляем блок после анимации
+            
+            activePickaxe = null; // Кирка "прыгнула" и использована (или приземлилась)
+            arena.style.cursor = 'default';
+        }
 
-function resizeCanvas(){
-  const size = Math.min(window.innerWidth*0.9, window.innerHeight*0.9);
-  canvas.width = size;
-  canvas.height = size;
-}
-window.onresize = resizeCanvas;
-
-/* ---------------------------------------------------
-   GAME CONSTANTS
---------------------------------------------------- */
-const MAP_W = 5000;
-const MAP_H = 5000;
-const BALL_R = 14;
-const GRAVITY = 1800;
-const REST = 0.55;
-
-/* ---------------------------------------------------
-   GAME STATE
---------------------------------------------------- */
-let terrain;
-let objects = [];
-let balls = [];
-let queue = [];
-
-let cam = {x:0,y:0, zoom:1, targetZoom:1, mode:"auto"};
-let timePrev = performance.now();
-
-/* ---------------------------------------------------
-   ROUND FLOW
---------------------------------------------------- */
-let phase = "buy";            // buy → run → reset
-let phaseTimer = 8;           // 8 sec buy
-const buyDuration = 8;
-const runDuration = 15;
-
-const buyBtn = document.getElementById("buyBtn");
-const camBtn = document.getElementById("camModeBtn");
-
-buyBtn.onclick = () => queue.push("player");
-camBtn.onclick = toggleCamMode;
-
-function toggleCamMode(){
-  cam.mode = cam.mode === "auto" ? "free" : "auto";
-  camBtn.textContent = "Режим камеры: " + (cam.mode==="auto"?"Авто":"Свободная");
-}
-
-function updateRoundFlow(dt){
-  phaseTimer -= dt;
-
-  document.getElementById("roundState").textContent =
-    phase==="buy" ? "Покупка шаров" : "Гонка";
-
-  document.getElementById("roundTimer").textContent =
-    Math.max(0, phaseTimer|0);
-
-  document.getElementById("queueCount").textContent = queue.length;
-
-  if(phase === "buy" && phaseTimer <= 0){
-    startRun();
-  }
-  if(phase === "run" && phaseTimer <= 0){
-    startNewRound();
-  }
-}
-
-function startRun(){
-  phase = "run";
-  phaseTimer = runDuration;
-  spawnBalls();
-}
-
-function startNewRound(){
-  phase = "buy";
-  phaseTimer = buyDuration;
-  queue = [];
-  balls = [];
-  generateTerrain();
-  generateObjects();
-}
-
-/* ---------------------------------------------------
-   TERRAIN GENERATION
---------------------------------------------------- */
-function generateTerrain(){
-  const pts=[];
-  let y = 500;
-  for(let x=0; x<=MAP_W; x+=80){
-    const tilt = -Math.random()*250 - 180; // круче наклон
-    y += tilt*0.02 + (Math.random()*40 - 20);
-    y = Math.max(200, Math.min(MAP_H-200, y));
-    pts.push({x,y});
-  }
-
-  terrain=pts;
-}
-
-function generateObjects(){
-  objects=[];
-  for(let i=0;i<10;i++){ // пилы
-    objects.push({
-      type:"saw",
-      x: Math.random()*MAP_W*0.8 + 200,
-      y: Math.random()*MAP_H*0.8 + 200,
-      r:30
-    });
-  }
-
-  for(let i=0;i<12;i++){ // батуты
-    objects.push({
-      type:"bumper",
-      x: Math.random()*MAP_W*0.8 + 200,
-      y: Math.random()*MAP_H*0.8 + 200,
-      r:35
-    });
-  }
-
-  for(let i=0;i<15;i++){ // столбы
-    objects.push({
-      type:"pillar",
-      x: Math.random()*MAP_W*0.9 + 100,
-      y: Math.random()*MAP_H*0.9 + 100,
-      r:20
-    });
-  }
-}
-
-/* ---------------------------------------------------
-   BALL SPAWNING (fan explosion)
---------------------------------------------------- */
-function spawnBalls(){
-  const cx = terrain[0].x + 50;
-  const cy = terrain[0].y - 50;
-
-  balls=[];
-  const N = queue.length;
-
-  for(let i=0;i<N;i++){
-    const angle = (-Math.PI/4) + (i/(N-1))* (Math.PI/2);
-    balls.push({
-      x:cx, y:cy,
-      vx: Math.cos(angle)*300,
-      vy: Math.sin(angle)*300,
-      alive:true
-    });
-  }
-
-  queue=[];
-}
-
-/* ---------------------------------------------------
-   PHYSICS
---------------------------------------------------- */
-function stepPhysics(dt){
-  for(const b of balls){
-    if(!b.alive) continue;
-
-    b.vy += GRAVITY*dt;
-    b.x += b.vx*dt;
-    b.y += b.vy*dt;
-
-    collideTerrain(b);
-    collideObjects(b);
-  }
-}
-
-function collideTerrain(b){
-  for(let i=0;i<terrain.length-1;i++){
-    const A = terrain[i];
-    const B = terrain[i+1];
-
-    if(b.x < A.x || b.x > B.x) continue;
-
-    const t=(b.x-A.x)/(B.x-A.x);
-    const y=A.y+(B.y-A.y)*t;
-
-    if(b.y > y - BALL_R){
-      b.y = y - BALL_R;
-      b.vy *= -REST;
-      b.vx += (Math.random()-0.5)*40;
-    }
-  }
-}
-
-function collideObjects(b){
-  for(const o of objects){
-    const dx=b.x-o.x, dy=b.y-o.y;
-    const d=Math.hypot(dx,dy);
-    if(d < o.r + BALL_R){
-      if(o.type==="saw"){
-        b.alive=false;
-      }
-      else if(o.type==="bumper"){
-        const nx=dx/d, ny=dy/d;
-        b.vx += nx*700;
-        b.vy += ny*700;
-      }
-      else if(o.type==="pillar"){
-        const nx=dx/d, ny=dy/d;
-        b.x = o.x + nx*(o.r + BALL_R);
-        b.y = o.y + ny*(o.r + BALL_R);
-        b.vx *= -0.4;
-        b.vy *= -0.4;
-      }
-    }
-  }
-}
-
-/* ---------------------------------------------------
-   CAMERA
---------------------------------------------------- */
-function updateCamera(dt){
-  if(cam.mode==="auto"){
-    const aliveBalls = balls.filter(b=>b.alive);
-    if(aliveBalls.length){
-      let lead = aliveBalls.reduce((a,b)=>b.x>a.x?b:a);
-      const targetX = lead.x - canvas.width/2/cam.zoom;
-      const targetY = lead.y - canvas.height/2/cam.zoom;
-      cam.x += (targetX - cam.x)*dt*4;
-      cam.y += (targetY - cam.y)*dt*4;
-
-      const speed = Math.hypot(lead.vx,lead.vy);
-      cam.targetZoom = 1 - Math.min(0.004*speed, 0.5);
-    }
-  }
-
-  cam.zoom += (cam.targetZoom - cam.zoom)*dt*4;
-}
-
-/* ---------------------------------------------------
-   RENDER
---------------------------------------------------- */
-function render(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.save();
-  ctx.scale(cam.zoom, cam.zoom);
-  ctx.translate(-cam.x,-cam.y);
-
-  // Terrain
-  ctx.strokeStyle="#3fb3ff";
-  ctx.lineWidth=6;
-  ctx.beginPath();
-  ctx.moveTo(terrain[0].x, terrain[0].y);
-  for(let i=1;i<terrain.length;i++)
-    ctx.lineTo(terrain[i].x, terrain[i].y);
-  ctx.stroke();
-
-  // Objects
-  for(const o of objects){
-    if(o.type==="saw"){
-      ctx.fillStyle="#ff3466";
-    } else if(o.type==="bumper"){
-      ctx.fillStyle="#42ff75";
-    } else {
-      ctx.fillStyle="#777";
-    }
-    ctx.beginPath();
-    ctx.arc(o.x, o.y, o.r, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // Balls
-  ctx.fillStyle="#ffd044";
-  for(const b of balls){
-      if(!b.alive) continue;
-      ctx.beginPath();
-      ctx.arc(b.x, b.y, BALL_R, 0, Math.PI*2);
-      ctx.fill();
-  }
-
-  ctx.restore();
-}
-
-/* ---------------------------------------------------
-   MAIN LOOP
---------------------------------------------------- */
-function loop(t){
-  const dt=(t - timePrev)/1000;
-  timePrev=t;
-
-  updateRoundFlow(dt);
-  stepPhysics(dt);
-  updateCamera(dt);
-  render();
-
-  requestAnimationFrame(loop);
-}
-
-generateTerrain();
-generateObjects();
-requestAnimationFrame(loop);
-</script>
-
+        // Запускаем генерацию начальной арены
+        generateInitialArena(30); // Генерируем 30 рядов для начального просмотра
+    </script>
 </body>
 </html>
