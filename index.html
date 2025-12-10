@@ -3,506 +3,316 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Web App Game</title>
+    <title>Падающая Кирка - Minecraft Arcade</title>
     <style>
-        /* --- 1. Базовые Стили и Контейнер --- */
+        /* CSS Стили */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a; 
-            color: white;
+            background-color: #282c34;
+            color: #fff;
+            font-family: 'Courier New', monospace; /* Используем моноширинный шрифт для "ретро" стиля */
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            height: 100vh;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
 
         #game-container {
-            width: 100%;
-            max-width: 600px;
-            height: calc(100vh - 120px); 
-            overflow-y: scroll; 
-            background-color: #2c2c2c; /* Фон шахты */
-            border-left: 2px solid #555;
-            border-right: 2px solid #555;
-            position: relative; 
-            box-sizing: border-box;
-            -webkit-overflow-scrolling: touch; 
+            display: flex;
+            flex-direction: row;
+            border: 5px solid #000;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            background-color: #444; 
         }
 
-        /* --- 2. Стиль Арены и Блоков (50px) --- */
-        #arena {
-            display: grid;
-            grid-template-columns: 1fr repeat(6, 50px) 1fr; 
-            grid-auto-rows: 50px; 
-            min-height: 100%; 
-        }
-
-        /* Боковые стены */
-        .wall {
+        #info-panel {
+            width: 150px; /* Боковая панель для ресурсов, как на скриншоте */
             background-color: #333;
-            border: 1px solid #444;
-            opacity: 0.9;
-        }
-        .wall.left { grid-column: 1 / 2; }
-        .wall.right { grid-column: 8 / 9; }
-
-        .block {
-            width: 50px; 
-            height: 50px; 
-            border: 1px solid black;
-            box-sizing: border-box;
-            text-align: center;
-            line-height: 48px; 
-            font-size: 10px;
-            font-weight: bold;
-            color: #eee;
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.4);
-            transition: opacity 0.2s;
-        }
-        
-        /* 7 ТИПОВ БЛОКОВ */
-        .block-dirt { background-color: #8b572a; border-color: #633e1e; }
-        .block-stone { background-color: #808080; border-color: #5d5d5d; }
-        .block-coal { background-color: #36454F; border-color: #2b363c; } 
-        .block-iron { background-color: #C0C0C0; border-color: #a0a0a0; } 
-        .block-gold { background-color: #FFD700; border-color: #ccac00; color: #1a1a1a; } 
-        .block-diamond { background-color: #4682b4; border-color: #316089; box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.7); } 
-        .block-emerald { background-color: #50C878; border-color: #3a9757; } 
-        
-        .mined {
-            opacity: 0 !important; 
-            pointer-events: none; 
-        }
-
-        /* --- 3. Стиль Кирки и Эффекты --- */
-        #pickaxe {
-            width: 40px; 
-            height: 40px; 
-            border-radius: 5px;
-            position: absolute; 
-            top: -100px; 
-            left: 50%;
-            transform: translate(-50%, 0); 
-            box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
-            display: none; 
-            text-align: center;
-            line-height: 40px;
-            font-size: 20px; 
-            z-index: 10;
-            transition: box-shadow 0.1s, transform 0.05s;
-        }
-
-        .pickaxe-hit-glow {
-            /* Эффект свечения при ударе */
-            box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8), 0 0 10px rgba(255, 255, 0, 0.5);
-        }
-
-        /* 5 ТИПОВ КИРОК */
-        .pickaxe-wood { background-color: #a0522d; }
-        .pickaxe-stone { background-color: #999; }
-        .pickaxe-iron { background-color: #C0C0C0; }
-        .pickaxe-diamond { background-color: #00bcd4; box-shadow: 0 0 10px rgba(0, 255, 255, 0.7); }
-        .pickaxe-netherite { background-color: #36454F; box-shadow: 0 0 15px rgba(255, 0, 0, 0.9); }
-        
-        /* --- 4. Элементы Управления --- */
-        #controls {
             padding: 10px;
-            width: 100%;
-            max-width: 600px;
-            background-color: #2b2b2b;
+            text-align: left;
+            border-right: 2px solid #000;
+        }
+
+        #info-panel h3 {
+            margin-top: 0;
             text-align: center;
-            position: fixed; 
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
-            box-sizing: border-box;
-            z-index: 20;
         }
 
-        .pickaxe-button {
-            padding: 8px 12px; 
-            margin: 5px 2px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-            transition: background-color 0.2s, transform 0.1s;
+        .resource-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
         }
-        .pickaxe-button:active {
-            transform: scale(0.98);
-        }
-
-        .pickaxe-button[data-type="wood"] { background-color: #9c5e3d; }
-        .pickaxe-button[data-type="stone"] { background-color: #999; }
-        .pickaxe-button[data-type="iron"] { background-color: #6a6a6a; }
-        .pickaxe-button[data-type="diamond"] { background-color: #00bcd4; color: #1a1a1a; }
-        .pickaxe-button[data-type="netherite"] { background-color: #36454F; color: #FFD700; border: 1px solid #FFD700; }
         
-        #message {
-            margin-top: 5px;
-            min-height: 20px;
-            font-size: 14px;
+        .resource-color {
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            border: 1px solid #111;
+        }
+
+        #game-canvas {
+            display: block; 
+            background-color: #6d6d6d; /* Фоновый цвет шахты */
         }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div id="pickaxe">⛏️</div> 
-        
-        <div id="arena">
-            </div>
-    </div>
+    <h1>⛏️ Падающая Кирка</h1>
 
-    <div id="controls">
-        <h3>💰 Баланс: <span id="balance">10000</span></h3>
-        <p>Купите кирку:</p>
-        <button class="pickaxe-button" data-type="wood" data-price="100">Дерево (100)</button>
-        <button class="pickaxe-button" data-type="stone" data-price="300">Камень (300)</button>
-        <button class="pickaxe-button" data-type="iron" data-price="800">Железо (800)</button>
-        <button class="pickaxe-button" data-type="diamond" data-price="2500">Алмаз (2500)</button>
-        <button class="pickaxe-button" data-type="netherite" data-price="5000">Незерит (5000)</button>
-        <p id="message">Выберите кирку, чтобы начать!</p>
+    <div id="game-container">
+        <div id="info-panel">
+            <h3>Ресурсы:</h3>
+            <div class="resource-item"><div class="resource-color" style="background-color: #555555;"></div>Уголь: <span id="coal-count">0</span></div>
+            <div class="resource-item"><div class="resource-color" style="background-color: #9d9d9d;"></div>Железо: <span id="iron-count">0</span></div>
+            <div class="resource-item"><div class="resource-color" style="background-color: #ffcc00;"></div>Золото: <span id="gold-count">0</span></div>
+            <div class="resource-item"><div class="resource-color" style="background-color: #66ffff;"></div>Алмазы: <span id="diamond-count">0</span></div>
+        </div>
+        
+        <canvas id="game-canvas"></canvas>
     </div>
     
+    <button onclick="startGame()" style="margin-top: 20px; padding: 10px 20px; font-size: 1.2em;">Запустить Кирку!</button>
+
     <script>
-        // --- 1. Инициализация и Константы ---
-        const Telegram = window.Telegram ? window.Telegram.WebApp : null;
-        if (Telegram) Telegram.ready();
-        
-        const ARENA_WIDTH_BLOCKS = 6;
-        const BLOCK_SIZE_PX = 50; 
-        const PICKAXE_SIZE_PX = 40; 
-        const WALL_WIDTH_PX = 30; 
-        const GAME_WIDTH_PX = (ARENA_WIDTH_BLOCKS * BLOCK_SIZE_PX) + (2 * WALL_WIDTH_PX);
+        // JavaScript Логика Игры
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const button = document.querySelector('button');
 
-        const arena = document.getElementById('arena');
-        const pickaxeElement = document.getElementById('pickaxe');
-        const balanceElement = document.getElementById('balance');
-        const messageElement = document.getElementById('message');
-        const gameContainer = document.getElementById('game-container');
-        
-        // Физика
-        const GRAVITY = 0.98; 
-        const INITIAL_SPEED_MAX = 12; 
-        const WALL_BOUNCE = 0.7; 
-        const BLOCK_BOUNCE_TARGET_VELOCITY = -10; // ЦЕЛЕВАЯ СКОРОСТЬ ОТСКОКА
-        
-        // Камера и Генерация
-        const CAMERA_SMOOTHNESS = 0.04; 
-        const CAMERA_OFFSET_Y = 0.35; 
-        const ROWS_TO_GENERATE_AT_ONCE = 30; 
-        const LOAD_TRIGGER_DISTANCE = 750; 
-        const EMPTY_START_ROWS = 20; // Увеличенное свободное пространство
-        const INITIAL_MINING_ROWS = 30; 
-        
-        let playerBalance = 10000; 
-        let activePickaxe = null; 
-        let lastTime = 0;
-        let totalRows = 0; 
-        
-        // --- 2. СВОЙСТВА КИРОК И БЛОКОВ ---
+        // --- Константы ---
+        const BLOCK_SIZE = 32; 
+        const GAME_WIDTH = 15; // Ширина игрового поля в блоках
+        const GAME_HEIGHT = 20; // Высота игрового поля в блоках
+        const MAX_HORIZONTAL_JUMP = 3; // Максимальный горизонтальный сдвиг при ударе
 
-        const PICKAXE_PROPERTIES = {
-            wood: { durability: 0.30, strength: 1, name: 'Деревянная' }, 
-            stone: { durability: 0.25, strength: 2, name: 'Каменная' }, 
-            iron: { durability: 0.15, strength: 4, name: 'Железная' },  
-            diamond: { durability: 0.05, strength: 8, name: 'Алмазная' },
-            netherite: { durability: 0.00, strength: 15, name: 'Незеритовая' }
+        canvas.width = GAME_WIDTH * BLOCK_SIZE;
+        canvas.height = GAME_HEIGHT * BLOCK_SIZE;
+
+        // --- Типы Блоков ---
+        const BLOCK_TYPES = {
+            AIR: 0,
+            STONE: 1,
+            COAL: 2,
+            IRON: 3,
+            GOLD: 4,
+            DIAMOND: 5,
         };
 
-        const BLOCK_PROPERTIES = {
-            dirt: { toughness: 1, reward: 5, name: 'Грязь' },
-            stone: { toughness: 2, reward: 10, name: 'Камень' },
-            coal: { toughness: 4, reward: 30, name: 'Уголь' },
-            iron: { toughness: 6, reward: 80, name: 'Железо' },
-            gold: { toughness: 8, reward: 150, name: 'Золото' },
-            diamond: { toughness: 12, reward: 500, name: 'Алмаз' },
-            emerald: { toughness: 15, reward: 1000, name: 'Изумруд' },
-            empty: { toughness: 0, reward: 0, name: 'Пустота' } // Для пустых рядов
+        const BLOCK_COLORS = {
+            [BLOCK_TYPES.STONE]: '#a0a0a0',
+            [BLOCK_TYPES.COAL]: '#555555',
+            [BLOCK_TYPES.IRON]: '#c7c7c7',
+            [BLOCK_TYPES.GOLD]: '#ffcc00',
+            [BLOCK_TYPES.DIAMOND]: '#66ffff'
         };
 
-        // --- 3. Класс Кирки (Физическая модель) ---
-        class Pickaxe {
-            constructor(type) {
-                this.type = type;
-                this.stats = PICKAXE_PROPERTIES[type];
-                this.element = pickaxeElement;
-                
-                // Инициализация
-                this.x = WALL_WIDTH_PX + (Math.random() * (GAME_WIDTH_PX - 2 * WALL_WIDTH_PX - PICKAXE_SIZE_PX));
-                this.y = gameContainer.scrollTop - PICKAXE_SIZE_PX; 
-                this.vx = (Math.random() * INITIAL_SPEED_MAX * 2) - INITIAL_SPEED_MAX; 
-                this.vy = -(Math.random() * INITIAL_SPEED_MAX / 2); 
-                this.rotation = 0; 
-                this.vRotation = (Math.random() * 0.4) - 0.2; 
-                this.isBroken = false;
-                
-                this.element.className = `pickaxe-placeholder pickaxe-${type}`;
-                this.element.style.display = 'block';
-                this.updateDOM();
-            }
+        // --- Состояние Игры ---
+        let gameGrid = [];
+        let pickaxe = {
+            x: 7, 
+            y: -1, // Начинаем над полем
+            vy: 0, // Вертикальная скорость (пикселей в кадр)
+            vx: 0, // Горизонтальная скорость
+            speed: 5 // Базовая скорость падения
+        };
+        let resources = {
+            [BLOCK_TYPES.COAL]: 0,
+            [BLOCK_TYPES.IRON]: 0,
+            [BLOCK_TYPES.GOLD]: 0,
+            [BLOCK_TYPES.DIAMOND]: 0
+        };
+        let gameInterval = null;
 
-            updateDOM() {
-                this.element.style.left = `${this.x}px`;
-                this.element.style.top = `${this.y}px`;
-                this.element.style.transform = `translate(-50%, 0) rotate(${this.rotation}deg)`;
-            }
+        // --- Функции Инициализации ---
 
-            update(deltaTime) {
-                if (this.isBroken) return false;
-                
-                this.vy += GRAVITY * deltaTime; 
-                this.x += this.vx * deltaTime;
-                this.y += this.vy * deltaTime;
-                this.rotation += this.vRotation * deltaTime * 5; 
-                this.vRotation *= 0.999; 
-                
-                // 1. Коллизия со стенами
-                const minX = WALL_WIDTH_PX;
-                const maxX = GAME_WIDTH_PX - WALL_WIDTH_PX - PICKAXE_SIZE_PX;
-
-                if (this.x < minX || this.x > maxX) {
-                    this.x = this.x < minX ? minX : maxX;
-                    this.vx *= -WALL_BOUNCE; 
-                    this.vRotation = (Math.random() * 0.4) - 0.2; 
-                }
-                
-                this.vx *= 0.995; 
-                
-                // 2. Коллизия с блоками (устранение застреваний)
-                if (this.y + PICKAXE_SIZE_PX > 0) { 
-                    const blockHit = this.checkCollisionWithBlocks();
-                    if (blockHit) {
-                        // Обязательная корректировка позиции перед отскоком
-                        this.y = (parseInt(blockHit.dataset.row) * BLOCK_SIZE_PX) - PICKAXE_SIZE_PX;
-                        this.handleHit(blockHit);
+        function generateInitialGrid() {
+            gameGrid = [];
+            for (let y = 0; y < GAME_HEIGHT; y++) {
+                gameGrid[y] = [];
+                for (let x = 0; x < GAME_WIDTH; x++) {
+                    gameGrid[y][x] = BLOCK_TYPES.STONE; 
+                    
+                    // Распределение руд по глубине
+                    if (y > 3) {
+                        const rand = Math.random();
+                        if (y > 15 && rand < 0.03) gameGrid[y][x] = BLOCK_TYPES.DIAMOND;
+                        else if (y > 10 && rand < 0.08) gameGrid[y][x] = BLOCK_TYPES.GOLD;
+                        else if (y > 5 && rand < 0.15) gameGrid[y][x] = BLOCK_TYPES.IRON;
+                        else if (rand < 0.3) gameGrid[y][x] = BLOCK_TYPES.COAL;
                     }
+                    // Верхние 3 ряда - пустота или грязь (светлый камень)
+                    if (y < 3) gameGrid[y][x] = BLOCK_TYPES.AIR;
                 }
-                
-                this.updateDOM();
-                
-                if (this.y > gameContainer.scrollTop + gameContainer.clientHeight + 300) {
-                    return false;
-                }
-                
-                return true; 
             }
+        }
+
+        function resetPickaxe() {
+            pickaxe.x = Math.floor(GAME_WIDTH / 2);
+            pickaxe.y = 0;
+            pickaxe.vy = pickaxe.speed;
+            pickaxe.vx = 0;
+        }
+
+        function startGame() {
+            if (gameInterval) return; // Игра уже запущена
+            generateInitialGrid();
+            resetPickaxe();
+            // Сброс ресурсов для новой игры
+            Object.keys(resources).forEach(key => resources[key] = 0);
+            updateResourcesDisplay();
+            button.disabled = true;
+            button.innerText = "Кирка в работе...";
             
-            checkCollisionWithBlocks() {
-                // Проверяем только нижнюю центральную точку кирки
-                const relativeX = this.x - WALL_WIDTH_PX + (PICKAXE_SIZE_PX / 2);
-                const colIndex = Math.floor(relativeX / BLOCK_SIZE_PX);
-                const rowIndex = Math.floor((this.y + PICKAXE_SIZE_PX) / BLOCK_SIZE_PX); 
+            // Запуск игрового цикла
+            gameInterval = setInterval(gameLoop, 1000 / 60); // 60 кадров в секунду
+        }
 
-                const blockElement = arena.querySelector(`[data-row="${rowIndex}"][data-col="${colIndex}"]`);
+        // --- Отрисовка ---
 
-                if (blockElement && !blockElement.classList.contains('mined') && blockElement.dataset.type !== 'empty') {
-                    // Используем только DOM-позицию для проверки, т.к. y в this.y уже обновлено
-                    const blockYStart = rowIndex * BLOCK_SIZE_PX; 
+        function drawBlock(x, y, type) {
+            if (type === BLOCK_TYPES.AIR) return;
+
+            ctx.fillStyle = BLOCK_COLORS[type] || '#555';
+            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            
+            // Пиксельные детали (текстура)
+            ctx.strokeStyle = '#00000033'; 
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            
+            // Добавим немного рандомных точек для вида руды
+            if (type !== BLOCK_TYPES.STONE) {
+                ctx.fillStyle = 'black';
+                for (let i = 0; i < 4; i++) {
+                    ctx.fillRect(
+                        x * BLOCK_SIZE + Math.floor(Math.random() * BLOCK_SIZE), 
+                        y * BLOCK_SIZE + Math.floor(Math.random() * BLOCK_SIZE), 
+                        2, 2
+                    );
+                }
+            }
+        }
+
+        function drawPickaxe() {
+            // Рисуем кирку (имитация спрайта)
+            const px = pickaxe.x * BLOCK_SIZE;
+            const py = pickaxe.y * BLOCK_SIZE;
+
+            // Рукоятка (коричневая)
+            ctx.fillStyle = '#964b00'; 
+            ctx.fillRect(px + BLOCK_SIZE * 0.7, py + BLOCK_SIZE * 0.1, BLOCK_SIZE * 0.2, BLOCK_SIZE * 0.8);
+            
+            // Лезвие (железное/серое)
+            ctx.fillStyle = '#b3b3b3'; 
+            ctx.beginPath();
+            ctx.moveTo(px, py + BLOCK_SIZE * 0.2); // Левый верхний угол лезвия
+            ctx.lineTo(px + BLOCK_SIZE * 0.75, py + BLOCK_SIZE * 0.1); // Середина рукоятки (верх)
+            ctx.lineTo(px + BLOCK_SIZE * 0.85, py + BLOCK_SIZE * 0.3); // Правый край
+            ctx.lineTo(px + BLOCK_SIZE * 0.75, py + BLOCK_SIZE * 0.5); // Середина рукоятки (низ)
+            ctx.lineTo(px, py + BLOCK_SIZE * 0.4); // Левый нижний угол
+            ctx.fill();
+
+            // Маленький блик
+            ctx.fillStyle = 'white';
+            ctx.fillRect(px + 2, py + 2, 2, 2);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Отрисовка сетки блоков
+            for (let y = 0; y < GAME_HEIGHT; y++) {
+                for (let x = 0; x < GAME_WIDTH; x++) {
+                    drawBlock(x, y, gameGrid[y][x]);
+                }
+            }
+
+            // Отрисовка кирки
+            drawPickaxe();
+        }
+
+        // --- Игровая Логика ---
+
+        function updateResourcesDisplay() {
+            document.getElementById('coal-count').innerText = resources[BLOCK_TYPES.COAL];
+            document.getElementById('iron-count').innerText = resources[BLOCK_TYPES.IRON];
+            document.getElementById('gold-count').innerText = resources[BLOCK_TYPES.GOLD];
+            document.getElementById('diamond-count').innerText = resources[BLOCK_TYPES.DIAMOND];
+        }
+
+        function update() {
+            // 1. Обновление позиции
+            pickaxe.y += pickaxe.vy / BLOCK_SIZE; // Перемещаемся в блоках
+            pickaxe.x += pickaxe.vx / BLOCK_SIZE;
+            
+            // Проверка границ по горизонтали
+            if (pickaxe.x < 0) {
+                pickaxe.x = 0;
+                pickaxe.vx *= -1; // Отскок от левой стены
+            }
+            if (pickaxe.x > GAME_WIDTH - 1) {
+                pickaxe.x = GAME_WIDTH - 1;
+                pickaxe.vx *= -1; // Отскок от правой стены
+            }
+
+            // 2. Проверка столкновений (только с блоком под киркой)
+            const targetY = Math.round(pickaxe.y + 0.5); // Блок, который находится прямо под центром кирки
+            const targetX = Math.round(pickaxe.x);
+
+            if (targetY >= 0 && targetY < GAME_HEIGHT) {
+                const blockType = gameGrid[targetY][targetX];
+
+                if (blockType !== BLOCK_TYPES.AIR) {
+                    // Столкновение!
                     
-                    if (this.y + PICKAXE_SIZE_PX >= blockYStart) {
-                         return blockElement;
+                    // a) Добыча ресурса
+                    if (resources[blockType] !== undefined) {
+                        resources[blockType]++;
+                        updateResourcesDisplay();
                     }
-                }
-                return null;
-            }
 
-            handleHit(blockElement) {
-                const blockType = blockElement.dataset.type;
-                const blockStats = BLOCK_PROPERTIES[blockType];
-
-                // 1. Расчет поломки (шанс, что кирка сломается)
-                if (Math.random() < this.stats.durability) {
-                    this.isBroken = true;
-                    messageElement.textContent += ` 💔 ${this.stats.name} сломалась!`;
-                }
-
-                // 2. Расчет добычи (шанс, что блок сломается)
-                const hitPower = this.stats.strength; 
-                const toughness = blockStats.toughness; 
-                const miningChance = hitPower / toughness; 
-                
-                if (Math.random() < miningChance * 0.2) { 
-                    blockElement.classList.add('mined');
-                    const reward = blockStats.reward;
-                    playerBalance += reward;
-                    balanceElement.textContent = playerBalance;
-                    messageElement.textContent = `✅ СЛОМАНО! +${reward} (${blockStats.name})`;
-                } else {
-                    messageElement.textContent = `💥 Кирка ударила ${blockStats.name}. Прочность: ${toughness}.`;
-                }
-                
-                // 3. Отскок с постоянной целевой скоростью (компенсация потерь)
-                this.vy = BLOCK_BOUNCE_TARGET_VELOCITY; 
-                this.vx *= 0.9; 
-                this.vRotation = (Math.random() * 0.8) - 0.4; 
-                
-                // Визуальный эффект
-                this.element.classList.add('pickaxe-hit-glow');
-                setTimeout(() => this.element.classList.remove('pickaxe-hit-glow'), 100);
-            }
-        }
-        
-        // --- 4. Игровой Цикл, Камера и Генерация ---
-
-        function smoothCameraFollow() {
-            if (!activePickaxe) return;
-
-            const targetY = activePickaxe.y;
-            const containerHeight = gameContainer.clientHeight;
-            
-            const targetScrollTop = targetY - (containerHeight * CAMERA_OFFSET_Y);
-            
-            const currentScrollTop = gameContainer.scrollTop;
-            const delta = targetScrollTop - currentScrollTop;
-            
-            const newScrollTop = currentScrollTop + (delta * CAMERA_SMOOTHNESS);
-            
-            gameContainer.scrollTop = newScrollTop;
-        }
-
-        function checkAndGenerateNewRows() {
-            const arenaHeight = totalRows * BLOCK_SIZE_PX;
-            const scrollBottom = gameContainer.scrollTop + gameContainer.clientHeight;
-            
-            if (scrollBottom + LOAD_TRIGGER_DISTANCE > arenaHeight) {
-                generateRows(totalRows, ROWS_TO_GENERATE_AT_ONCE);
-                messageElement.textContent = `Глубина: ${totalRows - EMPTY_START_ROWS}. Загружено 30 новых рядов.`;
-            }
-        }
-        
-        function gameLoop(currentTime) {
-            const deltaTime = (currentTime - lastTime) / 16.67; 
-            lastTime = currentTime;
-            
-            if (activePickaxe) {
-                const isActive = activePickaxe.update(Math.min(deltaTime, 3)); 
-                smoothCameraFollow(); 
-                
-                if (!isActive || activePickaxe.isBroken) {
-                     activePickaxe = null;
-                     pickaxeElement.style.display = 'none';
-                     if (!activePickaxe.isBroken) {
-                        messageElement.textContent = "Кирка завершила свой полёт. Купите новую.";
-                     }
+                    // b) Удаление блока
+                    gameGrid[targetY][targetX] = BLOCK_TYPES.AIR;
+                    
+                    // c) Отскок (имитация прыжка и сдвига)
+                    // Вертикальный отскок
+                    pickaxe.vy = pickaxe.speed; // Сброс скорости вниз для продолжения падения
+                    
+                    // Горизонтальный "прыжок"
+                    const jumpDirection = (Math.random() < 0.5) ? -1 : 1;
+                    // Случайный горизонтальный сдвиг, чтобы кирка не падала строго вертикально
+                    pickaxe.vx = jumpDirection * (Math.random() * MAX_HORIZONTAL_JUMP + 1); 
                 }
             }
-
-            checkAndGenerateNewRows(); 
             
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ПОЛНОСТЬЮ РАНДОМНАЯ ГЕНЕРАЦИЯ (СЛУЧАЙНЫЕ БЛОКИ)
-        function getBlockTypeByDepth(row) {
-             const depth = row - EMPTY_START_ROWS;
-             if (depth < 0) return 'empty';
-             
-             // Шансы появления руд (суммарный шанс должен быть <= 1.0)
-             let chances = {};
-             
-             if (depth < 10) { // Поверхность
-                 chances = { dirt: 0.9, stone: 0.1 };
-             } else if (depth < 30) { 
-                 chances = { stone: 0.8, coal: 0.15, dirt: 0.05 };
-             } else if (depth < 60) {
-                 chances = { stone: 0.7, iron: 0.15, coal: 0.1, gold: 0.05 };
-             } else { // Глубоко (больше 60)
-                 chances = { stone: 0.6, iron: 0.1, gold: 0.08, diamond: 0.05, emerald: 0.02, coal: 0.15 };
-             }
-             
-             // Если шанс не сработал, это "пустой" блок (фон шахты)
-             const rand = Math.random();
-             let cumulativeChance = 0;
-             
-             for (const type in chances) {
-                 cumulativeChance += chances[type];
-                 if (rand < cumulativeChance) {
-                     return type;
-                 }
-             }
-             return 'empty'; // Большинство блоков будет "пустотой" (фоном)
-        }
-
-        function generateRows(startRow, count) {
-            for (let r = startRow; r < startRow + count; r++) {
-                
-                const wallLeft = document.createElement('div');
-                wallLeft.className = 'wall left';
-                arena.appendChild(wallLeft);
-                
-                for (let c = 0; c < ARENA_WIDTH_BLOCKS; c++) {
-                    const blockType = getBlockTypeByDepth(r); // Генерация для каждого блока
-                    
-                    const block = document.createElement('div');
-                    
-                    block.dataset.row = r;
-                    block.dataset.col = c;
-                    block.dataset.type = blockType; 
-                    
-                    if (blockType === 'empty') {
-                        // Пустота - просто невидимый блок (имитация фона)
-                        block.className = 'block mined'; 
-                    } else {
-                        block.className = `block block-${blockType}`;
-                        block.textContent = blockType.toUpperCase().substring(0, 2); // Короткий текст
-                    }
-                    
-                    arena.appendChild(block);
-                }
-                
-                const wallRight = document.createElement('div');
-                wallRight.className = 'wall right';
-                arena.appendChild(wallRight);
+            // 3. Добавление гравитации (постепенное увеличение скорости)
+            pickaxe.vy += 0.2; 
+            
+            // 4. Завершение/Рестарт игры
+            if (pickaxe.y > GAME_HEIGHT) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+                button.disabled = false;
+                button.innerText = "Игра окончена! Запустить снова.";
+                pickaxe.isFalling = false;
+                alert("Кирка упала на дно мира! Ваши ресурсы: " + resources[BLOCK_TYPES.DIAMOND] + " алмазов.");
             }
-            totalRows += count;
         }
-        
-        function generateInitialArena(emptyRows, miningRows) {
-            // Генерируем сначала пустые ряды
-            generateRows(0, emptyRows); 
-            // Затем генерируем ряды с блоками
-            generateRows(emptyRows, miningRows); 
 
-            // Смещаем камеру немного вниз, чтобы видеть начало блоков
-            gameContainer.scrollTop = (emptyRows - 5) * BLOCK_SIZE_PX; 
+        function gameLoop() {
+            update();
+            draw();
         }
-        
-        // --- 5. Логика Кнопок и Запуск ---
-        
-        document.querySelectorAll('.pickaxe-button').forEach(button => {
-            button.addEventListener('click', () => {
-                if (activePickaxe) {
-                    messageElement.textContent = '🛑 Дождитесь, пока кирка завершит бросок!';
-                    return;
-                }
-                
-                const price = parseInt(button.dataset.price);
-                const type = button.dataset.type;
-                
-                if (playerBalance >= price) {
-                    playerBalance -= price;
-                    balanceElement.textContent = playerBalance;
-                    
-                    activePickaxe = new Pickaxe(type);
-                    messageElement.textContent = `🚀 ${PICKAXE_PROPERTIES[type].name} запущена!`;
-                } else {
-                    messageElement.textContent = `🚫 Недостаточно средств (${price - playerBalance} не хватает).`;
-                }
-            });
-        });
-        
-        // Устанавливаем начальный баланс
-        balanceElement.textContent = playerBalance;
-        
-        // Запуск
-        generateInitialArena(EMPTY_START_ROWS, INITIAL_MINING_ROWS); 
-        requestAnimationFrame(gameLoop); 
+
+        // Инициализация при загрузке страницы
+        generateInitialGrid();
+        resetPickaxe();
+        draw(); // Первоначальная отрисовка
     </script>
+
 </body>
 </html>
