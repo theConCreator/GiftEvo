@@ -69,6 +69,7 @@
             margin-top: 20px; 
             padding: 10px 20px; 
             font-size: 1.2em;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -101,8 +102,8 @@
         const BLOCK_SIZE = 32; 
         const GAME_WIDTH = 15;
         const GAME_HEIGHT = 20;
-        const INITIAL_SPEED = 6; // Начальная скорость падения (пикселей в кадр)
-        const BOUNCE_FACTOR = 1.0; // Коэффициент отскока (1.0 = не теряет скорость)
+        const INITIAL_JUMP_VELOCITY = -10; // Скорость прыжка вверх (отрицательное значение)
+        const GRAVITY = 0.5; // Ускорение свободного падения
         const HORIZONTAL_MOMENTUM = 3; // Горизонтальный импульс при отскоке
 
         canvas.width = GAME_WIDTH * BLOCK_SIZE;
@@ -129,12 +130,11 @@
         // --- Состояние Игры ---
         let gameGrid = [];
         let pickaxe = {
-            // Позиция в пикселях
             x: GAME_WIDTH / 2 * BLOCK_SIZE, 
             y: 0, 
-            vy: INITIAL_SPEED, 
+            vy: 0, 
             vx: 0,
-            radius: BLOCK_SIZE / 2 // Используем радиус для проверки столкновений
+            radius: BLOCK_SIZE / 2 
         };
         let resources = {
             [BLOCK_TYPES.COAL]: 0,
@@ -167,22 +167,22 @@
 
         function resetPickaxe() {
             pickaxe.x = GAME_WIDTH / 2 * BLOCK_SIZE;
-            pickaxe.y = pickaxe.radius; // Стартуем в верхней части первого блока
-            pickaxe.vy = INITIAL_SPEED;
+            pickaxe.y = pickaxe.radius; 
+            pickaxe.vy = 0; // Начинает падать под действием гравитации
             pickaxe.vx = 0;
         }
 
         function startGame() {
             if (gameInterval) clearInterval(gameInterval);
             
-            generateInitialGrid(); // Генерируем поле заново
+            generateInitialGrid(); 
             resetPickaxe();
             Object.keys(resources).forEach(key => resources[key] = 0);
             updateResourcesDisplay();
             button.disabled = true;
             button.innerText = "Кирка в работе...";
             
-            gameInterval = setInterval(gameLoop, 1000 / 60); // 60 кадров в секунду
+            gameInterval = setInterval(gameLoop, 1000 / 60); 
         }
 
         // --- Отрисовка ---
@@ -198,7 +198,6 @@
             ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             
             if (type !== BLOCK_TYPES.STONE) {
-                // Имитация пиксельной текстуры (руды)
                 ctx.fillStyle = 'black';
                 for (let i = 0; i < 4; i++) {
                     const px = x * BLOCK_SIZE + Math.floor(Math.random() * BLOCK_SIZE);
@@ -209,39 +208,40 @@
         }
 
         function drawPickaxe() {
-            // Рисуем кирку (Алмазный стиль, повернутый для падения)
+            // Рисуем кирку (Железный/Каменный стиль, как на вашем изображении)
             const S = BLOCK_SIZE / 16; 
-            
-            // Координаты центра кирки
             const centerX = pickaxe.x;
             const centerY = pickaxe.y;
+            const x = centerX - 10 * S; // Смещаем, чтобы рукоятка была вертикальной
+            const y = centerY - 10 * S; 
 
-            // Смещения для центрирования спрайта (спрайт 16x16)
-            const x = centerX - 8 * S;
-            const y = centerY - 8 * S;
+            // Цвет лезвия (железный или камень - выбираем камень)
+            const BLADE_COLOR = '#a0a0a0'; 
+            const STICK_COLOR = '#964b00';
 
             const pixelArt = [
                 // Рукоятка (Коричневый)
-                {c: '#964b00', x: 1, y: 0, w: 4, h: 2}, 
-                {c: '#964b00', x: 2, y: 2, w: 2, h: 10}, 
+                {c: STICK_COLOR, x: 12, y: 12, w: 2, h: 4}, // Нижняя часть
+                {c: STICK_COLOR, x: 10, y: 0, w: 2, h: 12}, // Основная часть
 
-                // Лезвие (Алмазный цвет)
-                {c: '#66ffff', x: 0, y: 10, w: 12, h: 2}, 
-                {c: '#66ffff', x: 12, y: 10, w: 1, h: 2}, 
-                {c: '#66ffff', x: 1, y: 8, w: 1, h: 2},  
-                {c: '#66ffff', x: 10, y: 12, w: 2, h: 2}, 
+                // Лезвие (Камень)
+                {c: BLADE_COLOR, x: 0, y: 8, w: 10, h: 2}, // Основное лезвие
+                {c: BLADE_COLOR, x: 8, y: 6, w: 2, h: 2},  // Заострение
+                {c: BLADE_COLOR, x: 10, y: 10, w: 2, h: 2}, // Соединение
             ];
+            
+            // Добавляем тень/обводку
+            ctx.strokeStyle = '#00000088'; 
+            ctx.lineWidth = 1;
 
             pixelArt.forEach(p => {
                 ctx.fillStyle = p.c;
                 ctx.fillRect(x + p.x * S, y + p.y * S, p.w * S, p.h * S);
             });
             
-            // Контур
-            ctx.strokeStyle = '#00000088'; 
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x + 2 * S, y + 2 * S, 2 * S, 10 * S);
-            ctx.strokeRect(x, y + 10 * S, 12 * S, 2 * S);
+            // Дополнительная обводка (для контраста)
+            ctx.strokeRect(x + 10 * S, y, 2 * S, 12 * S);
+            ctx.strokeRect(x, y + 8 * S, 10 * S, 2 * S);
         }
 
         function draw() {
@@ -260,41 +260,28 @@
 
         // --- Игровая Логика ---
 
-        function updateResourcesDisplay() {
-            document.getElementById('coal-count').innerText = resources[BLOCK_TYPES.COAL];
-            document.getElementById('iron-count').innerText = resources[BLOCK_TYPES.IRON];
-            document.getElementById('gold-count').innerText = resources[BLOCK_TYPES.GOLD];
-            document.getElementById('diamond-count').innerText = resources[BLOCK_TYPES.DIAMOND];
-        }
-
         function update() {
-            // 1. Обновление позиции (пиксели)
+            // 1. Применяем гравитацию
+            pickaxe.vy += GRAVITY;
+
+            // 2. Обновление позиции
             pickaxe.y += pickaxe.vy; 
             pickaxe.x += pickaxe.vx;
             
-            // 2. Проверка границ по горизонтали
+            // 3. Проверка границ по горизонтали
             if (pickaxe.x <= pickaxe.radius || pickaxe.x >= canvas.width - pickaxe.radius) {
                 pickaxe.vx *= -1;
                 // Скорректируем позицию
                 pickaxe.x = Math.max(pickaxe.radius, Math.min(canvas.width - pickaxe.radius, pickaxe.x));
             }
 
-            // 3. Проверка границ по вертикали
+            // 4. Проверка границ по вертикали (Потолок)
             if (pickaxe.y <= pickaxe.radius) {
-                pickaxe.vy *= -1; // Отскок от потолка
+                pickaxe.vy = Math.abs(pickaxe.vy); // Отскок вниз
                 pickaxe.y = pickaxe.radius;
             }
-            if (pickaxe.y >= canvas.height + pickaxe.radius) {
-                 // Кирка пролетела мимо дна
-                clearInterval(gameInterval);
-                gameInterval = null;
-                button.disabled = false;
-                button.innerText = "Игра окончена! Запустить снова.";
-                alert("Кирка упала на дно мира! Ваши алмазы: " + resources[BLOCK_TYPES.DIAMOND]);
-                return;
-            }
-
-            // 4. Проверка столкновений с блоками
+            
+            // 5. Проверка столкновений с блоками
             
             // Определяем ячейку, в которой находится центр кирки
             const gridX = Math.floor(pickaxe.x / BLOCK_SIZE);
@@ -315,15 +302,24 @@
                     // b) Удаление блока
                     gameGrid[gridY][gridX] = BLOCK_TYPES.AIR;
                     
-                    // c) Отскок (инвертируем вертикальную скорость)
-                    // Мы не знаем, с какой стороны кирка попала, поэтому просто инвертируем VY для отскока
-                    pickaxe.vy *= -BOUNCE_FACTOR; 
+                    // c) Реалистичный Прыжок (инвертируем VY и даем мощный толчок вверх)
+                    pickaxe.vy = INITIAL_JUMP_VELOCITY; 
                     
-                    // d) Случайный горизонтальный сдвиг для динамики
+                    // d) Случайный горизонтальный сдвиг
                     const jumpDirection = Math.random() < 0.5 ? -1 : 1;
                     pickaxe.vx += jumpDirection * HORIZONTAL_MOMENTUM * Math.random(); 
                     pickaxe.vx = Math.max(-10, Math.min(10, pickaxe.vx)); 
                 }
+            }
+            
+            // 6. Завершение игры
+            if (pickaxe.y > canvas.height + pickaxe.radius) {
+                clearInterval(gameInterval);
+                gameInterval = null;
+                button.disabled = false;
+                button.innerText = "Игра окончена! Запустить снова.";
+                alert("Кирка упала на дно мира! Ваши алмазы: " + resources[BLOCK_TYPES.DIAMOND]);
+                return;
             }
         }
 
