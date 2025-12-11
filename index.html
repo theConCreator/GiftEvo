@@ -5,23 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Прыгающая Кирка - Minecraft Arcade</title>
     <style>
-        /* CSS Стили для фиксированного макета */
+        /* CSS Стили для АДАПТИВНОСТИ */
         body {
             background-color: #282c34;
             color: #fff;
             font-family: 'Courier New', monospace;
-            /* Фиксируем макет по центру, убираем прокрутку */
+            
+            /* Используем Flexbox для центрирования и адаптации */
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
+            
+            /* Основное изменение: 100% высоты и предотвращение прокрутки */
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* Убираем прокрутку */
+            overflow: hidden; 
+            box-sizing: border-box; /* Важно для адаптивности */
+            padding: 10px; /* Небольшой отступ по краям */
         }
 
         h1, p {
             margin: 5px 0;
+            flex-shrink: 0; /* Гарантируем, что заголовки не сжимаются */
         }
 
         #game-container {
@@ -30,7 +36,11 @@
             border: 5px solid #000;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
             background-color: #444; 
-            margin-top: 10px;
+            margin: 10px 0;
+            
+            /* Ограничиваем размер контейнера, чтобы он помещался в оставшееся место */
+            max-width: 95vw;
+            max-height: 80vh; /* Ограничиваем высоту, чтобы оставить место для заголовков и кнопки */
         }
 
         #info-panel {
@@ -40,36 +50,23 @@
             text-align: left;
             border-right: 2px solid #000;
             font-size: 0.9em;
-        }
-
-        #info-panel h3 {
-            margin-top: 0;
-            text-align: center;
-        }
-
-        .resource-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        
-        .resource-color {
-            width: 14px;
-            height: 14px;
-            margin-right: 8px;
-            border: 1px solid #111;
+            flex-shrink: 0; /* Панель информации не сжимается */
         }
 
         #game-canvas {
             display: block; 
             background-color: #6d6d6d;
+            /* Позволяем Canvas сжиматься/растягиваться в рамках его контейнера */
+            width: auto;
+            height: auto;
         }
         
         button {
-            margin-top: 20px; 
+            margin-top: 5px; 
             padding: 10px 20px; 
             font-size: 1.2em;
             cursor: pointer;
+            flex-shrink: 0;
         }
     </style>
 </head>
@@ -101,20 +98,21 @@
         const depthDisplay = document.getElementById('depth-count');
 
         // --- Константы ---
-        const BLOCK_SIZE = 40; // Немного увеличенный размер блока для более крупной кирки
-        const GAME_WIDTH = 9; // 1 (Стена) + 7 (Блоков) + 1 (Стена)
-        const GAME_HEIGHT = 20;
+        const BLOCK_SIZE = 40; 
+        const GAME_WIDTH = 9; 
+        const GAME_HEIGHT = 20; 
         
-        // Константы для более медленного и реалистичного движения
-        const INITIAL_DROP_VELOCITY = 1; // Стартовый импульс
-        const INITIAL_JUMP_VELOCITY = -8; // Скорость прыжка вверх
-        const GRAVITY = 0.3; // Ускорение свободного падения (более медленное)
-        const HORIZONTAL_MOMENTUM = 2; // Горизонтальный импульс
+        // Физика
+        const INITIAL_DROP_VELOCITY = 1; 
+        const INITIAL_JUMP_VELOCITY = -8; 
+        const GRAVITY = 0.3; 
+        const HORIZONTAL_MOMENTUM = 2; 
 
-        // Константы для бесконечной прокрутки
-        const SCROLL_ROWS = 10; // Сколько рядов генерировать/удалять за раз
-        const SCROLL_THRESHOLD = 8 * BLOCK_SIZE; // Прокрутка, когда кирка опускается ниже 8-го ряда с вершины экрана
+        // Скроллинг
+        const SCROLL_ROWS = 10; 
+        const SCROLL_THRESHOLD = 8 * BLOCK_SIZE; 
 
+        // Устанавливаем размер Canvas в JS, чтобы избежать проблем с масштабированием
         canvas.width = GAME_WIDTH * BLOCK_SIZE;
         canvas.height = GAME_HEIGHT * BLOCK_SIZE;
 
@@ -126,7 +124,7 @@
             IRON: 3,
             GOLD: 4,
             DIAMOND: 5,
-            WALL: 9 // Неразрушимая стена
+            WALL: 9 
         };
 
         const BLOCK_COLORS = {
@@ -135,12 +133,12 @@
             [BLOCK_TYPES.IRON]: '#c7c7c7',
             [BLOCK_TYPES.GOLD]: '#ffcc00',
             [BLOCK_TYPES.DIAMOND]: '#66ffff',
-            [BLOCK_TYPES.WALL]: '#363636' // Цвет стены
+            [BLOCK_TYPES.WALL]: '#363636'
         };
 
         // --- Состояние Игры ---
         let gameGrid = [];
-        let currentDepth = 0; // Текущая глубина в блоках (отсчет снизу)
+        let currentDepth = 0; 
         let pickaxe = {
             x: GAME_WIDTH / 2 * BLOCK_SIZE, 
             y: 0, 
@@ -163,18 +161,15 @@
             for (let y = 0; y < chunkHeight; y++) {
                 const row = [];
                 for (let x = 0; x < GAME_WIDTH; x++) {
-                    // Левая и Правая Стены
                     if (x === 0 || x === GAME_WIDTH - 1) {
                         row.push(BLOCK_TYPES.WALL);
                         continue;
                     }
 
-                    // Логика Генерации Руды (зависит от абсолютной глубины)
                     const absoluteY = currentDepth + y; 
                     let type = BLOCK_TYPES.STONE;
                     const rand = Math.random();
 
-                    // Шансы руды увеличиваются с глубиной
                     if (absoluteY > 50 && rand < 0.02) type = BLOCK_TYPES.DIAMOND;
                     else if (absoluteY > 30 && rand < 0.07) type = BLOCK_TYPES.GOLD;
                     else if (absoluteY > 10 && rand < 0.15) type = BLOCK_TYPES.IRON;
@@ -192,13 +187,11 @@
             gameGrid = [];
             currentDepth = 0;
             
-            // 1. Добавляем "Воздух" в начале, чтобы кирка могла упасть
             for(let y = 0; y < 3; y++) {
                 gameGrid.push(new Array(GAME_WIDTH).fill(BLOCK_TYPES.AIR));
             }
             currentDepth = 3; 
 
-            // 2. Генерируем начальный большой кусок мира
             const INITIAL_GENERATION_HEIGHT = GAME_HEIGHT * 2;
             const chunk = generateNewChunk(INITIAL_GENERATION_HEIGHT);
             gameGrid = gameGrid.concat(chunk);
@@ -207,7 +200,7 @@
         function resetPickaxe() {
             pickaxe.x = GAME_WIDTH / 2 * BLOCK_SIZE;
             pickaxe.y = pickaxe.radius; 
-            pickaxe.vy = INITIAL_DROP_VELOCITY; // Даем стартовый импульс
+            pickaxe.vy = INITIAL_DROP_VELOCITY; 
             pickaxe.vx = 0;
         }
 
@@ -238,7 +231,6 @@
             ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
             
             if (type !== BLOCK_TYPES.STONE && type !== BLOCK_TYPES.WALL) {
-                // Имитация пиксельной текстуры (руды)
                 ctx.fillStyle = 'black';
                 for (let i = 0; i < 4; i++) {
                     const px = x * BLOCK_SIZE + Math.floor(Math.random() * BLOCK_SIZE);
@@ -249,11 +241,9 @@
         }
 
         function drawPickaxe() {
-            // Рисуем кирку (Железный/Каменный стиль, масштабируется с BLOCK_SIZE)
             const S = BLOCK_SIZE / 16; 
             const centerX = pickaxe.x;
             const centerY = pickaxe.y;
-            // Координаты смещения, чтобы центрировать спрайт
             const x = centerX - 10 * S; 
             const y = centerY - 10 * S; 
 
@@ -261,11 +251,8 @@
             const STICK_COLOR = '#964b00';
 
             const pixelArt = [
-                // Рукоятка (Коричневый)
                 {c: STICK_COLOR, x: 12, y: 12, w: 2, h: 4},
                 {c: STICK_COLOR, x: 10, y: 0, w: 2, h: 12},
-
-                // Лезвие (Камень)
                 {c: BLADE_COLOR, x: 0, y: 8, w: 10, h: 2}, 
                 {c: BLADE_COLOR, x: 8, y: 6, w: 2, h: 2}, 
                 {c: BLADE_COLOR, x: 10, y: 10, w: 2, h: 2},
@@ -286,18 +273,14 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Отрисовка сетки блоков
-            // Отрисовываем только те блоки, которые помещаются на холсте (GAME_HEIGHT)
             for (let y = 0; y < GAME_HEIGHT; y++) {
                 for (let x = 0; x < GAME_WIDTH; x++) {
-                    // Используем gameGrid[y] - это уже видимый кусок мира
                     if(gameGrid[y]) {
                          drawBlock(x, y, gameGrid[y][x]);
                     }
                 }
             }
 
-            // Отрисовка кирки
             drawPickaxe();
         }
 
@@ -308,7 +291,8 @@
             document.getElementById('iron-count').innerText = resources[BLOCK_TYPES.IRON];
             document.getElementById('gold-count').innerText = resources[BLOCK_TYPES.GOLD];
             document.getElementById('diamond-count').innerText = resources[BLOCK_TYPES.DIAMOND];
-            depthDisplay.innerText = currentDepth * 1; // Отображаем глубину
+            // Используем Math.max для отображения глубины, чтобы не показывать 0 в начале
+            depthDisplay.innerText = Math.max(0, currentDepth - GAME_HEIGHT).toFixed(0); 
         }
 
         function update() {
@@ -320,10 +304,14 @@
             pickaxe.x += pickaxe.vx;
             
             // 3. Проверка границ по горизонтали (стены)
-            if (pickaxe.x <= pickaxe.radius + BLOCK_SIZE || pickaxe.x >= canvas.width - pickaxe.radius - BLOCK_SIZE) {
+            // Столкновение со стеной должно происходить до ее центра
+            const WALL_COLLISION_X_MIN = BLOCK_SIZE + pickaxe.radius;
+            const WALL_COLLISION_X_MAX = canvas.width - (BLOCK_SIZE + pickaxe.radius);
+            
+            if (pickaxe.x <= WALL_COLLISION_X_MIN || pickaxe.x >= WALL_COLLISION_X_MAX) {
                 pickaxe.vx *= -1;
-                // Скорректируем позицию, чтобы не застревала в стене
-                pickaxe.x = Math.max(pickaxe.radius + BLOCK_SIZE, Math.min(canvas.width - pickaxe.radius - BLOCK_SIZE, pickaxe.x));
+                // Скорректируем позицию
+                pickaxe.x = Math.max(WALL_COLLISION_X_MIN, Math.min(WALL_COLLISION_X_MAX, pickaxe.x));
             }
 
             // 4. Проверка границ по вертикали (Потолок)
@@ -337,24 +325,19 @@
             const gridY = Math.floor(pickaxe.y / BLOCK_SIZE);
 
             if (gridY >= 0 && gridY < GAME_HEIGHT && gridX >= 0 && gridX < GAME_WIDTH) {
-                const blockType = gameGrid[gridY][gridX];
+                const blockType = gameGrid[gridY] ? gameGrid[gridY][gridX] : BLOCK_TYPES.AIR;
 
                 if (blockType !== BLOCK_TYPES.AIR && blockType !== BLOCK_TYPES.WALL) {
-                    // Столкновение с добываемым блоком!
                     
-                    // a) Добыча ресурса
                     if (resources[blockType] !== undefined) {
                         resources[blockType]++;
                         updateResourcesDisplay();
                     }
 
-                    // b) Удаление блока
                     gameGrid[gridY][gridX] = BLOCK_TYPES.AIR;
                     
-                    // c) Реалистичный Прыжок (толчок вверх)
                     pickaxe.vy = INITIAL_JUMP_VELOCITY; 
                     
-                    // d) Случайный горизонтальный сдвиг
                     const jumpDirection = Math.random() < 0.5 ? -1 : 1;
                     pickaxe.vx += jumpDirection * HORIZONTAL_MOMENTUM * Math.random(); 
                     pickaxe.vx = Math.max(-10, Math.min(10, pickaxe.vx)); 
@@ -365,23 +348,18 @@
             if (pickaxe.y > SCROLL_THRESHOLD) {
                 const scrollAmount = SCROLL_ROWS * BLOCK_SIZE;
                 
-                // Перемещаем кирку обратно вверх на ту же величину
                 pickaxe.y -= scrollAmount;
                 
-                // Удаляем верхние ряды
                 gameGrid.splice(0, SCROLL_ROWS); 
                 
-                // Генерируем новые ряды внизу
                 const newRows = generateNewChunk(SCROLL_ROWS);
                 gameGrid = gameGrid.concat(newRows);
 
-                // Глубина обновилась внутри generateNewChunk
                 updateResourcesDisplay();
             }
 
-            // 7. Завершение игры (если кирка вылетела за пределы экрана слишком далеко вверх, что маловероятно при текущей логике, но безопасно)
+            // 7. Завершение игры
             if (pickaxe.y > canvas.height + pickaxe.radius * 2) {
-                 // Если кирка падает слишком далеко, это конец игры (если нет блоков внизу)
                 clearInterval(gameInterval);
                 gameInterval = null;
                 button.disabled = false;
@@ -398,7 +376,7 @@
 
         // Инициализация при загрузке страницы
         generateInitialGrid();
-        updateResourcesDisplay(); // Показать 0 ресурсов
+        updateResourcesDisplay();
         draw(); 
     </script>
 
