@@ -10,14 +10,13 @@
             background-color: #282c34;
             color: #fff;
             font-family: 'Courier New', monospace;
-            /* Фиксируем макет по центру, убираем прокрутку */
             display: flex;
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            height: 100vh; /* Высота равна высоте окна просмотра */
+            height: 100vh;
             margin: 0;
-            overflow: hidden; /* Убираем прокрутку */
+            overflow: hidden;
         }
 
         h1, p {
@@ -30,7 +29,7 @@
             border: 5px solid #000;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
             background-color: #444; 
-            margin-top: 10px; /* Отступ от заголовка */
+            margin-top: 10px;
         }
 
         #info-panel {
@@ -102,6 +101,7 @@
         const BLOCK_SIZE = 32; 
         const GAME_WIDTH = 15;
         const GAME_HEIGHT = 20;
+        const INITIAL_DROP_VELOCITY = 2; // НЕБОЛЬШОЙ ИМПУЛЬС ДЛЯ НАЧАЛА ПАДЕНИЯ
         const INITIAL_JUMP_VELOCITY = -10; // Скорость прыжка вверх (отрицательное значение)
         const GRAVITY = 0.5; // Ускорение свободного падения
         const HORIZONTAL_MOMENTUM = 3; // Горизонтальный импульс при отскоке
@@ -168,7 +168,7 @@
         function resetPickaxe() {
             pickaxe.x = GAME_WIDTH / 2 * BLOCK_SIZE;
             pickaxe.y = pickaxe.radius; 
-            pickaxe.vy = 0; // Начинает падать под действием гравитации
+            pickaxe.vy = INITIAL_DROP_VELOCITY; // ДАЕМ СТАРТОВЫЙ ИМПУЛЬС
             pickaxe.vx = 0;
         }
 
@@ -208,29 +208,27 @@
         }
 
         function drawPickaxe() {
-            // Рисуем кирку (Железный/Каменный стиль, как на вашем изображении)
+            // Рисуем кирку (Железный/Каменный стиль)
             const S = BLOCK_SIZE / 16; 
             const centerX = pickaxe.x;
             const centerY = pickaxe.y;
-            const x = centerX - 10 * S; // Смещаем, чтобы рукоятка была вертикальной
+            const x = centerX - 10 * S; 
             const y = centerY - 10 * S; 
 
-            // Цвет лезвия (железный или камень - выбираем камень)
             const BLADE_COLOR = '#a0a0a0'; 
             const STICK_COLOR = '#964b00';
 
             const pixelArt = [
                 // Рукоятка (Коричневый)
-                {c: STICK_COLOR, x: 12, y: 12, w: 2, h: 4}, // Нижняя часть
-                {c: STICK_COLOR, x: 10, y: 0, w: 2, h: 12}, // Основная часть
+                {c: STICK_COLOR, x: 12, y: 12, w: 2, h: 4},
+                {c: STICK_COLOR, x: 10, y: 0, w: 2, h: 12},
 
                 // Лезвие (Камень)
-                {c: BLADE_COLOR, x: 0, y: 8, w: 10, h: 2}, // Основное лезвие
-                {c: BLADE_COLOR, x: 8, y: 6, w: 2, h: 2},  // Заострение
-                {c: BLADE_COLOR, x: 10, y: 10, w: 2, h: 2}, // Соединение
+                {c: BLADE_COLOR, x: 0, y: 8, w: 10, h: 2}, 
+                {c: BLADE_COLOR, x: 8, y: 6, w: 2, h: 2}, 
+                {c: BLADE_COLOR, x: 10, y: 10, w: 2, h: 2},
             ];
             
-            // Добавляем тень/обводку
             ctx.strokeStyle = '#00000088'; 
             ctx.lineWidth = 1;
 
@@ -239,7 +237,6 @@
                 ctx.fillRect(x + p.x * S, y + p.y * S, p.w * S, p.h * S);
             });
             
-            // Дополнительная обводка (для контраста)
             ctx.strokeRect(x + 10 * S, y, 2 * S, 12 * S);
             ctx.strokeRect(x, y + 8 * S, 10 * S, 2 * S);
         }
@@ -260,6 +257,13 @@
 
         // --- Игровая Логика ---
 
+        function updateResourcesDisplay() {
+            document.getElementById('coal-count').innerText = resources[BLOCK_TYPES.COAL];
+            document.getElementById('iron-count').innerText = resources[BLOCK_TYPES.IRON];
+            document.getElementById('gold-count').innerText = resources[BLOCK_TYPES.GOLD];
+            document.getElementById('diamond-count').innerText = resources[BLOCK_TYPES.DIAMOND];
+        }
+
         function update() {
             // 1. Применяем гравитацию
             pickaxe.vy += GRAVITY;
@@ -271,7 +275,6 @@
             // 3. Проверка границ по горизонтали
             if (pickaxe.x <= pickaxe.radius || pickaxe.x >= canvas.width - pickaxe.radius) {
                 pickaxe.vx *= -1;
-                // Скорректируем позицию
                 pickaxe.x = Math.max(pickaxe.radius, Math.min(canvas.width - pickaxe.radius, pickaxe.x));
             }
 
@@ -282,8 +285,6 @@
             }
             
             // 5. Проверка столкновений с блоками
-            
-            // Определяем ячейку, в которой находится центр кирки
             const gridX = Math.floor(pickaxe.x / BLOCK_SIZE);
             const gridY = Math.floor(pickaxe.y / BLOCK_SIZE);
 
@@ -302,7 +303,7 @@
                     // b) Удаление блока
                     gameGrid[gridY][gridX] = BLOCK_TYPES.AIR;
                     
-                    // c) Реалистичный Прыжок (инвертируем VY и даем мощный толчок вверх)
+                    // c) Реалистичный Прыжок (толчок вверх)
                     pickaxe.vy = INITIAL_JUMP_VELOCITY; 
                     
                     // d) Случайный горизонтальный сдвиг
