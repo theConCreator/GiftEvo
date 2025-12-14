@@ -9,10 +9,10 @@
     
     <style>
         /* =======================================
-           1. Базовые Стили и Оформление
+           1. Базовые Стили и Адаптация TWA
            ======================================= */
         body {
-            /* Используем цвета из TWA для адаптации к теме пользователя */
+            /* Используем цвета из TWA */
             background-color: var(--tg-theme-bg-color, #1a1a2e); 
             color: var(--tg-theme-text-color, #ffffff);
             font-family: sans-serif;
@@ -22,7 +22,12 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            transition: background-color 0.3s;
+        }
+
+        /* Убираем лишние отступы, которые могут дать "полупрозрачные прямоугольники"
+           используя 100% ширину и отсутствие горизонтальных скроллов */
+        html, body {
+            overflow-x: hidden;
         }
 
         .header {
@@ -49,14 +54,17 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative; /* Для позиционирования стопки */
+            height: 200px; /* Фиксированная высота для карточки */
         }
 
         /* =======================================
-           2. Стили Скретч-Карты
+           2. Стили Скретч-Карты и Стопки
            ======================================= */
         #scratchCardContainer {
             width: 300px;
-            height: 300px;
+            height: 100px; /* Уменьшаем высоту для 1 ряда */
+            position: relative;
         }
 
         .card-placeholder {
@@ -71,12 +79,29 @@
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
-            line-height: 1.5;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        
+        /* Визуализация следующей карты в стопке */
+        .next-card-visual {
+            width: 95%; /* Чуть меньше */
+            height: 100%;
+            background: #3c3c63; /* Цвет чуть темнее активной */
+            border-radius: 15px;
+            position: absolute;
+            top: 5px; /* Смещение вниз */
+            left: 2.5%; /* Центрирование */
+            opacity: 0.6;
+            z-index: 5; /* Ниже активной карты */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
         .scratch-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, 1fr); /* 3 ячейки */
             gap: 10px;
             padding: 10px;
             background-color: var(--tg-theme-secondary-bg-color, #3c3c63);
@@ -85,14 +110,18 @@
             width: 100%;
             height: 100%;
             box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            transition: transform 0.5s ease-out; /* Анимация "сдвига" */
         }
-        
+
         .scratch-cell {
             height: 80px;
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Цвет "стираемого" слоя */
             background-color: var(--tg-theme-button-color, #8c52ff); 
             border-radius: 8px;
             font-size: 2.5em;
@@ -100,15 +129,9 @@
             cursor: pointer;
             transition: background-color 0.3s ease-in-out;
             user-select: none;
-            position: relative;
-        }
-        
-        .scratch-cell:active {
-            transform: scale(0.98);
         }
         
         .scratched {
-            /* Цвет фона после стирания */
             background-color: var(--tg-theme-secondary-bg-color, #2b2b48); 
         }
 
@@ -118,7 +141,7 @@
         }
 
         /* =======================================
-           3. Стили Кнопки
+           3. Стили Кнопки и Сообщения
            ======================================= */
         .footer {
             width: 100%;
@@ -150,14 +173,14 @@
         .win-message {
             text-align: center;
             font-size: 1.5em;
-            color: #00ff00; /* Яркий цвет для победы */
+            color: #00ff00;
             margin-bottom: 15px;
             animation: pulse 1s infinite alternate;
         }
         
         @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.05); }
+            from { opacity: 0.8; }
+            to { opacity: 1; }
         }
     </style>
 </head>
@@ -173,6 +196,8 @@
     </header>
 
     <main class="game-container">
+        <div class="next-card-visual" id="nextCardVisual"></div>
+        
         <div id="scratchCardContainer">
             <div class="card-placeholder">
                 Нажмите "Купить Карту", чтобы начать игру!
@@ -190,28 +215,29 @@
         document.addEventListener('DOMContentLoaded', () => {
             const cardContainer = document.getElementById('scratchCardContainer');
             const buyButton = document.getElementById('buyCardButton');
+            const nextCardVisual = document.getElementById('nextCardVisual');
             const currentPrizeDisplay = document.getElementById('currentPrize');
             const tonBalanceDisplay = document.getElementById('tonBalance');
 
             // --- TWA Инициализация ---
             if (window.Telegram && window.Telegram.WebApp) {
                 Telegram.WebApp.ready();
-                // Делаем основную кнопку TWA невидимой, так как используем свою
+                // 1. Скрываем стандартную кнопку (если есть)
                 Telegram.WebApp.MainButton.hide(); 
-                console.log("Telegram Web App готов.");
+                // 2. Устанавливаем цвет фона (для гарантированного соответствия)
+                document.body.style.backgroundColor = Telegram.WebApp.themeParams.bg_color || '#1a1a2e';
             }
             // --- Конец TWA Инициализации ---
 
-
-            // Набор символов и их множители (для тестовой логики)
+            // Набор символов и их множители
             const PRIZES = [
-                { symbol: '😂', multiplier: 0.5 }, // Возврат половины
-                { symbol: '⭐', multiplier: 2.0 }, // x2
-                { symbol: '💎', multiplier: 5.0 }, // x5
-                { symbol: '🪙', multiplier: 10.0 } // x10
+                { symbol: '😂', multiplier: 0.5 },
+                { symbol: '⭐', multiplier: 2.0 },
+                { symbol: '💎', multiplier: 5.0 },
+                { symbol: '🪙', multiplier: 10.0 }
             ];
             const CARD_COST = 1.0;
-            const CARD_SIZE = 9; 
+            const CARD_SIZE = 3; // Карта 1x3
             let scratchCount = 0;
             let currentPrizes = [];
             let testBalance = 10.50; // Тестовый баланс
@@ -222,10 +248,7 @@
                 tonBalanceDisplay.textContent = testBalance.toFixed(2) + ' TON';
             }
 
-            /**
-             * Генерирует призовые символы для новой карты (Тестовая логика)
-             * В реальной жизни это должно приходить с БЭКЕНДА с честным ГСЧ
-             */
+            // Генерирует призовые символы (Тестовая логика)
             function generateRandomPrizes() {
                 const prizes = [];
                 for (let i = 0; i < CARD_SIZE; i++) {
@@ -233,9 +256,9 @@
                     prizes.push(PRIZES[randomIndex].symbol);
                 }
                 
-                // ВАЖНО: для *демонстрации* выигрыша, иногда принудительно ставим три совпадения
-                if (Math.random() < 0.3) { // Шанс 30% на гарантированный выигрыш (для теста)
-                    const winningSymbol = PRIZES[Math.floor(Math.random() * 3) + 1].symbol; // Берем не x0.5
+                // Шанс 30% на гарантированный выигрыш (для теста)
+                if (Math.random() < 0.3) { 
+                    const winningSymbol = PRIZES[Math.floor(Math.random() * 3) + 1].symbol; 
                     prizes[0] = winningSymbol;
                     prizes[1] = winningSymbol;
                     prizes[2] = winningSymbol;
@@ -248,13 +271,23 @@
              * Создает и отображает новую скретч-карту
              */
             function generateNewCard() {
-                cardContainer.innerHTML = '';
+                // Сдвигаем старую карту в сторону, если она была (имитация перелистывания)
+                const oldGrid = cardContainer.querySelector('.scratch-grid');
+                if (oldGrid) {
+                    oldGrid.style.transform = 'translateX(-150%)';
+                    setTimeout(() => oldGrid.remove(), 500); // Удаляем после анимации
+                }
+
                 scratchCount = 0;
                 currentPrizes = generateRandomPrizes();
                 
                 const cardGrid = document.createElement('div');
                 cardGrid.classList.add('scratch-grid');
+                cardGrid.style.transform = 'translateX(150%)'; // Новая карта приходит справа
                 
+                // Принудительно показываем placeholder для анимации
+                cardContainer.innerHTML = ''; 
+
                 currentPrizes.forEach((prize, index) => {
                     const cell = document.createElement('div');
                     cell.classList.add('scratch-cell');
@@ -266,6 +299,11 @@
                 });
 
                 cardContainer.appendChild(cardGrid);
+                
+                // Запускаем анимацию: сдвигаем новую карту на место
+                setTimeout(() => {
+                    cardGrid.style.transform = 'translateX(0)';
+                }, 10);
             }
             
             /**
@@ -284,7 +322,9 @@
                 
                 if (scratchCount === CARD_SIZE) {
                     checkResult();
-                    setTimeout(showNextCardPrompt, 2500); // Задержка для просмотра результата
+                    // Активируем кнопку покупки сразу после проверки результата
+                    buyButton.disabled = false;
+                    buyButton.textContent = `💰 Купить Следующую Карту (${CARD_COST} TON)`;
                 }
             }
 
@@ -299,25 +339,22 @@
 
                 let winningMultiplier = 0;
 
-                for (const symbol of Object.keys(prizeCounts)) {
-                    if (prizeCounts[symbol] >= 3) {
-                        const winPrize = PRIZES.find(p => p.symbol === symbol);
-                        if (winPrize) {
-                            winningMultiplier = winPrize.multiplier;
-                            break; // Нашли выигрыш, выходим
-                        }
-                    }
+                // Условие победы: 3 одинаковых символа
+                if (Object.values(prizeCounts).some(count => count === 3)) {
+                     const winningSymbol = Object.keys(prizeCounts).find(key => prizeCounts[key] === 3);
+                     const winPrize = PRIZES.find(p => p.symbol === winningSymbol);
+                     winningMultiplier = winPrize ? winPrize.multiplier : 0;
                 }
                 
                 const winAmount = winningMultiplier * CARD_COST;
                 
                 if (winAmount > 0) {
-                    const message = `🎉 Выигрыш: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
+                    const message = `🎉 ВЫИГРЫШ: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
                     cardContainer.insertAdjacentHTML('beforebegin', `<div class="win-message">${message}</div>`);
                     updateBalance(winAmount);
                     currentPrizeDisplay.textContent = winAmount.toFixed(2) + ' TON';
                 } else {
-                    const message = `😔 Не повезло. Попробуйте снова.`;
+                    const message = `😔 Не повезло.`;
                     cardContainer.insertAdjacentHTML('beforebegin', `<div class="win-message" style="color:#ff3333;">${message}</div>`);
                     currentPrizeDisplay.textContent = '0 TON';
                 }
@@ -330,7 +367,7 @@
             }
 
             /**
-             * Показывает заглушку и активирует кнопку покупки
+             * Показывает заглушку (если нет карт) или готовит к покупке
              */
             function showNextCardPrompt() {
                 cardContainer.innerHTML = `
@@ -344,22 +381,24 @@
 
             // Инициализация при нажатии на кнопку "Купить"
             buyButton.addEventListener('click', () => {
-                if (testBalance < CARD_COST) {
-                    alert("Недостаточно TON на балансе!");
-                    return;
+                if (!buyButton.disabled) {
+                    if (testBalance < CARD_COST) {
+                        alert("Недостаточно TON на балансе!");
+                        return;
+                    }
+                    
+                    updateBalance(-CARD_COST); // Списание тестового баланса
+                    
+                    buyButton.disabled = true;
+                    buyButton.textContent = 'Стирайте ячейки...';
+                    
+                    generateNewCard();
                 }
-                
-                // В реальном приложении здесь будет вызов платежа TON и запрос данных карты с БЭКЕНДА.
-                updateBalance(-CARD_COST); // Списание тестового баланса
-                
-                buyButton.disabled = true;
-                buyButton.textContent = 'Стирайте ячейки...';
-                
-                generateNewCard();
             });
 
             // Устанавливаем начальное состояние
             updateBalance(0); // Инициализируем баланс
+            // nextCardVisual.style.opacity = '1'; // Показываем стопку сразу
             showNextCardPrompt(); 
         });
     </script>
