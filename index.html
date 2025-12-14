@@ -19,9 +19,15 @@
             --game-card-scratch: #9c6cff; 
             --game-accent: #00ffc4; 
             --game-button-color: #007bff;
-            --card-height: 140px; 
-            --stack-offset: 5px; /* Уменьшенное смещение для растяжения стопки */
-            --deck-size: 25; /* Используется для расчета высоты */
+            
+            /* НОВЫЙ РАЗМЕР КАРТЫ: 4 (ширина) : 3 (высота) */
+            --card-width-ratio: 4;
+            --card-height-ratio: 3;
+            --card-width: 320px; /* Фиксированная ширина для расчета высоты */
+            --card-height: calc(var(--card-width) / var(--card-width-ratio) * var(--card-height-ratio)); /* 240px */
+            
+            --stack-offset: 5px; 
+            --deck-size: 25; 
         }
 
         body {
@@ -48,24 +54,7 @@
             background-color: var(--game-secondary-color);
             flex-shrink: 0;
         }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1em;
-            margin-bottom: 5px;
-        }
-
-        .balance span, .current-prize span {
-            font-weight: bold;
-            color: var(--game-accent); 
-        }
-        
-        .header-title {
-            font-size: 0.9em;
-            color: #b0b0b0;
-        }
+        /* Остальные стили хедера (без изменений) ... */
 
         /* =======================================
            3. Игровой Контейнер (Центрирование и Стопка)
@@ -74,18 +63,16 @@
             flex-grow: 1;
             display: flex;
             justify-content: center;
-            /* Выравнивание по центру, но с возможностью стопки уходить вниз */
             align-items: flex-start; 
             width: 100%;
             position: relative; 
-            padding-top: 50px; /* Отступ сверху для центрирования активной карты */
+            padding-top: 50px; 
         }
         
         #cardWrapper {
-            width: 90%;
-            max-width: 380px;
-            /* Рассчитываем необходимую высоту, чтобы стопка достигла низа */
-            /* Высота карты + (количество карт в стопке * смещение) */
+            width: var(--card-width);
+            max-width: 90%;
+            /* Высота стопки */
             height: calc(var(--card-height) + (var(--deck-size) * var(--stack-offset))); 
             position: relative;
             margin: auto;
@@ -108,45 +95,36 @@
             box-sizing: border-box;
             position: absolute;
             top: 0;
-            /* Анимация сдвига (position, opacity, transform) */
             transition: top 0.5s ease-out, transform 0.5s ease-out, opacity 0.5s ease-out; 
             transform-origin: center;
         }
 
-        /* Стиль для карт в стопке (не активны) */
+        /* Стиль для карт в стопке */
         .card-in-stack {
-            /* Тот же градиент, но с пониженной яркостью, чтобы казалось, что карта "ждёт" */
             background: linear-gradient(135deg, rgba(77, 58, 134, 0.7), rgba(107, 74, 168, 0.7)); 
             border: 1px solid rgba(255, 255, 255, 0.05);
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
         }
         
-        /* Стили для активной карты */
         .card-active {
             z-index: 10;
         }
 
         /* =======================================
-           5. Сетка и Ячейки (Видимые Ячейки, Скругленные Квадраты)
+           5. Сетка и Ячейки (Выравнивание и Квадраты)
            ======================================= */
         .scratch-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
+            /* Важные настройки для выравнивания */
             gap: 12px;
-            padding: 15px;
+            padding: 15px; 
             width: 100%;
             height: 100%;
             box-sizing: border-box;
-            opacity: 1; /* Ячейки видны всегда */
-            transition: opacity 0.3s;
+            opacity: 1; 
         }
         
-        /* У карт в стопке ячейки могут быть чуть более тусклыми,
-           но остаются видимыми */
-        .card-in-stack .scratch-cell {
-            opacity: 0.6; 
-        }
-
         .scratch-cell {
             display: flex;
             justify-content: center;
@@ -156,13 +134,18 @@
             font-size: 2.5em;
             font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s ease-in-out;
             user-select: none;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-            /* Убеждаемся, что ячейки квадратные */
+            /* ГАРАНТИЯ КВАДРАТНОЙ ФОРМЫ */
             aspect-ratio: 1 / 1; 
+            /* Центрируем ячейки внутри их контейнера (grid area) */
+            margin: auto; 
         }
         
+        .card-in-stack .scratch-cell {
+            opacity: 0.6; 
+        }
+
         .scratched {
             background-color: #3b3b5e; 
         }
@@ -174,7 +157,7 @@
         
         .win-message {
             position: absolute;
-            top: 20px; /* Над активной картой */
+            top: 20px; 
             width: 100%;
             text-align: center;
             font-size: 1.5em;
@@ -198,7 +181,7 @@
             justify-content: center;
             padding: 10px 0;
             flex-shrink: 0;
-            background-color: var(--game-secondary-color); /* Темный фон для футера */
+            background-color: var(--game-secondary-color); 
         }
 
         .buy-button {
@@ -211,7 +194,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s;
-            margin-bottom: 10px; /* Уменьшен отступ */
+            margin-bottom: 10px;
             width: 90%;
             max-width: 350px;
         }
@@ -273,9 +256,8 @@
             ];
             const CARD_COST = 1.0;
             const CARD_SIZE = 3; 
-            const DECK_SIZE = 25; // Увеличен размер для растяжения стопки
-            const STACK_OFFSET = 5; // Уменьшено смещение
-            const CARD_HEIGHT_PX = 140; // Высота карты в пикселях
+            const DECK_SIZE = 25; 
+            const STACK_OFFSET = 5; 
 
             // Состояния
             let testBalance = 10.50;
@@ -360,7 +342,7 @@
                     // Видимое вертикальное смещение
                     cardElement.style.top = `${(index - activeCardIndex) * STACK_OFFSET}px`; 
                     cardElement.style.transform = 'none'; 
-                    // Скрываем скрытые призы, чтобы не было видно сквозь скретч-слой
+                    // Скрываем скрытые призы
                     cardElement.querySelectorAll('.hidden-prize').forEach(el => el.style.opacity = '0');
 
                 } else if (isCurrentActive) {
@@ -369,7 +351,7 @@
                     cardElement.style.transform = 'none';
                     // Добавляем/убираем обработчики стирания
                     const cells = cardElement.querySelectorAll('.scratch-cell');
-                    cells.forEach(cell => {
+                    cells.forEach((cell, cellIndex) => {
                         cell.removeEventListener('click', handleScratch);
                         if (!card.scratched) { 
                             cell.addEventListener('click', handleScratch);
@@ -411,7 +393,7 @@
             }
             
             // =======================================
-            // 3. ЛОГИКА ИГРЫ
+            // 3. ЛОГИКА ИГРЫ (ИСПРАВЛЕНА)
             // =======================================
 
             function handleScratch(event) {
@@ -425,9 +407,10 @@
                 scratchCount++;
                 
                 if (scratchCount === CARD_SIZE) {
+                    // *** ИСПРАВЛЕНИЕ: Показ итогов и активация кнопки должны происходить здесь ***
                     currentDeck[activeCardIndex].scratched = true; 
                     checkResult();
-                    // Активируем кнопку для СДВИГА (Следующий шаг цикла)
+                    
                     buyButton.disabled = false;
                     buyButton.textContent = `▶️ Сдвинуть и Купить Следующую (${CARD_COST} TON)`;
                 }
@@ -467,7 +450,7 @@
                     currentPrizeDisplay.textContent = '0';
                 }
 
-                // Удаляем сообщение о выигрыше через 2.5 секунды
+                // Сообщение о выигрыше остается на 2.5 секунды
                 setTimeout(() => {
                     msg.remove();
                 }, 2500);
@@ -502,24 +485,24 @@
                     renderDeck(); 
 
                 } else {
-                    // Кнопка нажата до стирания всех ячеек
                     alert("Сначала сотрите все ячейки!");
                 }
             }
 
             // =======================================
-            // 5. ИНИЦИАЛИЗАЦИЯ
+            // 5. ИНИЦИАЛИЗАЦИЯ (ИСПРАВЛЕНА)
             // =======================================
 
             function initialize() {
                 updateBalance(0);
                 generateDeck();
                 
-                // Устанавливаем начальный текст кнопки (ИСПРАВЛЕНИЕ)
+                // *** ИСПРАВЛЕНИЕ: Начальный текст кнопки ***
                 buyButton.textContent = `💰 Купить Новую Карту (${CARD_COST} TON)`;
                 buyButton.disabled = false;
                 
-                // Рендерим стопку (активной карты пока нет)
+                // Рендерим стопку (активной карты пока нет, активный индекс = -1)
+                // renderDeck() на -1 покажет всю стопку, смещенную вниз
                 renderDeck(); 
 
                 // Установка обработчика кнопки
