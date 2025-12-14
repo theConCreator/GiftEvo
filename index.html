@@ -15,7 +15,7 @@
             /* Определение темных игровых цветов */
             --game-bg-color: #1a1a2e;
             --game-secondary-color: #2b2b48;
-            --game-card-main: #4d3a86; /* Более насыщенный фиолетовый */
+            --game-card-main: #4d3a86; /* Насыщенный фиолетовый */
             --game-card-scratch: #9c6cff; /* Яркий цвет для стирания */
             --game-accent: #00ffc4; /* Яркий акцент для выигрыша */
             --game-button-color: #007bff;
@@ -79,14 +79,15 @@
         #cardWrapper {
             width: 90%;
             max-width: 380px;
-            height: 140px; /* Высота активной карты */
+            height: 140px; 
             position: relative;
-            margin: auto; /* Центрируем по горизонтали */
-            top: 0; /* Сброс предыдущего смещения */
+            margin: auto;
+            /* Чтобы стопка выглядела толще, добавим немного пространства снизу */
+            padding-bottom: 30px; 
         }
 
         /* =======================================
-           4. Стопка (10+ элементов, плотное смещение)
+           4. Стопка (Исправлено смещение для видимости)
            ======================================= */
         .next-card-visual {
             width: 100%;
@@ -101,21 +102,22 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
-        /* Плотное вертикальное смещение */
-        .next-card-visual:nth-child(1) { top: 12px; opacity: 0.8; }
-        .next-card-visual:nth-child(2) { top: 10px; opacity: 0.85; }
-        .next-card-visual:nth-child(3) { top: 8px; opacity: 0.9; }
-        .next-card-visual:nth-child(4) { top: 6px; opacity: 0.92; }
-        .next-card-visual:nth-child(5) { top: 4px; opacity: 0.94; }
-        .next-card-visual:nth-child(6) { top: 2px; opacity: 0.96; }
-        .next-card-visual:nth-child(7) { top: 0px; opacity: 0.98; }
-        /* Остальные 3+ карточки будут невидимы за этими 7,
-           но их наличие создает ощущение большой стопки */
+        /* Увеличенное смещение для лучшей видимости стопки */
+        .next-card-visual:nth-child(1) { top: 20px; left: 1px; opacity: 0.7; }
+        .next-card-visual:nth-child(2) { top: 15px; left: 0.5px; opacity: 0.8; }
+        .next-card-visual:nth-child(3) { top: 10px; left: 0; opacity: 0.85; }
+        .next-card-visual:nth-child(4) { top: 5px; left: -0.5px; opacity: 0.9; }
+        .next-card-visual:nth-child(5) { top: 0px; left: -1px; opacity: 0.95; }
+        /* Остальные 5 элементов будут невидимы за этими, создавая толщину */
+        
+        /* Скрываем элементы стопки, которые не должны быть видны */
+        .next-card-visual:nth-child(n+6) { display: none; }
+
 
         .next-card-visual.active { transform: scaleY(0.9); }
 
         /* =======================================
-           5. Активная Карта (1x3, Улучшенный Дизайн)
+           5. Активная Карта (Дизайн)
            ======================================= */
         #scratchCardContainer {
             width: 100%;
@@ -146,12 +148,12 @@
         .scratch-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
-            gap: 12px; /* Увеличенный зазор */
+            gap: 12px;
             padding: 15px;
-            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8); /* Градиент */
+            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8); 
             border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7); /* Сильная тень */
-            border: 2px solid #b0b0b0; /* Рамка */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7); 
+            border: 2px solid #b0b0b0; 
             width: 100%;
             height: 100%;
             box-sizing: border-box;
@@ -163,7 +165,7 @@
         }
 
         .scratch-cell {
-            height: 100%; /* Занимает всю высоту сетки */
+            height: 100%; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -174,7 +176,7 @@
             cursor: pointer;
             transition: background-color 0.3s ease-in-out;
             user-select: none;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3); /* Внутренняя тень */
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
         }
         
         .scratched {
@@ -227,6 +229,14 @@
             margin-bottom: 20px;
             width: 90%;
             max-width: 350px;
+        }
+        
+        /* Стиль для неактивной кнопки */
+        .buy-button:disabled {
+            background-color: #555;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -385,7 +395,7 @@
                 
                 if (scratchCount === CARD_SIZE) {
                     checkResult();
-                    // *** ИСПРАВЛЕНИЕ: Кнопка активируется сразу после проверки результата ***
+                    // *** ИСПРАВЛЕНО: Гарантированная активация кнопки ***
                     buyButton.disabled = false;
                     buyButton.textContent = `💰 Купить Следующую Карту (${CARD_COST} TON)`;
                 }
