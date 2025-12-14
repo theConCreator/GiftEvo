@@ -15,13 +15,13 @@
             /* Определение темных игровых цветов */
             --game-bg-color: #1a1a2e;
             --game-secondary-color: #2b2b48;
-            --game-card-main: #4a3875;
-            --game-card-scratch: #7a5dbe;
-            --game-accent: #007bff;
+            --game-card-main: #4d3a86; /* Более насыщенный фиолетовый */
+            --game-card-scratch: #9c6cff; /* Яркий цвет для стирания */
+            --game-accent: #00ffc4; /* Яркий акцент для выигрыша */
+            --game-button-color: #007bff;
         }
 
         body {
-            /* Используем темные игровые цвета */
             background-color: var(--game-bg-color); 
             color: #ffffff;
             font-family: sans-serif;
@@ -31,7 +31,7 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
-            overflow: hidden; /* Запрещаем прокрутку */
+            overflow: hidden;
         }
         
         /* =======================================
@@ -42,8 +42,8 @@
             padding: 15px 20px 10px;
             box-sizing: border-box;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background-color: var(--game-secondary-color); /* Темный фон */
-            flex-shrink: 0; /* Не сжимается при адаптации */
+            background-color: var(--game-secondary-color);
+            flex-shrink: 0;
         }
 
         .header-row {
@@ -56,61 +56,66 @@
 
         .balance span, .current-prize span {
             font-weight: bold;
-            color: #00ffc4; /* Яркий акцентный цвет */
+            color: var(--game-accent); 
         }
         
         .header-title {
             font-size: 0.9em;
-            color: #b0b0b0; /* Светлый текст */
+            color: #b0b0b0;
         }
 
         /* =======================================
-           3. Игровой Контейнер (Полный экран)
+           3. Игровой Контейнер (Центрирование)
            ======================================= */
         .game-container {
             flex-grow: 1;
             display: flex;
             justify-content: center;
-            align-items: flex-end; /* Выравнивание к низу */
+            align-items: center; /* Центрируем по вертикали */
             width: 100%;
             position: relative; 
-            padding-bottom: 20px; /* Отступ от футера */
         }
         
-        /* Общий контейнер для стопки и активной карты */
         #cardWrapper {
-            width: 95%; /* Ширина по всей видимой области */
-            max-width: 500px; /* Ограничение на очень больших экранах */
+            width: 90%;
+            max-width: 380px;
+            height: 140px; /* Высота активной карты */
             position: relative;
-            /* Высота карты (для 1x3) */
-            height: 150px; 
-            margin-bottom: 20px;
+            margin: auto; /* Центрируем по горизонтали */
+            top: 0; /* Сброс предыдущего смещения */
         }
 
         /* =======================================
-           4. Стопка (Вертикальная, полная ширина)
+           4. Стопка (10+ элементов, плотное смещение)
            ======================================= */
         .next-card-visual {
             width: 100%;
             height: 100%;
-            background: #201a35; /* Самый темный цвет стопки */
-            border-radius: 15px;
+            background: #201a35; 
+            border-radius: 12px;
             position: absolute;
             z-index: 5;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            transition: transform 0.5s ease-out;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease-out, opacity 0.2s;
             transform-origin: bottom;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        /* Смещения для имитации стопки */
-        .next-card-visual:nth-child(1) { top: 15px; transform: scale(0.95); opacity: 0.8; }
-        .next-card-visual:nth-child(2) { top: 10px; transform: scale(0.97); opacity: 0.9; }
-        .next-card-visual:nth-child(3) { top: 5px; transform: scale(0.99); opacity: 0.95; }
+        
+        /* Плотное вертикальное смещение */
+        .next-card-visual:nth-child(1) { top: 12px; opacity: 0.8; }
+        .next-card-visual:nth-child(2) { top: 10px; opacity: 0.85; }
+        .next-card-visual:nth-child(3) { top: 8px; opacity: 0.9; }
+        .next-card-visual:nth-child(4) { top: 6px; opacity: 0.92; }
+        .next-card-visual:nth-child(5) { top: 4px; opacity: 0.94; }
+        .next-card-visual:nth-child(6) { top: 2px; opacity: 0.96; }
+        .next-card-visual:nth-child(7) { top: 0px; opacity: 0.98; }
+        /* Остальные 3+ карточки будут невидимы за этими 7,
+           но их наличие создает ощущение большой стопки */
+
         .next-card-visual.active { transform: scaleY(0.9); }
 
-
         /* =======================================
-           5. Активная Карта (1x3)
+           5. Активная Карта (1x3, Улучшенный Дизайн)
            ======================================= */
         #scratchCardContainer {
             width: 100%;
@@ -128,7 +133,7 @@
             width: 100%;
             height: 100%;
             background: var(--game-secondary-color);
-            border-radius: 15px;
+            border-radius: 12px;
             border: 2px dashed #7a5dbe;
             text-align: center;
             box-sizing: border-box;
@@ -141,11 +146,12 @@
         .scratch-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
-            gap: 10px;
+            gap: 12px; /* Увеличенный зазор */
             padding: 15px;
-            background-color: var(--game-card-main); 
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8); /* Градиент */
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7); /* Сильная тень */
+            border: 2px solid #b0b0b0; /* Рамка */
             width: 100%;
             height: 100%;
             box-sizing: border-box;
@@ -157,21 +163,22 @@
         }
 
         .scratch-cell {
-            height: 100px; /* Увеличиваем высоту ячеек */
+            height: 100%; /* Занимает всю высоту сетки */
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: var(--game-card-scratch); /* Цвет для стирания */
+            background-color: var(--game-card-scratch); 
             border-radius: 50%;
             font-size: 2.5em;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s ease-in-out;
             user-select: none;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3); /* Внутренняя тень */
         }
         
         .scratched {
-            background-color: #3b3b5e; /* Цвет после стирания */
+            background-color: #3b3b5e; 
         }
 
         .hidden-prize {
@@ -181,13 +188,13 @@
         
         .win-message {
             position: absolute;
-            top: -50px; /* Над карточкой */
+            top: -50px; 
             width: 100%;
             text-align: center;
             font-size: 1.5em;
             font-weight: bold;
             z-index: 20;
-            color: #00ffc4;
+            color: var(--game-accent);
             animation: pulse 1s infinite alternate;
         }
         
@@ -204,12 +211,11 @@
             display: flex;
             justify-content: center;
             padding: 10px 0;
-            margin-top: auto;
             flex-shrink: 0;
         }
 
         .buy-button {
-            background-color: var(--game-accent); 
+            background-color: var(--game-button-color); 
             color: white;
             border: none;
             border-radius: 10px;
@@ -242,6 +248,13 @@
             <div class="next-card-visual" data-stack-index="1"></div>
             <div class="next-card-visual" data-stack-index="2"></div>
             <div class="next-card-visual" data-stack-index="3"></div>
+            <div class="next-card-visual" data-stack-index="4"></div>
+            <div class="next-card-visual" data-stack-index="5"></div>
+            <div class="next-card-visual" data-stack-index="6"></div>
+            <div class="next-card-visual" data-stack-index="7"></div>
+            <div class="next-card-visual" data-stack-index="8"></div>
+            <div class="next-card-visual" data-stack-index="9"></div>
+            <div class="next-card-visual" data-stack-index="10"></div>
             
             <div id="scratchCardContainer">
                 <div class="card-placeholder">
@@ -270,7 +283,6 @@
             if (window.Telegram && window.Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.MainButton.hide(); 
-                // Устанавливаем body в темную тему по умолчанию для игрового стиля
                 document.body.classList.add('tg-dark');
             }
             // --- Конец TWA Инициализации ---
@@ -373,6 +385,7 @@
                 
                 if (scratchCount === CARD_SIZE) {
                     checkResult();
+                    // *** ИСПРАВЛЕНИЕ: Кнопка активируется сразу после проверки результата ***
                     buyButton.disabled = false;
                     buyButton.textContent = `💰 Купить Следующую Карту (${CARD_COST} TON)`;
                 }
