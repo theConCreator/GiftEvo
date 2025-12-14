@@ -13,58 +13,103 @@
            ======================================= */
         body {
             /* Используем цвета из TWA */
-            background-color: var(--tg-theme-bg-color, #1a1a2e); 
-            color: var(--tg-theme-text-color, #ffffff);
+            background-color: var(--tg-theme-bg-color, #f4f4f5); /* Светлый фон */
+            color: var(--tg-theme-text-color, #1a1a1a); /* Темный текст */
             font-family: sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-        }
-
-        /* Убираем лишние отступы, которые могут дать "полупрозрачные прямоугольники"
-           используя 100% ширину и отсутствие горизонтальных скроллов */
-        html, body {
-            overflow-x: hidden;
-        }
-
-        .header {
-            width: 90%;
-            max-width: 400px;
-            padding: 15px 0;
-            text-align: center;
-        }
-
-        .balance, .current-prize {
-            font-size: 1.1em;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: var(--tg-theme-hint-color, #aaaaaa);
+            height: 100vh; /* Занимаем всю высоту экрана */
+            overflow: hidden; /* Запрещаем прокрутку */
         }
         
-        .balance span, .current-prize span {
-             color: var(--tg-theme-link-color, #007bff);
+        body.tg-dark {
+            background-color: var(--tg-theme-bg-color, #1a1a2e);
+            color: var(--tg-theme-text-color, #ffffff);
         }
 
+        /* =======================================
+           2. Хедер (Два ряда информации)
+           ======================================= */
+        .header {
+            width: 100%;
+            padding: 15px 20px 10px;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: var(--tg-theme-secondary-bg-color, #ffffff); 
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .balance span, .current-prize span {
+            font-weight: bold;
+            color: var(--tg-theme-link-color, #007bff);
+        }
+        
+        .header-title {
+            font-size: 0.9em;
+            color: var(--tg-theme-hint-color, #666);
+        }
+
+        /* =======================================
+           3. Игровой Контейнер и Вертикальная Стопка
+           ======================================= */
         .game-container {
             flex-grow: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
-            position: relative; /* Для позиционирования стопки */
-            height: 200px; /* Фиксированная высота для карточки */
+            width: 100%;
+            position: relative; 
+            overflow: hidden; /* Важно для анимации выезда из-за нижней границы */
+        }
+        
+        /* Контейнер для центрирования карты и стопки */
+        #cardWrapper {
+            width: 90%;
+            max-width: 320px; /* Ширина карты */
+            height: 250px; /* Достаточно места для анимации выезда */
+            position: relative;
+            bottom: 40px; /* Поднимаем весь блок, чтобы стопка была видна снизу */
+        }
+
+        /* Визуализация стопки (один элемент для имитации основания) */
+        .next-card-visual {
+            width: 100%;
+            height: 100%;
+            background: #4a4a75; 
+            border-radius: 15px;
+            position: absolute;
+            bottom: -50px; /* Скрываем его немного ниже */
+            z-index: 5;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.5s ease-out;
+            transform-origin: bottom; /* Точка трансформации */
+        }
+        /* При активации стопка слегка сжимается, имитируя, что карта выезжает */
+        .next-card-visual.active {
+            transform: scaleY(0.9);
         }
 
         /* =======================================
-           2. Стили Скретч-Карты и Стопки
+           4. Стили Скретч-Карты (1x3)
            ======================================= */
         #scratchCardContainer {
-            width: 300px;
-            height: 100px; /* Уменьшаем высоту для 1 ряда */
-            position: relative;
+            width: 100%;
+            height: 150px; /* Высота для 1 ряда ячеек и отступов */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 10; 
+            overflow: hidden; /* Скрывает выезжающие части */
         }
 
         .card-placeholder {
@@ -73,58 +118,45 @@
             align-items: center;
             width: 100%;
             height: 100%;
-            background: var(--tg-theme-secondary-bg-color, #2b2b48);
+            background: var(--tg-theme-secondary-bg-color, #e0e0e0);
             border-radius: 15px;
-            border: 2px dashed var(--tg-theme-button-color, #4a4a75);
+            border: 2px dashed var(--tg-theme-hint-color, #999);
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
             position: absolute;
-            top: 0;
+            bottom: 0;
             left: 0;
             z-index: 10;
-        }
-        
-        /* Визуализация следующей карты в стопке */
-        .next-card-visual {
-            width: 95%; /* Чуть меньше */
-            height: 100%;
-            background: #3c3c63; /* Цвет чуть темнее активной */
-            border-radius: 15px;
-            position: absolute;
-            top: 5px; /* Смещение вниз */
-            left: 2.5%; /* Центрирование */
-            opacity: 0.6;
-            z-index: 5; /* Ниже активной карты */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
 
         .scratch-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 ячейки */
+            grid-template-columns: repeat(3, 1fr); /* Сетка 1x3 */
+            grid-template-rows: 1fr;
             gap: 10px;
-            padding: 10px;
-            background-color: var(--tg-theme-secondary-bg-color, #3c3c63);
+            padding: 15px;
+            background-color: #5d5d9c; /* Основной фиолетовый карты */
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
             width: 100%;
             height: 100%;
             box-sizing: border-box;
             position: absolute;
-            top: 0;
+            bottom: 0; /* Прикрепляем к низу контейнера */
             left: 0;
             z-index: 10;
             transition: transform 0.5s ease-out; /* Анимация "сдвига" */
         }
 
         .scratch-cell {
-            height: 80px;
+            height: 80px; /* Размер ячейки */
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: var(--tg-theme-button-color, #8c52ff); 
-            border-radius: 8px;
-            font-size: 2.5em;
+            background-color: #8c52ff; /* Цвет, который нужно стереть */
+            border-radius: 50%; /* Круглые ячейки */
+            font-size: 2em;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s ease-in-out;
@@ -132,22 +164,39 @@
         }
         
         .scratched {
-            background-color: var(--tg-theme-secondary-bg-color, #2b2b48); 
+            background-color: #4a4a75; /* Цвет фона после стирания */
         }
 
         .hidden-prize {
             opacity: 0;
             transition: opacity 0.5s;
         }
+        
+        .win-message {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            z-index: 20;
+            animation: pulse 1s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
 
         /* =======================================
-           3. Стили Кнопки и Сообщения
+           5. Футер и Кнопка
            ======================================= */
         .footer {
             width: 100%;
             display: flex;
             justify-content: center;
             padding: 10px 0;
+            margin-top: auto;
         }
 
         .buy-button {
@@ -164,43 +213,29 @@
             width: 90%;
             max-width: 350px;
         }
-
-        .buy-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .win-message {
-            text-align: center;
-            font-size: 1.5em;
-            color: #00ff00;
-            margin-bottom: 15px;
-            animation: pulse 1s infinite alternate;
-        }
-        
-        @keyframes pulse {
-            from { opacity: 0.8; }
-            to { opacity: 1; }
-        }
     </style>
 </head>
-<body>
+<body class="tg-light">
 
     <header class="header">
-        <div class="balance">
-            Баланс: <span id="tonBalance">10.50 TON</span>
+        <div class="header-row">
+            <div class="header-title">Баланс TON: <span id="tonBalance" class="balance-amount">10.50</span></div>
+            <div class="header-title">Последний Выигрыш: <span id="currentPrize" class="prize-amount">0</span> TON</div>
         </div>
-        <div class="current-prize">
-            Последний Выигрыш: <span id="currentPrize">0 TON</span>
+        <div class="header-row" style="font-weight: normal; color: var(--tg-theme-text-color, #1a1a1a);">
+            <div class="balance">TON: <span class="balance-amount">10.50</span></div>
+            <div class="current-prize">Подарки: <span class="prize-amount">0</span></div>
         </div>
     </header>
 
     <main class="game-container">
-        <div class="next-card-visual" id="nextCardVisual"></div>
-        
-        <div id="scratchCardContainer">
-            <div class="card-placeholder">
-                Нажмите "Купить Карту", чтобы начать игру!
+        <div id="cardWrapper">
+            <div class="next-card-visual" id="nextCardVisual"></div>
+            
+            <div id="scratchCardContainer">
+                <div class="card-placeholder">
+                    Нажмите "Купить Новую Карту", чтобы начать!
+                </div>
             </div>
         </div>
     </main>
@@ -214,18 +249,20 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const cardContainer = document.getElementById('scratchCardContainer');
-            const buyButton = document.getElementById('buyCardButton');
+            const cardWrapper = document.getElementById('cardWrapper');
             const nextCardVisual = document.getElementById('nextCardVisual');
-            const currentPrizeDisplay = document.getElementById('currentPrize');
+            const buyButton = document.getElementById('buyCardButton');
+            const currentPrizeDisplay = document.getElementById('currentPrize').querySelector('.prize-amount');
             const tonBalanceDisplay = document.getElementById('tonBalance');
 
             // --- TWA Инициализация ---
             if (window.Telegram && window.Telegram.WebApp) {
                 Telegram.WebApp.ready();
-                // 1. Скрываем стандартную кнопку (если есть)
                 Telegram.WebApp.MainButton.hide(); 
-                // 2. Устанавливаем цвет фона (для гарантированного соответствия)
-                document.body.style.backgroundColor = Telegram.WebApp.themeParams.bg_color || '#1a1a2e';
+                if (Telegram.WebApp.colorScheme === 'dark') {
+                    document.body.classList.remove('tg-light');
+                    document.body.classList.add('tg-dark');
+                }
             }
             // --- Конец TWA Инициализации ---
 
@@ -237,15 +274,17 @@
                 { symbol: '🪙', multiplier: 10.0 }
             ];
             const CARD_COST = 1.0;
-            const CARD_SIZE = 3; // Карта 1x3
+            const CARD_SIZE = 3; // Сетка 1x3
             let scratchCount = 0;
             let currentPrizes = [];
-            let testBalance = 10.50; // Тестовый баланс
+            let testBalance = 10.50;
             
             // Обновляет отображение баланса
             function updateBalance(amount) {
                 testBalance += amount;
-                tonBalanceDisplay.textContent = testBalance.toFixed(2) + ' TON';
+                tonBalanceDisplay.textContent = testBalance.toFixed(2);
+                // Обновление баланса в нижнем ряду хедера
+                document.querySelector('.balance .balance-amount').textContent = testBalance.toFixed(2);
             }
 
             // Генерирует призовые символы (Тестовая логика)
@@ -256,8 +295,8 @@
                     prizes.push(PRIZES[randomIndex].symbol);
                 }
                 
-                // Шанс 30% на гарантированный выигрыш (для теста)
-                if (Math.random() < 0.3) { 
+                // Принудительный выигрыш (3 совпадения) для теста
+                if (Math.random() < 0.35) { 
                     const winningSymbol = PRIZES[Math.floor(Math.random() * 3) + 1].symbol; 
                     prizes[0] = winningSymbol;
                     prizes[1] = winningSymbol;
@@ -271,11 +310,11 @@
              * Создает и отображает новую скретч-карту
              */
             function generateNewCard() {
-                // Сдвигаем старую карту в сторону, если она была (имитация перелистывания)
+                // Анимация: Сдвигаем старую карту вниз, имитируя, что она ушла
                 const oldGrid = cardContainer.querySelector('.scratch-grid');
                 if (oldGrid) {
-                    oldGrid.style.transform = 'translateX(-150%)';
-                    setTimeout(() => oldGrid.remove(), 500); // Удаляем после анимации
+                    oldGrid.style.transform = 'translateY(150%)'; 
+                    setTimeout(() => oldGrid.remove(), 500); 
                 }
 
                 scratchCount = 0;
@@ -283,15 +322,16 @@
                 
                 const cardGrid = document.createElement('div');
                 cardGrid.classList.add('scratch-grid');
-                cardGrid.style.transform = 'translateX(150%)'; // Новая карта приходит справа
+                cardGrid.style.transform = 'translateY(150%)'; // Новая карта приходит снизу
                 
-                // Принудительно показываем placeholder для анимации
                 cardContainer.innerHTML = ''; 
+                
+                // Активируем анимацию стопки
+                nextCardVisual.classList.add('active');
 
                 currentPrizes.forEach((prize, index) => {
                     const cell = document.createElement('div');
                     cell.classList.add('scratch-cell');
-                    cell.dataset.index = index;
                     
                     cell.innerHTML = `<span class="hidden-prize">${prize}</span>`;
                     cell.addEventListener('click', handleScratch);
@@ -300,9 +340,10 @@
 
                 cardContainer.appendChild(cardGrid);
                 
-                // Запускаем анимацию: сдвигаем новую карту на место
+                // Запускаем анимацию: сдвигаем новую карту на место (снизу вверх)
                 setTimeout(() => {
-                    cardGrid.style.transform = 'translateX(0)';
+                    cardGrid.style.transform = 'translateY(0)';
+                    nextCardVisual.classList.remove('active');
                 }, 10);
             }
             
@@ -322,7 +363,6 @@
                 
                 if (scratchCount === CARD_SIZE) {
                     checkResult();
-                    // Активируем кнопку покупки сразу после проверки результата
                     buyButton.disabled = false;
                     buyButton.textContent = `💰 Купить Следующую Карту (${CARD_COST} TON)`;
                 }
@@ -348,21 +388,25 @@
                 
                 const winAmount = winningMultiplier * CARD_COST;
                 
+                // Добавляем сообщение о выигрыше над картой
+                const msg = document.createElement('div');
+                msg.classList.add('win-message');
+                cardWrapper.prepend(msg); // Добавляем перед картой
+
                 if (winAmount > 0) {
-                    const message = `🎉 ВЫИГРЫШ: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
-                    cardContainer.insertAdjacentHTML('beforebegin', `<div class="win-message">${message}</div>`);
+                    msg.textContent = `🎉 ВЫИГРЫШ: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
+                    msg.style.color = '#00ff00';
                     updateBalance(winAmount);
-                    currentPrizeDisplay.textContent = winAmount.toFixed(2) + ' TON';
+                    currentPrizeDisplay.textContent = winAmount.toFixed(2);
                 } else {
-                    const message = `😔 Не повезло.`;
-                    cardContainer.insertAdjacentHTML('beforebegin', `<div class="win-message" style="color:#ff3333;">${message}</div>`);
-                    currentPrizeDisplay.textContent = '0 TON';
+                    msg.textContent = `😔 Не повезло.`;
+                    msg.style.color = '#ff3333';
+                    currentPrizeDisplay.textContent = '0';
                 }
 
                 // Удаляем сообщение о выигрыше через 2.5 секунды
                 setTimeout(() => {
-                    const msg = document.querySelector('.win-message');
-                    if (msg) msg.remove();
+                    msg.remove();
                 }, 2500);
             }
 
@@ -372,7 +416,7 @@
             function showNextCardPrompt() {
                 cardContainer.innerHTML = `
                     <div class="card-placeholder">
-                        Игра завершена. Нажмите "Купить Карту", чтобы играть снова!
+                        Нажмите "Купить Новую Карту", чтобы начать!
                     </div>
                 `;
                 buyButton.disabled = false;
@@ -387,7 +431,7 @@
                         return;
                     }
                     
-                    updateBalance(-CARD_COST); // Списание тестового баланса
+                    updateBalance(-CARD_COST);
                     
                     buyButton.disabled = true;
                     buyButton.textContent = 'Стирайте ячейки...';
@@ -397,8 +441,7 @@
             });
 
             // Устанавливаем начальное состояние
-            updateBalance(0); // Инициализируем баланс
-            // nextCardVisual.style.opacity = '1'; // Показываем стопку сразу
+            updateBalance(0);
             showNextCardPrompt(); 
         });
     </script>
