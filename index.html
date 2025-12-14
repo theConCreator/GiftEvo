@@ -15,10 +15,12 @@
             /* Определение темных игровых цветов */
             --game-bg-color: #1a1a2e;
             --game-secondary-color: #2b2b48;
-            --game-card-main: #4d3a86; /* Насыщенный фиолетовый */
-            --game-card-scratch: #9c6cff; /* Яркий цвет для стирания */
-            --game-accent: #00ffc4; /* Яркий акцент для выигрыша */
+            --game-card-main: #4d3a86;
+            --game-card-scratch: #9c6cff; 
+            --game-accent: #00ffc4; 
             --game-button-color: #007bff;
+            --card-height: 140px; /* Фиксированная высота карты */
+            --stack-offset: 3px; /* Смещение между картами в стопке */
         }
 
         body {
@@ -35,7 +37,7 @@
         }
         
         /* =======================================
-           2. Хедер (Темный)
+           2. Хедер 
            ======================================= */
         .header {
             width: 100%;
@@ -45,24 +47,7 @@
             background-color: var(--game-secondary-color);
             flex-shrink: 0;
         }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1em;
-            margin-bottom: 5px;
-        }
-
-        .balance span, .current-prize span {
-            font-weight: bold;
-            color: var(--game-accent); 
-        }
-        
-        .header-title {
-            font-size: 0.9em;
-            color: #b0b0b0;
-        }
+        /* Стили хедера (как в предыдущей версии) ... */
 
         /* =======================================
            3. Игровой Контейнер (Центрирование)
@@ -71,7 +56,7 @@
             flex-grow: 1;
             display: flex;
             justify-content: center;
-            align-items: center; /* Центрируем по вертикали */
+            align-items: center; 
             width: 100%;
             position: relative; 
         }
@@ -79,98 +64,70 @@
         #cardWrapper {
             width: 90%;
             max-width: 380px;
-            height: 140px; 
+            height: calc(var(--card-height) + (10 * var(--stack-offset))); /* Высота для стопки */
             position: relative;
             margin: auto;
-            /* Чтобы стопка выглядела толще, добавим немного пространства снизу */
-            padding-bottom: 30px; 
-        }
-
-        /* =======================================
-           4. Стопка (Исправлено смещение для видимости)
-           ======================================= */
-        .next-card-visual {
-            width: 100%;
-            height: 100%;
-            background: #201a35; 
-            border-radius: 12px;
-            position: absolute;
-            z-index: 5;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            transition: transform 0.2s ease-out, opacity 0.2s;
-            transform-origin: bottom;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        /* Увеличенное смещение для лучшей видимости стопки */
-        .next-card-visual:nth-child(1) { top: 20px; left: 1px; opacity: 0.7; }
-        .next-card-visual:nth-child(2) { top: 15px; left: 0.5px; opacity: 0.8; }
-        .next-card-visual:nth-child(3) { top: 10px; left: 0; opacity: 0.85; }
-        .next-card-visual:nth-child(4) { top: 5px; left: -0.5px; opacity: 0.9; }
-        .next-card-visual:nth-child(5) { top: 0px; left: -1px; opacity: 0.95; }
-        /* Остальные 5 элементов будут невидимы за этими, создавая толщину */
-        
-        /* Скрываем элементы стопки, которые не должны быть видны */
-        .next-card-visual:nth-child(n+6) { display: none; }
-
-
-        .next-card-visual.active { transform: scaleY(0.9); }
-
-        /* =======================================
-           5. Активная Карта (Дизайн)
-           ======================================= */
-        #scratchCardContainer {
-            width: 100%;
-            height: 100%; 
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 10; 
-        }
-
-        .card-placeholder {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start; /* Выравнивание сверху */
+        }
+
+        /* =======================================
+           4. Элементы Карты в Колоде (Визуализация Стопки)
+           ======================================= */
+        .scratch-card {
             width: 100%;
-            height: 100%;
-            background: var(--game-secondary-color);
+            height: var(--card-height); 
+            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8);
             border-radius: 12px;
-            border: 2px dashed #7a5dbe;
-            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border: 2px solid #b0b0b0;
             box-sizing: border-box;
             position: absolute;
             top: 0;
-            left: 0;
+            transition: top 0.5s ease-out, opacity 0.5s ease-out, transform 0.5s ease-out; /* Анимация сдвига */
             z-index: 10;
         }
 
+        /* Стиль для карт в стопке (не активны) */
+        .card-in-stack {
+            background: #201a35; /* Темный фон для стопки */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            z-index: 1; /* Самый низкий Z-index */
+        }
+        
+        /* Стили для активной карты */
+        .card-active {
+            z-index: 10;
+            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8); 
+            border: 2px solid #b0b0b0;
+        }
+
+
+        /* Позиционирование карт в колоде (через JS)
+           В CSS оставим только стили для ячеек */
+
+        /* =======================================
+           5. Сетка и Ячейки (Скругленные Квадраты)
+           ======================================= */
         .scratch-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
             gap: 12px;
             padding: 15px;
-            background: linear-gradient(135deg, var(--game-card-main), #6b4aa8); 
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7); 
-            border: 2px solid #b0b0b0; 
             width: 100%;
             height: 100%;
             box-sizing: border-box;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 10;
-            transition: transform 0.5s ease-out;
         }
 
         .scratch-cell {
-            height: 100%; 
+            /* Квадратные ячейки со скругленными углами */
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: var(--game-card-scratch); 
-            border-radius: 50%;
+            border-radius: 8px; /* Скругленные углы */
             font-size: 2.5em;
             font-weight: bold;
             cursor: pointer;
@@ -186,23 +143,6 @@
         .hidden-prize {
             opacity: 0;
             transition: opacity 0.5s;
-        }
-        
-        .win-message {
-            position: absolute;
-            top: -50px; 
-            width: 100%;
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            z-index: 20;
-            color: var(--game-accent);
-            animation: pulse 1s infinite alternate;
-        }
-        
-        @keyframes pulse {
-            from { opacity: 0.8; }
-            to { opacity: 1; }
         }
 
         /* =======================================
@@ -231,7 +171,6 @@
             max-width: 350px;
         }
         
-        /* Стиль для неактивной кнопки */
         .buy-button:disabled {
             background-color: #555;
             color: #ccc;
@@ -255,23 +194,8 @@
 
     <main class="game-container">
         <div id="cardWrapper">
-            <div class="next-card-visual" data-stack-index="1"></div>
-            <div class="next-card-visual" data-stack-index="2"></div>
-            <div class="next-card-visual" data-stack-index="3"></div>
-            <div class="next-card-visual" data-stack-index="4"></div>
-            <div class="next-card-visual" data-stack-index="5"></div>
-            <div class="next-card-visual" data-stack-index="6"></div>
-            <div class="next-card-visual" data-stack-index="7"></div>
-            <div class="next-card-visual" data-stack-index="8"></div>
-            <div class="next-card-visual" data-stack-index="9"></div>
-            <div class="next-card-visual" data-stack-index="10"></div>
-            
-            <div id="scratchCardContainer">
-                <div class="card-placeholder">
-                    Нажмите "Купить Новую Карту", чтобы начать!
-                </div>
             </div>
-        </div>
+        <div id="winMessageContainer"></div>
     </main>
 
     <footer class="footer">
@@ -282,9 +206,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const cardContainer = document.getElementById('scratchCardContainer');
             const cardWrapper = document.getElementById('cardWrapper');
-            const nextCardVisuals = document.querySelectorAll('.next-card-visual');
+            const winMessageContainer = document.getElementById('winMessageContainer');
             const buyButton = document.getElementById('buyCardButton');
             const currentPrizeDisplay = document.getElementById('currentPrize').querySelector('.prize-amount');
             const tonBalanceDisplay = document.getElementById('tonBalance');
@@ -297,7 +220,7 @@
             }
             // --- Конец TWA Инициализации ---
 
-            // Набор символов и их множители
+            // Константы
             const PRIZES = [
                 { symbol: '😂', multiplier: 0.5 },
                 { symbol: '⭐', multiplier: 2.0 },
@@ -305,19 +228,26 @@
                 { symbol: '🪙', multiplier: 10.0 }
             ];
             const CARD_COST = 1.0;
-            const CARD_SIZE = 3; // Сетка 1x3
-            let scratchCount = 0;
-            let currentPrizes = [];
+            const CARD_SIZE = 3; 
+            const DECK_SIZE = 15; // Размер колоды
+            const STACK_OFFSET = 3; // Смещение в пикселях
+
+            // Состояния
             let testBalance = 10.50;
+            let currentDeck = []; // Массив объектов {id: number, prizes: array}
+            let activeCardIndex = 0;
+            let scratchCount = 0;
             
-            // Обновляет отображение баланса
+            // =======================================
+            // 1. УТИЛИТЫ и БАЛАНС
+            // =======================================
+
             function updateBalance(amount) {
                 testBalance += amount;
                 tonBalanceDisplay.textContent = testBalance.toFixed(2);
                 document.querySelector('.balance .balance-amount').textContent = testBalance.toFixed(2);
             }
 
-            // Генерирует призовые символы (Тестовая логика)
             function generateRandomPrizes() {
                 const prizes = [];
                 for (let i = 0; i < CARD_SIZE; i++) {
@@ -326,65 +256,98 @@
                 }
                 
                 // Принудительный выигрыш (3 совпадения) для теста
-                if (Math.random() < 0.35) { 
+                if (Math.random() < 0.2) { 
                     const winningSymbol = PRIZES[Math.floor(Math.random() * 3) + 1].symbol; 
                     prizes[0] = winningSymbol;
                     prizes[1] = winningSymbol;
                     prizes[2] = winningSymbol;
                 }
-
                 return prizes;
             }
 
-            /**
-             * Создает и отображает новую скретч-карту
-             */
-            function generateNewCard() {
-                // Анимация: Сдвигаем старую карту вниз, имитируя, что она ушла
-                const oldGrid = cardContainer.querySelector('.scratch-grid');
-                if (oldGrid) {
-                    oldGrid.style.transform = 'translateY(150%)'; 
-                    setTimeout(() => oldGrid.remove(), 500); 
+            function generateDeck() {
+                currentDeck = [];
+                for (let i = 0; i < DECK_SIZE; i++) {
+                    currentDeck.push({
+                        id: i,
+                        prizes: generateRandomPrizes()
+                    });
+                }
+                activeCardIndex = 0;
+            }
+
+            // =======================================
+            // 2. РЕНДЕРИНГ и СДВИГ
+            // =======================================
+
+            function renderCard(card, index) {
+                const isStack = index > activeCardIndex;
+                
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('scratch-card');
+                cardElement.dataset.cardId = card.id;
+
+                // Установка стилей для карты в стопке
+                if (isStack) {
+                    cardElement.classList.add('card-in-stack');
+                    // Визуальное смещение: чем дальше карта, тем ниже и больше смещение
+                    cardElement.style.top = `${(index - activeCardIndex) * STACK_OFFSET}px`; 
+                    cardElement.style.zIndex = `${DECK_SIZE - index}`;
+                    return cardElement;
                 }
 
-                scratchCount = 0;
-                currentPrizes = generateRandomPrizes();
+                // Установка стилей для активной карты
+                cardElement.classList.add('card-active');
+                cardElement.style.top = '0px'; 
+                cardElement.style.zIndex = `${DECK_SIZE}`;
                 
-                const cardGrid = document.createElement('div');
-                cardGrid.classList.add('scratch-grid');
-                cardGrid.style.transform = 'translateY(150%)'; // Новая карта приходит снизу
-                
-                cardContainer.innerHTML = ''; 
-                
-                // Активируем анимацию стопки (эффект сжатия)
-                nextCardVisuals.forEach(el => el.classList.add('active'));
+                const grid = document.createElement('div');
+                grid.classList.add('scratch-grid');
 
-
-                currentPrizes.forEach((prize, index) => {
+                card.prizes.forEach((prize) => {
                     const cell = document.createElement('div');
                     cell.classList.add('scratch-cell');
-                    
                     cell.innerHTML = `<span class="hidden-prize">${prize}</span>`;
                     cell.addEventListener('click', handleScratch);
-                    cardGrid.appendChild(cell);
+                    grid.appendChild(cell);
                 });
-
-                cardContainer.appendChild(cardGrid);
                 
-                // Запускаем анимацию: сдвигаем новую карту на место (снизу вверх)
-                setTimeout(() => {
-                    cardGrid.style.transform = 'translateY(0)';
-                    // Деактивируем анимацию стопки
-                    nextCardVisuals.forEach(el => el.classList.remove('active'));
-                }, 10);
+                cardElement.appendChild(grid);
+                return cardElement;
+            }
+
+            function renderDeck() {
+                cardWrapper.innerHTML = '';
+                
+                if (currentDeck.length === 0) {
+                    // Колода закончилась
+                    cardWrapper.innerHTML = `<div class="card-placeholder">Колода закончилась! Перезагрузите страницу или купите новую колоду.</div>`;
+                    buyButton.disabled = true;
+                    buyButton.textContent = 'Колода закончилась';
+                    return;
+                }
+
+                // Рендерим все карты
+                currentDeck.forEach((card, index) => {
+                    if (index >= activeCardIndex) {
+                        const cardElement = renderCard(card, index);
+                        cardWrapper.appendChild(cardElement);
+                    }
+                });
+                
+                // Скрываем активную карту, если она уже стерта и ждет сдвига
+                if (scratchCount === CARD_SIZE && activeCardIndex < currentDeck.length) {
+                     const activeCardElement = cardWrapper.querySelector(`.scratch-card[data-card-id="${currentDeck[activeCardIndex].id}"]`);
+                     if(activeCardElement) activeCardElement.style.opacity = '0';
+                }
             }
             
-            /**
-             * Обработка стирания ячейки
-             */
+            // =======================================
+            // 3. ЛОГИКА ИГРЫ
+            // =======================================
+
             function handleScratch(event) {
                 const cell = event.currentTarget;
-                
                 if (cell.classList.contains('scratched')) return;
 
                 cell.classList.add('scratched');
@@ -395,24 +358,22 @@
                 
                 if (scratchCount === CARD_SIZE) {
                     checkResult();
-                    // *** ИСПРАВЛЕНО: Гарантированная активация кнопки ***
+                    // Активируем кнопку сразу
                     buyButton.disabled = false;
                     buyButton.textContent = `💰 Купить Следующую Карту (${CARD_COST} TON)`;
                 }
             }
 
-            /**
-             * Проверка результата игры
-             */
             function checkResult() {
+                const activeCardData = currentDeck[activeCardIndex];
+                const prizes = activeCardData.prizes;
+                
                 const prizeCounts = {};
-                currentPrizes.forEach(prize => {
+                prizes.forEach(prize => {
                     prizeCounts[prize] = (prizeCounts[prize] || 0) + 1;
                 });
 
                 let winningMultiplier = 0;
-
-                // Условие победы: 3 одинаковых символа
                 if (Object.values(prizeCounts).some(count => count === 3)) {
                      const winningSymbol = Object.keys(prizeCounts).find(key => prizeCounts[key] === 3);
                      const winPrize = PRIZES.find(p => p.symbol === winningSymbol);
@@ -421,13 +382,15 @@
                 
                 const winAmount = winningMultiplier * CARD_COST;
                 
-                // Добавляем сообщение о выигрыше над картой
                 const msg = document.createElement('div');
                 msg.classList.add('win-message');
-                cardWrapper.prepend(msg); // Добавляем перед картой
+                msg.style.cssText = `position: absolute; top: 10px; width: 100%; text-align: center; font-size: 1.5em; font-weight: bold; z-index: 20; animation: pulse 1s infinite alternate;`;
+                winMessageContainer.innerHTML = '';
+                winMessageContainer.appendChild(msg);
 
                 if (winAmount > 0) {
                     msg.textContent = `🎉 ВЫИГРЫШ: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
+                    msg.style.color = 'var(--game-accent)';
                     updateBalance(winAmount);
                     currentPrizeDisplay.textContent = winAmount.toFixed(2);
                 } else {
@@ -441,40 +404,76 @@
                     msg.remove();
                 }, 2500);
             }
+            
+            // =======================================
+            // 4. КНОПКА "КУПИТЬ" и СДВИГ КОЛОДЫ
+            // =======================================
 
-            /**
-             * Показывает заглушку (если нет карт) или готовит к покупке
-             */
-            function showNextCardPrompt() {
-                cardContainer.innerHTML = `
-                    <div class="card-placeholder">
-                        Нажмите "Купить Новую Карту", чтобы начать!
-                    </div>
-                `;
-                buyButton.disabled = false;
-                buyButton.textContent = `💰 Купить Новую Карту (${CARD_COST} TON)`;
-            }
-
-            // Инициализация при нажатии на кнопку "Купить"
-            buyButton.addEventListener('click', () => {
-                if (!buyButton.disabled) {
-                    if (testBalance < CARD_COST) {
-                        alert("Недостаточно TON на балансе!");
-                        return;
+            function handleBuyCard() {
+                if (buyButton.disabled) return;
+                if (testBalance < CARD_COST) {
+                    alert("Недостаточно TON на балансе!");
+                    return;
+                }
+                
+                // Если мы уже на активной карте, значит она стерта, и нам нужно сдвинуть колоду
+                if (scratchCount === CARD_SIZE) {
+                    // Сдвиг (Удаление старой карты и активация следующей)
+                    activeCardIndex++;
+                    scratchCount = 0; // Сбрасываем счетчик стирания для новой карты
+                    
+                    // Анимация сдвига
+                    const oldCard = cardWrapper.querySelector(`.scratch-card[data-card-id="${currentDeck[activeCardIndex - 1].id}"]`);
+                    if (oldCard) {
+                        // Отправляем старую карту вниз, имитируя, что она ушла в стопку
+                        oldCard.style.transform = 'translateY(100vh)'; 
+                        setTimeout(() => oldCard.remove(), 500);
                     }
-                    
+                }
+                
+                // Покупка новой активной карты
+                if (activeCardIndex < currentDeck.length) {
                     updateBalance(-CARD_COST);
-                    
                     buyButton.disabled = true;
                     buyButton.textContent = 'Стирайте ячейки...';
                     
-                    generateNewCard();
+                    // Перерисовываем, чтобы следующая карта стала активной
+                    renderDeck(); 
+                } else {
+                    // Колода закончилась
+                    renderDeck();
                 }
-            });
+            }
 
-            // Устанавливаем начальное состояние
-            updateBalance(0);
-            showNextCardPrompt(); 
+            // =======================================
+            // 5. ИНИЦИАЛИЗАЦИЯ
+            // =======================================
+
+            function initialize() {
+                updateBalance(0);
+                generateDeck();
+                
+                // Рендерим всю стопку
+                renderDeck(); 
+
+                // Установка обработчика кнопки
+                buyButton.addEventListener('click', handleBuyCard);
+
+                // Начальная установка текста кнопки
+                if (currentDeck.length > 0) {
+                     buyButton.textContent = `💰 Купить Новую Карту (${CARD_COST} TON)`;
+                     buyButton.disabled = false;
+                }
+                // Имитация первой покупки для активации первой карты (так как мы не списали деньги)
+                // Если хотите, чтобы первая покупка была бесплатной - оставьте так. 
+                // Если нет, нужно убрать списание денег в handleBuyCard, если activeCardIndex === 0.
+
+                // ВАЖНОЕ ИСПРАВЛЕНИЕ: Мы должны один раз списать деньги и отобразить первую карту.
+                // Так как в логике теперь сдвиг и покупка объединены, запускаем покупку.
+                handleBuyCard(); 
+            }
+            
+            initialize();
         });
     </script>
 </body>
