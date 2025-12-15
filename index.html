@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Скретч-Карта Подарков</title>
+    <title>Скретч-Карта Подарков (Бесконечная)</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
@@ -23,9 +23,9 @@
             /* Размеры и анимация */
             --card-width: 320px; 
             --card-height: 240px; 
-            --stack-offset-px: 10px; 
-            --deck-size: 25; 
+            --stack-offset-px: 15px; /* Увеличено до 15px */
             --transition-speed: 0.5s ease-in-out;
+            --initial-deck-size: 5; /* Для расчета начальной высоты контейнера */
         }
 
         body {
@@ -38,7 +38,7 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
-            overflow: hidden; 
+            overflow: hidden; /* Блокировка прокрутки */
             touch-action: none;
         }
         
@@ -83,8 +83,8 @@
         #cardWrapper {
             width: var(--card-width);
             max-width: 90%;
-            /* Задаем фиксированную высоту для контейнера, чтобы избежать скачков */
-            height: calc(var(--card-height) + (var(--deck-size) * var(--stack-offset-px))); 
+            /* Высота основана на начальном размере стопки для стабильности */
+            height: calc(var(--card-height) + (var(--initial-deck-size) * var(--stack-offset-px))); 
             position: relative;
             top: 0; 
         }
@@ -248,13 +248,14 @@
             ];
             const CARD_COST = 1.0;
             const CARD_SIZE = 3; 
-            const DECK_SIZE = 25; 
-            const STACK_OFFSET = 10; 
+            const STACK_OFFSET = 15; // Увеличенный отступ
+            const INITIAL_DECK_SIZE = 5; // Начальное количество карт в стопке
 
             let testBalance = 10.50;
             let currentDeck = []; 
             let activeCardIndex = -1; 
             let scratchCount = 0;
+            let cardIdCounter = 0; // Для уникальных ID карт
             
             // =======================================
             // 1. УТИЛИТЫ и БАЛАНС
@@ -265,29 +266,31 @@
                 tonBalanceDisplay.textContent = testBalance.toFixed(2);
             }
 
-            function generateRandomPrizes() {
+            function generateNewCardData() {
                 const prizes = [];
                 for (let i = 0; i < CARD_SIZE; i++) {
                     const randomIndex = Math.floor(Math.random() * PRIZES.length);
                     prizes.push(PRIZES[randomIndex].symbol);
                 }
                 
+                // Шанс на выигрыш (для теста)
                 if (Math.random() < 0.25) { 
                     const winningSymbol = PRIZES[Math.floor(Math.random() * PRIZES.length)].symbol; 
                     prizes[0] = winningSymbol;
                     prizes[1] = winningSymbol;
                     prizes[2] = winningSymbol;
                 }
-                return prizes;
+                
+                return {
+                    id: cardIdCounter++, // Уникальный ID
+                    prizes: prizes,
+                    scratched: false 
+                };
             }
 
-            function generateDeck() {
-                for (let i = 0; i < DECK_SIZE; i++) {
-                    currentDeck.push({
-                        id: i,
-                        prizes: generateRandomPrizes(),
-                        scratched: false 
-                    });
+            function generateInitialDeck() {
+                for (let i = 0; i < INITIAL_DECK_SIZE; i++) {
+                    currentDeck.push(generateNewCardData());
                 }
             }
 
@@ -334,13 +337,15 @@
                 
                 cardElement.classList.toggle('card-in-stack', isStack);
                 cardElement.classList.toggle('card-active', isCurrentActive);
-                cardElement.style.zIndex = `${DECK_SIZE - index}`;
+                // Используем cardId для zIndex, чтобы корректно отображать порядок
+                cardElement.style.zIndex = `${currentDeck.length - index}`; 
 
                 if (index < activeCardIndex) {
                     // *** Карта, которая должна улететь вправо ***
                     cardElement.style.transform = 'translateX(100vw)';
                     cardElement.style.opacity = '0';
-                    setTimeout(() => cardElement.remove(), 500);
+                    // Удаляем элемент после завершения анимации
+                    setTimeout(() => cardElement.remove(), 500); 
 
                 } else if (isStack) {
                     // Карта в стопке
@@ -375,26 +380,22 @@
 
 
             function renderDeck() {
-                // Очищаем старые карты, которые уже улетели, чтобы не мешали
+                // 1. Очищаем старые карты, которые уже улетели, чтобы не мешали
                 const allCards = cardWrapper.querySelectorAll('.scratch-card');
                 allCards.forEach(card => {
                     const cardId = parseInt(card.dataset.cardId);
-                    if (cardId < activeCardIndex) {
+                    // Удаляем карту, если ее индекс в массиве меньше активного
+                    const cardIndexInDeck = currentDeck.findIndex(c => c.id === cardId);
+                    if (cardIndexInDeck === -1 || cardIndexInDeck < activeCardIndex) {
                         card.remove();
                     }
                 });
                 
-                // Рендерим все карты от активной до конца стопки
+                // 2. Рендерим только от активной карты до конца стопки
                 for (let i = activeCardIndex; i < currentDeck.length; i++) {
                     if (i >= 0) {
                         createCardElement(currentDeck[i], i);
                     }
-                }
-                
-                if (activeCardIndex >= currentDeck.length) {
-                     cardWrapper.innerHTML = `<div class="card-placeholder">Колода закончилась!</div>`;
-                     buyButton.disabled = true;
-                     buyButton.textContent = 'Колода закончилась';
                 }
             }
             
@@ -477,14 +478,18 @@
                     }
                     updateBalance(-CARD_COST);
 
-                    // Сначала рендерим, чтобы старая карта успела получить стили "ухода"
-                    // Если карта не первая (activeCardIndex >= 0), то она уедет при следующем рендере
+                    // 1. Увеличиваем индекс активной карты (старая карта готовится к уходу)
                     activeCardIndex++;
                     scratchCount = 0; 
                     
+                    // 2. Генерируем НОВУЮ карту и добавляем в конец колоды
+                    currentDeck.push(generateNewCardData());
+                    
+                    // 3. Деактивация кнопки
                     buyButton.disabled = true;
                     buyButton.textContent = 'Стирайте ячейки...';
 
+                    // 4. Рендеринг (старая карта улетает, стопка сдвигается, новая карта появляется в конце)
                     renderDeck(); 
 
                 } else {
@@ -498,7 +503,7 @@
 
             function initialize() {
                 updateBalance(0);
-                generateDeck();
+                generateInitialDeck(); // Генерируем только начальную стопку
                 
                 buyButton.textContent = `💰 Купить Новую Карту (${CARD_COST} TON)`;
                 buyButton.disabled = false;
