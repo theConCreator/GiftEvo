@@ -27,7 +27,7 @@
             --card-height: calc(var(--card-width) / var(--card-width-ratio) * var(--card-height-ratio)); 
             
             /* Переменные, которые настраиваются в JS */
-            --stack-offset-px: 10px; /* Увеличен до 10px */
+            --stack-offset-px: 10px; 
             --deck-size: 25; 
             
             /* Настройка плавности анимации */
@@ -387,10 +387,12 @@
                             cell.addEventListener('click', handleScratch);
                             cell.classList.remove('scratched');
                             cell.querySelector('.hidden-prize').style.opacity = '0';
+                            cell.style.cursor = 'pointer';
                         } else {
                             // Карта уже стерта и ждет сдвига
                             cell.classList.add('scratched');
                             cell.querySelector('.hidden-prize').style.opacity = '1';
+                            cell.style.cursor = 'default';
                         }
                     });
 
@@ -420,11 +422,10 @@
             }
             
             // =======================================
-            // 3. ЛОГИКА ИГРЫ (ИСКЛЮЧЕНИЕ ПОВТОРНОГО СТИРАНИЯ)
+            // 3. ЛОГИКА ИГРЫ (ИСПРАВЛЕНИЕ АКТИВАЦИИ)
             // =======================================
 
             function stopScratching() {
-                 // Выбираем ТОЛЬКО активную карту по классу 'card-active'
                  const activeCardElement = cardWrapper.querySelector('.card-active');
                  if (activeCardElement) {
                      const cells = activeCardElement.querySelectorAll('.scratch-cell');
@@ -447,13 +448,14 @@
                 scratchCount++;
                 
                 if (scratchCount === CARD_SIZE) {
-                    // ШАГ 1: Блокируем ЛЮБОЕ ДАЛЬНЕЙШЕЕ стирание на этой карте
+                    // ШАГ 1: Блокируем ЛЮБОЕ ДАЛЬНЕЙШЕЕ стирание
                     stopScratching(); 
                     
-                    // ШАГ 2: Показываем результат и активируем кнопку сдвига
-                    currentDeck[activeCardIndex].scratched = true; 
+                    // ШАГ 2: Показываем результат и обновляем состояние карты
                     checkResult();
+                    currentDeck[activeCardIndex].scratched = true; // *** ГАРАНТИЯ УСТАНОВКИ ФЛАГА ***
                     
+                    // ШАГ 3: Активируем кнопку для СДВИГА
                     buyButton.disabled = false;
                     buyButton.textContent = `▶️ Сдвинуть и Купить Следующую (${CARD_COST} TON)`;
                 }
@@ -505,6 +507,7 @@
             function handleBuyCard() {
                 if (buyButton.disabled) return;
                 
+                // Проверка: либо начало игры, либо текущая карта стерта
                 if (activeCardIndex === -1 || currentDeck[activeCardIndex].scratched) {
                     
                     // 1. Проверка баланса и списание
@@ -526,6 +529,7 @@
                     renderDeck(); 
 
                 } else {
+                    // Сработает, только если кнопка была нажата, но карта не стерта (хотя кнопка должна быть disabled)
                     alert("Сначала сотрите все ячейки!");
                 }
             }
