@@ -27,7 +27,7 @@
             --card-height: calc(var(--card-width) / var(--card-width-ratio) * var(--card-height-ratio)); 
             
             /* Переменные, которые настраиваются в JS */
-            --stack-offset-px: 5px; 
+            --stack-offset-px: 10px; /* Увеличен до 10px */
             --deck-size: 25; 
             
             /* Настройка плавности анимации */
@@ -170,6 +170,8 @@
 
         .scratched {
             background-color: #3b3b5e; 
+            /* Убираем курсор после стирания */
+            cursor: default; 
         }
 
         .hidden-prize {
@@ -282,8 +284,8 @@
             const CARD_SIZE = 3; 
             const DECK_SIZE = 25; 
             
-            // *** РЕГУЛИРУЕМАЯ ПЕРЕМЕННАЯ ***
-            const STACK_OFFSET = 5; // Смещение в пикселях между картами в стопке (можете менять)
+            // *** УВЕЛИЧЕННЫЙ ОТСТУП СТОПКИ ***
+            const STACK_OFFSET = 10; // Смещение в пикселях между картами в стопке
 
             // =======================================
             // НАСТРОЙКА CSS ПЕРЕМЕННОЙ ОТСТУПА
@@ -386,14 +388,14 @@
                             cell.classList.remove('scratched');
                             cell.querySelector('.hidden-prize').style.opacity = '0';
                         } else {
-                            // Карта уже стерта (после checkResult, но до сдвига)
+                            // Карта уже стерта и ждет сдвига
                             cell.classList.add('scratched');
                             cell.querySelector('.hidden-prize').style.opacity = '1';
                         }
                     });
 
                 } else if (index < activeCardIndex) {
-                    // Стертая карта, которая должна уехать вправо
+                    // *** АНИМАЦИЯ УЕЗДА ВПРАВО ***
                     cardElement.style.transform = 'translateX(100vw)';
                     cardElement.style.opacity = '0';
                     setTimeout(() => cardElement.remove(), 500);
@@ -418,16 +420,18 @@
             }
             
             // =======================================
-            // 3. ЛОГИКА ИГРЫ (КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ)
+            // 3. ЛОГИКА ИГРЫ (ИСКЛЮЧЕНИЕ ПОВТОРНОГО СТИРАНИЯ)
             // =======================================
 
             function stopScratching() {
-                 // Удаляем обработчики кликов со всех ячеек на активной карте
-                 const activeCardElement = cardWrapper.querySelector(`.scratch-card[data-card-id="${currentDeck[activeCardIndex].id}"]`);
+                 // Выбираем ТОЛЬКО активную карту по классу 'card-active'
+                 const activeCardElement = cardWrapper.querySelector('.card-active');
                  if (activeCardElement) {
                      const cells = activeCardElement.querySelectorAll('.scratch-cell');
                      cells.forEach(cell => {
-                         cell.removeEventListener('click', handleScratch);
+                         // Удаляем обработчик, чтобы клик не работал
+                         cell.removeEventListener('click', handleScratch); 
+                         cell.style.cursor = 'default';
                      });
                  }
             }
@@ -438,12 +442,12 @@
 
                 cell.classList.add('scratched');
                 cell.querySelector('.hidden-prize').style.opacity = '1';
-                cell.removeEventListener('click', handleScratch); // Удаляем обработчик с текущей ячейки
+                cell.removeEventListener('click', handleScratch); 
                 
                 scratchCount++;
                 
                 if (scratchCount === CARD_SIZE) {
-                    // *** КРИТИЧЕСКИЙ ШАГ 1: Блокируем остальные ячейки ***
+                    // ШАГ 1: Блокируем ЛЮБОЕ ДАЛЬНЕЙШЕЕ стирание на этой карте
                     stopScratching(); 
                     
                     // ШАГ 2: Показываем результат и активируем кнопку сдвига
