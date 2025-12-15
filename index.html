@@ -22,7 +22,7 @@
             
             /* Размеры и анимация */
             --card-width: 320px; 
-            --card-height: 240px; /* Соотношение 4:3 для 320px */
+            --card-height: 240px; 
             --stack-offset-px: 10px; 
             --deck-size: 25; 
             --transition-speed: 0.5s ease-in-out;
@@ -38,7 +38,7 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
-            overflow: hidden; /* Блокировка прокрутки */
+            overflow: hidden; 
             touch-action: none;
         }
         
@@ -83,6 +83,7 @@
         #cardWrapper {
             width: var(--card-width);
             max-width: 90%;
+            /* Задаем фиксированную высоту для контейнера, чтобы избежать скачков */
             height: calc(var(--card-height) + (var(--deck-size) * var(--stack-offset-px))); 
             position: relative;
             top: 0; 
@@ -101,10 +102,10 @@
             box-sizing: border-box;
             position: absolute;
             top: 0;
+            /* Плавное изменение позиции, трансформации и прозрачности */
             transition: top var(--transition-speed), transform var(--transition-speed), opacity var(--transition-speed); 
         }
         
-        /* Карта в стопке */
         .card-in-stack {
             background: linear-gradient(135deg, rgba(77, 58, 134, 0.7), rgba(107, 74, 168, 0.7)); 
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -246,13 +247,13 @@
                 { symbol: '🪙', multiplier: 10.0 }
             ];
             const CARD_COST = 1.0;
-            const CARD_SIZE = 3; // 3 ячейки на карте
+            const CARD_SIZE = 3; 
             const DECK_SIZE = 25; 
-            const STACK_OFFSET = 10; // Отступ в пикселях
+            const STACK_OFFSET = 10; 
 
             let testBalance = 10.50;
             let currentDeck = []; 
-            let activeCardIndex = -1; // Индекс текущей активной карты
+            let activeCardIndex = -1; 
             let scratchCount = 0;
             
             // =======================================
@@ -271,7 +272,6 @@
                     prizes.push(PRIZES[randomIndex].symbol);
                 }
                 
-                // Шанс на выигрыш (для теста)
                 if (Math.random() < 0.25) { 
                     const winningSymbol = PRIZES[Math.floor(Math.random() * PRIZES.length)].symbol; 
                     prizes[0] = winningSymbol;
@@ -337,7 +337,7 @@
                 cardElement.style.zIndex = `${DECK_SIZE - index}`;
 
                 if (index < activeCardIndex) {
-                    // Улетевшая карта (анимация проигрывается при сдвиге)
+                    // *** Карта, которая должна улететь вправо ***
                     cardElement.style.transform = 'translateX(100vw)';
                     cardElement.style.opacity = '0';
                     setTimeout(() => cardElement.remove(), 500);
@@ -357,7 +357,7 @@
                     
                     const cells = cardElement.querySelectorAll('.scratch-cell');
                     cells.forEach((cell) => {
-                        cell.removeEventListener('click', handleScratch); // Сброс
+                        cell.removeEventListener('click', handleScratch); 
                         
                         if (!card.scratched) { 
                             cell.addEventListener('click', handleScratch);
@@ -365,7 +365,6 @@
                             cell.querySelector('.hidden-prize').style.opacity = '0';
                             cell.style.cursor = 'pointer';
                         } else {
-                            // Карта стерта, просто отображаем призы
                             cell.classList.add('scratched');
                             cell.querySelector('.hidden-prize').style.opacity = '1';
                             cell.style.cursor = 'default';
@@ -376,7 +375,16 @@
 
 
             function renderDeck() {
-                // Рендерим только от активной карты до конца стопки
+                // Очищаем старые карты, которые уже улетели, чтобы не мешали
+                const allCards = cardWrapper.querySelectorAll('.scratch-card');
+                allCards.forEach(card => {
+                    const cardId = parseInt(card.dataset.cardId);
+                    if (cardId < activeCardIndex) {
+                        card.remove();
+                    }
+                });
+                
+                // Рендерим все карты от активной до конца стопки
                 for (let i = activeCardIndex; i < currentDeck.length; i++) {
                     if (i >= 0) {
                         createCardElement(currentDeck[i], i);
@@ -420,7 +428,7 @@
                 if (winAmount > 0) {
                     msg.textContent = `🎉 ВЫИГРЫШ: ${winAmount.toFixed(2)} TON! (x${winningMultiplier})`;
                     msg.style.color = 'var(--color-accent)';
-                    updateBalance(winAmount); // Начисление выигрыша
+                    updateBalance(winAmount); 
                     currentPrizeDisplay.textContent = winAmount.toFixed(2);
                 } else {
                     msg.textContent = `😔 НЕ ПОВЕЗЛО.`;
@@ -444,16 +452,11 @@
                 scratchCount++;
                 
                 if (scratchCount === CARD_SIZE) {
-                    // *** КЛЮЧЕВОЙ ШАГ: ЗАВЕРШЕНИЕ СТИРАНИЯ ***
-                    
-                    // 1. Блокируем стирание (на всякий случай, если клик произойдет быстрее таймаута)
                     stopScratching(); 
                     
-                    // 2. Проверка результата и начисление/показ итогов
                     checkResult();
                     currentDeck[activeCardIndex].scratched = true;
                     
-                    // 3. Активируем кнопку для СДВИГА
                     buyButton.disabled = false;
                     buyButton.textContent = `▶️ Сдвинуть и Купить Следующую (${CARD_COST} TON)`;
                 }
@@ -468,26 +471,23 @@
                 
                 if (activeCardIndex === -1 || currentDeck[activeCardIndex].scratched) {
                     
-                    // Проверка баланса и списание
                     if (testBalance < CARD_COST) {
                         alert("Недостаточно TON на балансе!");
                         return;
                     }
                     updateBalance(-CARD_COST);
 
-                    // Сдвиг и активация следующей карты
+                    // Сначала рендерим, чтобы старая карта успела получить стили "ухода"
+                    // Если карта не первая (activeCardIndex >= 0), то она уедет при следующем рендере
                     activeCardIndex++;
                     scratchCount = 0; 
                     
-                    // Деактивация кнопки
                     buyButton.disabled = true;
                     buyButton.textContent = 'Стирайте ячейки...';
 
-                    // Рендеринг (старая карта уезжает, новая центрируется)
                     renderDeck(); 
 
                 } else {
-                    // Этот блок не должен вызываться, если логика `handleScratch` верна
                     alert("Сначала сотрите все ячейки!");
                 }
             }
