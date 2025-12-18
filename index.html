@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Скретч-Карта: Исправленные размеры</title>
+    <title>Скретч-Карта 4:3 Центрированная</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
@@ -16,27 +16,29 @@
             --color-accent: #00ffc4; 
             --color-button: #007bff;
             
+            /* Соотношение 4:3 */
             --card-width: 320px; 
             --card-height: 240px; 
-            --stack-offset-px: 15px; 
-            --transition-speed: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            
+            --stack-offset: 6px; 
+            --transition-speed: 0.6s cubic-bezier(0.23, 1, 0.32, 1);
             --visible-cards: 15; 
         }
 
         body {
             background-color: var(--color-bg); 
             color: #ffffff;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             margin: 0;
             padding: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
             height: 100vh;
             overflow: hidden;
             touch-action: none;
         }
         
+        /* Хедер */
         .header {
             width: 100%;
             padding: 15px 20px;
@@ -51,58 +53,61 @@
         .header-info { font-size: 0.9em; color: #b0b0b0; }
         .balance-amount { font-weight: bold; color: var(--color-accent); }
 
+        /* Игровое поле с центрированием */
         .game-container {
             flex-grow: 1;
             display: flex;
             justify-content: center;
-            align-items: flex-start; 
+            align-items: center; /* Центрируем по вертикали */
             width: 100%;
-            padding-top: 60px; 
             position: relative;
         }
         
         #cardWrapper {
             width: var(--card-width);
+            height: var(--card-height);
             position: relative;
-            /* Контейнер под 15 карт с учетом отступа */
-            height: calc(var(--card-height) + (var(--visible-cards) * var(--stack-offset-px))); 
+            perspective: 1000px;
         }
 
         .scratch-card {
             width: var(--card-width);
             height: var(--card-height); 
             background: linear-gradient(135deg, var(--color-card-main), #6b4aa8);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.2);
             box-sizing: border-box;
             position: absolute;
+            top: 0;
             left: 0;
-            transition: transform var(--transition-speed), top var(--transition-speed), opacity var(--transition-speed);
-            will-change: transform, top, opacity;
+            transition: transform var(--transition-speed), opacity var(--transition-speed), filter 0.3s;
+            will-change: transform, opacity;
         }
         
-        /* Анимация вылета */
+        /* Улетающая карта */
         .departing {
-            transform: translateX(150vw) rotate(15deg) !important;
+            transform: translateX(150vw) rotate(20deg) scale(1.1) !important;
             opacity: 0 !important;
+            z-index: 1001 !important; /* Выше всех при полете */
         }
 
+        /* Карты в колоде (под активной) */
         .card-in-stack {
-            background: linear-gradient(135deg, rgba(77, 58, 134, 0.8), rgba(107, 74, 168, 0.8)); 
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            filter: brightness(0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* ИСПРАВЛЕННАЯ СЕТКА ЯЧЕЕК */
+        /* Сетка ячеек 4:3 */
         .scratch-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr); 
-            gap: 12px; 
-            padding: 20px; 
+            gap: 10px; 
+            padding: 15px; 
             height: 100%;
             width: 100%;
             box-sizing: border-box;
-            align-items: center; /* Центрирование по вертикали */
+            align-items: center;
         }
         
         .scratch-cell {
@@ -111,28 +116,24 @@
             align-items: center;
             background-color: var(--color-scratch); 
             border-radius: 12px; 
-            font-size: 2.8em; 
+            font-size: 2.5em; 
             cursor: pointer;
-            /* Убрали жесткий aspect-ratio 1/1, чтобы они лучше заполняли высоту */
-            height: 120px; 
+            height: 90%; /* Оптимально для 4:3 */
             transition: background-color 0.3s, transform 0.2s; 
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
             position: relative;
             overflow: hidden;
         }
 
-        .scratch-cell:active { transform: scale(0.95); }
-
         .scratched { 
             background-color: #3b3b5e; 
-            cursor: default; 
-            transform: none !important;
+            box-shadow: none;
         }
         
         .hidden-prize { 
             opacity: 0; 
-            transition: opacity 0.5s ease; 
-            transform: scale(0.5);
+            transition: opacity 0.4s ease, transform 0.4s ease; 
+            transform: scale(0.6);
         }
         
         .scratched .hidden-prize { 
@@ -140,20 +141,23 @@
             transform: scale(1);
         }
 
+        /* Сообщение о выигрыше */
         .win-message {
             position: absolute;
-            top: -40px;
+            top: -60px;
             width: 100%;
             text-align: center;
             font-weight: bold;
             color: var(--color-accent);
-            font-size: 1.2em;
-            text-shadow: 0 0 10px rgba(0,255,196,0.5);
+            font-size: 1.4em;
+            text-shadow: 0 0 15px rgba(0,255,196,0.6);
+            pointer-events: none;
         }
 
+        /* Футер */
         .footer {
             width: 100%;
-            padding: 25px;
+            padding: 20px;
             background-color: var(--color-secondary);
             display: flex;
             justify-content: center;
@@ -165,34 +169,36 @@
             background-color: var(--color-button); 
             color: white;
             border: none;
-            border-radius: 14px;
-            padding: 20px;
+            border-radius: 16px;
+            padding: 18px;
             font-size: 1.1em;
             font-weight: bold;
             width: 100%;
             max-width: 400px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
             transition: all 0.2s;
         }
         
         .buy-button:disabled { background-color: #444; opacity: 0.6; box-shadow: none; }
+        .buy-button:active:not(:disabled) { transform: scale(0.97); }
     </style>
 </head>
 <body>
 
     <header class="header">
         <div class="header-info">Баланс: <span id="tonBalance" class="balance-amount">10.00</span> TON</div>
-        <div class="header-info">Выигрыш: <span id="currentPrize" class="balance-amount">0.00</span></div>
+        <div class="header-info">Трофей: <span id="currentPrize" class="balance-amount">0.00</span></div>
     </header>
 
     <main class="game-container">
-        <div id="winMessageContainer"></div>
-        <div id="cardWrapper"></div>
+        <div id="cardWrapper">
+            <div id="winMessageContainer"></div>
+            </div>
     </main>
 
     <footer class="footer">
-        <button id="buyCardButton" class="buy-button">Загрузка...</button>
+        <button id="buyCardButton" class="buy-button">Загрузка колоды...</button>
     </footer>
 
     <script>
@@ -206,8 +212,8 @@
                 { s: '💎', m: 5 }, { s: '⭐', m: 2 }, { s: '🪙', m: 10 }, { s: '😂', m: 0.5 }
             ];
             const COST = 1.0;
-            const STACK_OFFSET = 15;
             const STACK_SIZE = 15; 
+            const OFFSET = 6; // Смещение для эффекта стопки
 
             let balance = 10.0;
             let deck = []; 
@@ -217,13 +223,13 @@
                 let p = [];
                 for(let i=0; i<3; i++) p.push(PRIZES[Math.floor(Math.random()*PRIZES.length)].s);
                 if(Math.random() < 0.2) { 
-                    let winS = PRIZES[Math.floor(Math.random()*PRIZES.length)].s;
-                    p = [winS, winS, winS];
+                    let s = PRIZES[Math.floor(Math.random()*PRIZES.length)].s;
+                    p = [s, s, s];
                 }
-                return { id: Math.random().toString(36).substr(2, 9), prizes: p, done: false };
+                return { id: 'c-' + Math.random().toString(36).substr(2, 9), prizes: p, done: false };
             }
 
-            function initDeck() {
+            function init() {
                 for(let i=0; i<STACK_SIZE; i++) deck.push(genCard());
                 buyButton.textContent = `Купить Карту (${COST} TON)`;
                 render();
@@ -231,35 +237,39 @@
 
             function render() {
                 deck.forEach((card, i) => {
-                    let el = document.querySelector(`[data-id="${card.id}"]`);
+                    let el = document.getElementById(card.id);
                     if(!el) {
                         el = document.createElement('div');
+                        el.id = card.id;
                         el.className = 'scratch-card';
-                        el.dataset.id = card.id;
                         el.innerHTML = `<div class="scratch-grid"></div>`;
-                        card.prizes.forEach(symbol => {
+                        card.prizes.forEach(s => {
                             const cell = document.createElement('div');
                             cell.className = 'scratch-cell';
-                            cell.innerHTML = `<span class="hidden-prize">${symbol}</span>`;
+                            cell.innerHTML = `<span class="hidden-prize">${s}</span>`;
                             el.firstChild.appendChild(cell);
                         });
                         cardWrapper.appendChild(el);
                     }
 
-                    // Обновляем позицию в стопке
-                    el.style.top = `${i * STACK_OFFSET}px`;
-                    el.style.zIndex = 100 - i;
-                    
+                    // Логика позиционирования: активная карта i=0 всегда сверху
                     if (i === 0) {
+                        el.style.transform = `translateZ(0px)`;
+                        el.style.zIndex = 100;
                         el.classList.remove('card-in-stack');
-                        setupActiveCard(el, card);
+                        setupActive(el, card);
                     } else {
+                        // Эффект пачки под основной картой
+                        const shift = i * OFFSET;
+                        const scale = 1 - (i * 0.02);
+                        el.style.transform = `translateY(${shift}px) translateX(${shift/2}px) scale(${scale})`;
+                        el.style.zIndex = 100 - i;
                         el.classList.add('card-in-stack');
                     }
                 });
             }
 
-            function setupActiveCard(el, card) {
+            function setupActive(el, card) {
                 const cells = el.querySelectorAll('.scratch-cell');
                 cells.forEach(cell => {
                     if(!card.done) {
@@ -267,58 +277,53 @@
                             if(cell.classList.contains('scratched')) return;
                             cell.classList.add('scratched');
                             scratchCount++;
-                            if(scratchCount === 3) finishCard(card);
+                            if(scratchCount === 3) finish(card);
                         };
                     }
                 });
             }
 
-            function finishCard(card) {
+            function finish(card) {
                 card.done = true;
                 const p = card.prizes;
-                let win = 0;
                 if(p[0] === p[1] && p[1] === p[2]) {
-                    const mult = PRIZES.find(x => x.s === p[0]).m;
-                    win = COST * mult;
+                    const win = COST * PRIZES.find(x => x.s === p[0]).m;
                     balance += win;
                     balanceDisp.textContent = balance.toFixed(2);
                     prizeDisp.textContent = win.toFixed(2);
-                    showWin(`🎉 ВЫИГРЫШ: ${win.toFixed(2)} TON!`);
+                    showStatus(`🎉 ВЫИГРЫШ: ${win.toFixed(2)} TON!`);
                 } else {
-                    showWin(`😔 Попробуй еще раз`);
+                    showStatus(`😔 Попробуйте еще раз`);
                 }
                 buyButton.disabled = false;
-                buyButton.textContent = "▶️ Сдвинуть и купить новую";
+                buyButton.textContent = "▶️ Сдвинуть колоду";
             }
 
-            function showWin(txt) {
+            function showStatus(txt) {
                 const m = document.createElement('div');
                 m.className = 'win-message';
                 m.textContent = txt;
                 document.getElementById('winMessageContainer').innerHTML = '';
                 document.getElementById('winMessageContainer').appendChild(m);
-                setTimeout(() => m.remove(), 2500);
+                setTimeout(() => m.remove(), 2000);
             }
 
             buyButton.onclick = () => {
-                // Если первая карта в deck не закончена, кнопка не должна срабатывать
                 if(deck.length > 0 && !deck[0].done) return;
                 if(balance < COST) return alert("Недостаточно TON");
 
-                // 1. Анимация улета старой карты
+                // Улетает верхняя (активная) карта
                 const oldCard = deck[0];
-                const oldEl = document.querySelector(`[data-id="${oldCard.id}"]`);
+                const oldEl = document.getElementById(oldCard.id);
                 if(oldEl) {
                     oldEl.classList.add('departing');
-                    // Удаляем из DOM после анимации
-                    setTimeout(() => oldEl.remove(), 500);
+                    setTimeout(() => oldEl.remove(), 600);
                 }
 
-                // 2. Логика сдвига массива
-                deck.shift(); // Убираем старую
-                deck.push(genCard()); // Добавляем новую в конец (бесконечность)
+                // Сдвиг данных
+                deck.shift();
+                deck.push(genCard());
 
-                // 3. Списание баланса
                 balance -= COST;
                 balanceDisp.textContent = balance.toFixed(2);
                 
@@ -329,7 +334,7 @@
                 render();
             };
 
-            initDeck();
+            init();
         });
     </script>
 </body>
