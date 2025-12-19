@@ -3,259 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Bonus Game</title>
+    <title>Minecraft Slot Physics</title>
     <style>
         :root {
-            --bg-color: #313131;
-            --slot-color: #8B8B8B;
-            --slot-border: #373737;
-            --highlight: #ffffff;
+            --cell-size: 60px;
+            --grid-cols: 5;
+            --mc-bg: #404040;
+            --mc-border: #1e1e1e;
         }
 
         body {
-            background: #222;
+            background-color: #1a1a1a;
             color: white;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             margin: 0;
             overflow: hidden;
         }
 
-        /* Общий контейнер как экран телефона */
-        #phone-screen {
-            width: 360px;
-            height: 640px;
-            background: url('https://i.imgur.com/35p8oH6.png') center/cover; /* Фон неба/земли */
-            border: 8px solid #111;
-            border-radius: 20px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        #game-wrapper {
+            width: calc(var(--cell-size) * var(--grid-cols) + 40px);
+            background: #8b8b8b;
+            border: 6px solid #373737;
+            padding: 10px;
+            box-shadow: inset -4px -4px 0 #555, inset 4px 4px 0 #fff;
         }
 
-        /* Поле инструментов (Инвентарь) */
-        .inventory-ui {
-            background-color: var(--slot-color);
-            border: 4px solid var(--slot-border);
-            margin-top: 40px;
+        /* Поле инструментов 3x5 */
+        #tool-grid {
             display: grid;
-            grid-template-columns: repeat(4, 50px);
-            grid-template-rows: repeat(3, 50px);
+            grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
+            grid-template-rows: repeat(3, var(--cell-size));
             gap: 2px;
-            padding: 4px;
-            box-shadow: inset -2px -2px 0 #555, inset 2px 2px 0 #fff;
+            background: #373737;
+            border: 4px solid #1e1e1e;
+            margin-bottom: 20px;
         }
 
-        .slot {
-            background-color: #8B8B8B;
+        .tool-slot {
+            background: #8b8b8b;
             border: 2px solid #373737;
             box-shadow: inset -2px -2px 0 #555;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            position: relative;
+            font-size: 30px;
+            transition: all 0.2s;
+        }
+
+        .tool-slot.active {
+            background: #fff;
+            transform: scale(1.1);
         }
 
         /* Поле блоков */
-        #game-grid {
+        #world-container {
             position: relative;
-            width: 300px;
-            height: 350px;
-            margin-top: 30px;
-            background: rgba(0,0,0,0.1);
+            width: calc(var(--cell-size) * var(--grid-cols));
+            height: calc(var(--cell-size) * 5);
+            background: rgba(0,0,0,0.3);
+            border: 4px solid #1e1e1e;
             overflow: hidden;
         }
 
         .block {
             position: absolute;
-            width: 58px;
-            height: 58px;
+            width: var(--cell-size);
+            height: var(--cell-size);
             box-sizing: border-box;
-            transition: top 0.4s cubic-bezier(0.47, 0, 0.745, 0.715);
+            border: 2px solid rgba(0,0,0,0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            font-weight: bold;
-            border: 2px solid rgba(0,0,0,0.2);
+            transition: top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s;
             text-shadow: 1px 1px 0 #000;
         }
 
-        /* Текстуры блоков */
-        .stone { background-color: #7a7a7a; border-bottom: 4px solid #4a4a4a; }
-        .redstone { background-color: #8a8a8a; color: #ff4d4d; border-bottom: 4px solid #4a4a4a; }
-        .gold { background-color: #9a9a9a; color: #ffd700; border-bottom: 4px solid #4a4a4a; }
-        .chest { background: #8b4513; border: 3px solid #5d2f0d; color: #ffa500; }
+        /* Типы блоков */
+        .stone { background: #7a7a7a; border-bottom: 4px solid #4a4a4a; }
+        .ore { background: #555; border: 3px solid #00ffcc; color: #00ffcc; }
+        .gold { background: #666; border: 3px solid #ffd700; color: #ffd700; }
+        .chest { background: #8b4513; border: 3px solid #3e2723; color: #ffa500; z-index: 2; }
 
         /* Кнопка */
-        .spin-btn {
-            margin-top: 20px;
-            padding: 10px 40px;
+        #spin-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 15px;
             background: #5c9e31;
             border: none;
-            border-bottom: 4px solid #3a631f;
+            border-bottom: 5px solid #3a631f;
             color: white;
             font-weight: bold;
+            font-size: 18px;
             cursor: pointer;
-            text-transform: uppercase;
+            text-shadow: 1px 1px 0 #222;
         }
 
-        .spin-btn:active { transform: translateY(2px); border-bottom: 2px solid #3a631f; }
+        #spin-btn:active {
+            transform: translateY(3px);
+            border-bottom-width: 2px;
+        }
+
+        #spin-btn:disabled {
+            background: #444;
+            border-color: #222;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-    <div id="phone-screen">
-        <div style="margin-top: 10px;">БОНУСКА ЗА 300</div>
-        
-        <div class="inventory-ui" id="inventory">
-            </div>
-
-        <div id="game-grid"></div>
-
-        <button class="spin-btn" onclick="startSpin()">КРУТИТЬ</button>
-        <div id="balance" style="margin-top:10px">Баланс: 0</div>
+<div id="game-wrapper">
+    <div id="tool-grid"></div>
+    <div id="world-container"></div>
+    
+    <div class="stats">
+        <span>МОНЕТЫ: <span id="score">0</span></span>
+        <span>БОНУС: <span id="multiplier">x1</span></span>
     </div>
+    
+    <button id="spin-btn" onclick="playTurn()">ИГРАТЬ (СПИН)</button>
+</div>
 
 <script>
-    const inventory = document.getElementById('inventory');
-    const grid = document.getElementById('game-grid');
-    const balanceEl = document.getElementById('balance');
-    
-    let balance = 0;
-    const ROWS = 6;
-    const COLS = 5;
-    const BLOCK_SIZE = 60;
-    let matrix = [];
+    const toolGrid = document.getElementById('tool-grid');
+    const world = document.getElementById('world-container');
+    const scoreEl = document.getElementById('score');
+    const spinBtn = document.getElementById('spin-btn');
 
-    // Создаем пустую сетку инвентаря
-    for(let i=0; i<12; i++) {
+    const COLS = 5;
+    const ROWS = 5;
+    const SIZE = 60;
+    let score = 0;
+    let grid = Array.from({ length: COLS }, () => []);
+
+    // Инициализация слотов инструментов
+    for (let i = 0; i < 15; i++) {
         const slot = document.createElement('div');
-        slot.className = 'slot';
+        slot.className = 'tool-slot';
         slot.id = `slot-${i}`;
-        inventory.appendChild(slot);
+        toolGrid.appendChild(slot);
     }
 
-    // Инициализация игрового поля
-    function initGrid() {
-        for(let r=0; r<ROWS; r++) {
-            matrix[r] = [];
-            for(let c=0; c<COLS; c++) {
-                createBlock(r, c);
+    // Заполнение мира блоками
+    function initWorld() {
+        for (let c = 0; c < COLS; c++) {
+            for (let r = 0; r < ROWS; r++) {
+                spawnBlock(c, r);
             }
         }
     }
 
-    function createBlock(r, c) {
-        const types = ['stone', 'stone', 'redstone', 'gold', 'chest'];
-        const type = r > 4 ? 'chest' : types[Math.floor(Math.random() * types.length)];
-        
+    function spawnBlock(col, row, isNew = false) {
+        const types = ['stone', 'stone', 'stone', 'ore', 'gold', 'chest'];
+        const type = types[Math.floor(Math.random() * types.length)];
         const el = document.createElement('div');
         el.className = `block ${type}`;
-        el.style.left = (c * BLOCK_SIZE) + 'px';
-        el.style.top = (r * BLOCK_SIZE) + 'px';
+        el.style.left = `${col * SIZE}px`;
+        el.style.top = isNew ? `-${SIZE}px` : `${row * SIZE}px`;
         
-        if(type === 'chest') el.innerText = 'BOX';
-        if(type === 'redstone') el.innerText = 'RED';
-        if(type === 'gold') el.innerText = 'GOLD';
+        const blockObj = { type, el, col };
+        world.appendChild(el);
+        grid[col][row] = blockObj;
 
-        const blockObj = { type, el, r, c };
-        matrix[r][c] = blockObj;
-        grid.appendChild(el);
+        if(isNew) {
+            setTimeout(() => { el.style.top = `${row * SIZE}px`; }, 50);
+        }
     }
 
-    async function startSpin() {
-        // 1. Анимация инструментов (рандом в слотах)
-        const tools = ['⛏️', '⛏️', '💣', '📖', '⚔️'];
+    async function playTurn() {
+        spinBtn.disabled = true;
+        
+        // 1. Анимация инструментов (3 ряда x 5 колонок)
+        const tools = ['⛏️', '⛏️', '💣', '⚔️', ''];
         let results = [];
-        
-        for(let i=0; i<12; i++) {
-            const res = Math.random() > 0.7 ? tools[Math.floor(Math.random()*tools.length)] : '';
+        for (let i = 0; i < 15; i++) {
+            const res = Math.random() > 0.6 ? tools[Math.floor(Math.random() * tools.length)] : '';
+            results.push(res);
             document.getElementById(`slot-${i}`).innerText = res;
-            if(res) results.push(res);
         }
 
-        // 2. Применение эффектов инструментов
-        for(let tool of results) {
-            await new Promise(r => setTimeout(r, 200));
-            applyTool(tool);
-        }
-    }
-
-    function applyTool(tool) {
-        let targets = [];
-        if(tool === '⛏️') targets.push(getRandomBlock());
-        if(tool === '💣') { // Взрыв области
-            let center = getRandomBlock();
-            targets.push(center);
-            // Добавим соседей для TNT
-        }
-        if(tool === '📖') balance += 100;
-
-        targets.forEach(t => {
-            if(t) destroyBlock(t.r, t.c);
-        });
-
-        applyGravity();
-    }
-
-    function getRandomBlock() {
-        let activeBlocks = [];
-        matrix.forEach(row => row.forEach(b => { if(b) activeBlocks.push(b) }));
-        return activeBlocks[Math.floor(Math.random() * activeBlocks.length)];
-    }
-
-    function destroyBlock(r, c) {
-        if(!matrix[r][c]) return;
-        const block = matrix[r][c];
-        
-        // Начисление очков
-        if(block.type === 'chest') balance += 500;
-        else if(block.type === 'gold') balance += 100;
-        else balance += 10;
-        
-        balanceEl.innerText = `Баланс: ${balance}`;
-        
-        block.el.style.transform = 'scale(0)';
-        setTimeout(() => block.el.remove(), 300);
-        matrix[r][c] = null;
-    }
-
-    function applyGravity() {
-        for (let c = 0; c < COLS; c++) {
-            let emptySpots = 0;
-            // Идем снизу вверх
-            for (let r = ROWS - 1; r >= 0; r--) {
-                if (matrix[r][c] === null) {
-                    emptySpots++;
-                } else if (emptySpots > 0) {
-                    // Перемещаем блок вниз
-                    const block = matrix[r][c];
-                    matrix[r + emptySpots][c] = block;
-                    matrix[r][c] = null;
-                    block.r = r + emptySpots;
-                    block.el.style.top = (block.r * BLOCK_SIZE) + 'px';
+        // 2. Обработка инструментов по рядам (сверху вниз)
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 5; c++) {
+                const tool = results[r * 5 + c];
+                const slot = document.getElementById(`slot-${r * 5 + c}`);
+                
+                if (tool) {
+                    slot.classList.add('active');
+                    await applyTool(tool, c);
+                    await new Promise(res => setTimeout(res, 150));
+                    slot.classList.remove('active');
                 }
             }
-            // Добавляем новые блоки сверху
-            for (let i = 0; i < emptySpots; i++) {
-                createBlock(-1 - i, c); // Создаем за пределами экрана
-                // Небольшая задержка, чтобы они плавно упали
-                setTimeout(() => {
-                   const newBlock = matrix[0][c]; // Это упрощенно, лучше доработать логику очереди
-                   if(newBlock) newBlock.el.style.top = ( (emptySpots-1-i) * BLOCK_SIZE) + 'px';
-                }, 50);
+        }
+
+        spinBtn.disabled = false;
+    }
+
+    async function applyTool(tool, col) {
+        if (tool === '⛏️') {
+            await destroyTopBlock(col);
+        } else if (tool === '💣') {
+            for(let i=0; i<3; i++) await destroyTopBlock(col);
+        } else if (tool === '⚔️') {
+            while(grid[col].length > 0) await destroyTopBlock(col);
+        }
+        updatePhysics();
+    }
+
+    function destroyTopBlock(col) {
+        return new Promise(resolve => {
+            if (grid[col].length === 0) return resolve();
+            
+            const block = grid[col].shift(); // Забираем верхний
+            block.el.style.transform = 'scale(1.2)';
+            block.el.style.opacity = '0';
+            
+            // Начисление очков
+            if (block.type === 'chest') score += 500;
+            else if (block.type === 'gold') score += 100;
+            else if (block.type === 'ore') score += 50;
+            else score += 10;
+            
+            scoreEl.innerText = score;
+
+            setTimeout(() => {
+                block.el.remove();
+                resolve();
+            }, 100);
+        });
+    }
+
+    function updatePhysics() {
+        for (let c = 0; c < COLS; c++) {
+            // Опускаем существующие блоки
+            grid[c].forEach((block, index) => {
+                block.el.style.top = `${index * SIZE}px`;
+            });
+            // Добавляем новые сверху, если не хватает
+            while (grid[c].length < ROWS) {
+                spawnBlock(c, grid[c].length, true);
             }
         }
     }
 
-    initGrid();
+    initWorld();
 </script>
+
 </body>
 </html>
