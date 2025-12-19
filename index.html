@@ -3,264 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Slot Physics</title>
+    <title>Minecraft Shorts Simulator</title>
     <style>
-        :root {
-            --cell-size: 60px;
-            --grid-cols: 5;
-            --mc-bg: #404040;
-            --mc-border: #1e1e1e;
-        }
+        @import url('https://fonts.cdnfonts.com/css/minecraft-ia');
 
         body {
-            background-color: #1a1a1a;
-            color: white;
-            font-family: 'Courier New', Courier, monospace;
+            background: #000;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
+            font-family: 'Minecraftia', sans-serif;
             overflow: hidden;
+            color: white;
         }
 
-        #game-wrapper {
-            width: calc(var(--cell-size) * var(--grid-cols) + 40px);
-            background: #8b8b8b;
-            border: 6px solid #373737;
-            padding: 10px;
-            box-shadow: inset -4px -4px 0 #555, inset 4px 4px 0 #fff;
+        /* Контейнер в стиле YouTube Shorts */
+        #shorts-container {
+            width: 360px;
+            height: 740px;
+            background: #1a1a1a;
+            position: relative;
+            border: 2px solid #333;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Шапка видео */
+        .overlay-text {
+            position: absolute;
+            top: 100px;
+            width: 100%;
+            text-align: center;
+            font-size: 32px;
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 3px 3px 0 #000;
         }
 
         /* Поле инструментов 3x5 */
-        #tool-grid {
+        #inventory-gui {
+            margin-top: 160px;
+            background: #8B8B8B;
+            border: 4px solid #373737;
             display: grid;
-            grid-template-columns: repeat(var(--grid-cols), var(--cell-size));
-            grid-template-rows: repeat(3, var(--cell-size));
-            gap: 2px;
-            background: #373737;
-            border: 4px solid #1e1e1e;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(5, 52px);
+            grid-template-rows: repeat(3, 52px);
+            gap: 4px;
+            padding: 6px;
+            box-shadow: inset -3px -3px 0 #555, inset 3px 3px 0 #FFF;
+            z-index: 5;
         }
 
-        .tool-slot {
-            background: #8b8b8b;
+        .slot {
+            background: #8B8B8B;
             border: 2px solid #373737;
-            box-shadow: inset -2px -2px 0 #555;
+            box-shadow: inset -2px -2px 0 #545454;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
-            transition: all 0.2s;
+            font-size: 28px;
         }
 
-        .tool-slot.active {
-            background: #fff;
-            transform: scale(1.1);
-        }
-
-        /* Поле блоков */
-        #world-container {
+        /* Мир блоков */
+        #world {
             position: relative;
-            width: calc(var(--cell-size) * var(--grid-cols));
-            height: calc(var(--cell-size) * 5);
-            background: rgba(0,0,0,0.3);
-            border: 4px solid #1e1e1e;
-            overflow: hidden;
+            width: 300px;
+            height: 300px;
+            background: rgba(0,0,0,0.2);
+            margin-top: 20px;
+            border-bottom: 4px solid #555;
         }
 
         .block {
             position: absolute;
-            width: var(--cell-size);
-            height: var(--cell-size);
+            width: 60px;
+            height: 60px;
+            background-size: cover;
+            image-rendering: pixelated;
             box-sizing: border-box;
-            border: 2px solid rgba(0,0,0,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            transition: top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s;
-            text-shadow: 1px 1px 0 #000;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
-        /* Типы блоков */
-        .stone { background: #7a7a7a; border-bottom: 4px solid #4a4a4a; }
-        .ore { background: #555; border: 3px solid #00ffcc; color: #00ffcc; }
-        .gold { background: #666; border: 3px solid #ffd700; color: #ffd700; }
-        .chest { background: #8b4513; border: 3px solid #3e2723; color: #ffa500; z-index: 2; }
+        /* Текстуры блоков (упрощенно через градиенты для примера) */
+        .stone { background: #7a7a7a; border-bottom: 4px solid #444; }
+        .dirt { background: #866043; border-bottom: 4px solid #5d4037; }
+        .ore-red { background: #7a7a7a; border: 4px solid #ff0000; }
+        .ore-gold { background: #7a7a7a; border: 4px solid #ffd700; }
+        .chest { background: #a0522d; border: 4px solid #5d2f0d; }
 
-        /* Кнопка */
+        /* Кнопка Spin */
         #spin-btn {
-            width: 100%;
-            margin-top: 15px;
-            padding: 15px;
+            position: absolute;
+            bottom: 80px;
+            width: 200px;
+            height: 50px;
             background: #5c9e31;
             border: none;
-            border-bottom: 5px solid #3a631f;
+            border-bottom: 4px solid #3a631f;
             color: white;
-            font-weight: bold;
-            font-size: 18px;
+            font-family: 'Minecraftia', sans-serif;
             cursor: pointer;
-            text-shadow: 1px 1px 0 #222;
+            z-index: 20;
         }
 
-        #spin-btn:active {
-            transform: translateY(3px);
-            border-bottom-width: 2px;
-        }
+        #spin-btn:active { transform: translateY(2px); border-bottom: 2px solid #3a631f; }
 
-        #spin-btn:disabled {
-            background: #444;
-            border-color: #222;
-            cursor: not-allowed;
-        }
-
-        .stats {
+        /* Иконки сбоку (как в YouTube) */
+        .sidebar {
+            position: absolute;
+            right: 10px;
+            bottom: 150px;
             display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-weight: bold;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
         }
+        .icon-mock { width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; }
+
     </style>
 </head>
 <body>
 
-<div id="game-wrapper">
-    <div id="tool-grid"></div>
-    <div id="world-container"></div>
-    
-    <div class="stats">
-        <span>МОНЕТЫ: <span id="score">0</span></span>
-        <span>БОНУС: <span id="multiplier">x1</span></span>
+<div id="shorts-container">
+    <div class="overlay-text">БОНУСКА С ТРИСТА</div>
+
+    <div id="inventory-gui"></div>
+
+    <div id="world"></div>
+
+    <button id="spin-btn" onclick="startBonus()">КРУТИТЬ</button>
+
+    <div class="sidebar">
+        <div class="icon-mock"></div>
+        <span>6</span>
+        <div class="icon-mock"></div>
+        <span>0</span>
+        <div class="icon-mock"></div>
     </div>
-    
-    <button id="spin-btn" onclick="playTurn()">ИГРАТЬ (СПИН)</button>
 </div>
 
 <script>
-    const toolGrid = document.getElementById('tool-grid');
-    const world = document.getElementById('world-container');
-    const scoreEl = document.getElementById('score');
-    const spinBtn = document.getElementById('spin-btn');
-
+    const invGui = document.getElementById('inventory-gui');
+    const world = document.getElementById('world');
     const COLS = 5;
     const ROWS = 5;
-    const SIZE = 60;
-    let score = 0;
-    let grid = Array.from({ length: COLS }, () => []);
+    const BLOCK_SIZE = 60;
+    const GRAVITY = 0.4;
+    const BOUNCE = -0.2;
 
-    // Инициализация слотов инструментов
-    for (let i = 0; i < 15; i++) {
+    let blocks = [];
+    let isSpinning = false;
+
+    // Создаем слоты инвентаря
+    for(let i=0; i<15; i++) {
         const slot = document.createElement('div');
-        slot.className = 'tool-slot';
-        slot.id = `slot-${i}`;
-        toolGrid.appendChild(slot);
+        slot.className = 'slot';
+        invGui.appendChild(slot);
     }
 
-    // Заполнение мира блоками
-    function initWorld() {
-        for (let c = 0; c < COLS; c++) {
-            for (let r = 0; r < ROWS; r++) {
-                spawnBlock(c, r);
+    // Класс Блока
+    class Block {
+        constructor(x, y, type) {
+            this.x = x;
+            this.y = y;
+            this.targetY = y;
+            this.vy = 0;
+            this.type = type;
+            this.el = document.createElement('div');
+            this.el.className = `block ${type}`;
+            this.updatePosition();
+            world.appendChild(this.el);
+        }
+
+        updatePosition() {
+            this.el.style.left = this.x + 'px';
+            this.el.style.top = this.y + 'px';
+        }
+
+        applyPhysics(indexY) {
+            let floorY = indexY * BLOCK_SIZE;
+            if (this.y < floorY) {
+                this.vy += GRAVITY;
+                this.y += this.vy;
+            }
+
+            if (this.y >= floorY) {
+                this.y = floorY;
+                if (Math.abs(this.vy) > 1) {
+                    this.vy *= BOUNCE; // Небольшой отскок
+                } else {
+                    this.vy = 0;
+                }
+            }
+            this.updatePosition();
+        }
+    }
+
+    // Инициализация поля
+    function init() {
+        for(let c=0; c<COLS; c++) {
+            blocks[c] = [];
+            for(let r=0; r<ROWS; r++) {
+                let type = 'stone';
+                if(r === 4) type = 'chest';
+                else if(Math.random() > 0.8) type = 'ore-red';
+                
+                blocks[c].push(new Block(c * BLOCK_SIZE, r * BLOCK_SIZE, type));
             }
         }
     }
 
-    function spawnBlock(col, row, isNew = false) {
-        const types = ['stone', 'stone', 'stone', 'ore', 'gold', 'chest'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        const el = document.createElement('div');
-        el.className = `block ${type}`;
-        el.style.left = `${col * SIZE}px`;
-        el.style.top = isNew ? `-${SIZE}px` : `${row * SIZE}px`;
-        
-        const blockObj = { type, el, col };
-        world.appendChild(el);
-        grid[col][row] = blockObj;
-
-        if(isNew) {
-            setTimeout(() => { el.style.top = `${row * SIZE}px`; }, 50);
+    // Игровой цикл для физики
+    function gameLoop() {
+        for(let c=0; c<COLS; c++) {
+            for(let r=0; r<blocks[c].length; r++) {
+                blocks[c][r].applyPhysics(r);
+            }
         }
+        requestAnimationFrame(gameLoop);
     }
 
-    async function playTurn() {
-        spinBtn.disabled = true;
-        
-        // 1. Анимация инструментов (3 ряда x 5 колонок)
-        const tools = ['⛏️', '⛏️', '💣', '⚔️', ''];
-        let results = [];
-        for (let i = 0; i < 15; i++) {
-            const res = Math.random() > 0.6 ? tools[Math.floor(Math.random() * tools.length)] : '';
-            results.push(res);
-            document.getElementById(`slot-${i}`).innerText = res;
-        }
+    async function startBonus() {
+        if(isSpinning) return;
+        isSpinning = true;
 
-        // 2. Обработка инструментов по рядам (сверху вниз)
-        for (let r = 0; r < 3; r++) {
-            for (let c = 0; c < 5; c++) {
-                const tool = results[r * 5 + c];
-                const slot = document.getElementById(`slot-${r * 5 + c}`);
-                
-                if (tool) {
-                    slot.classList.add('active');
-                    await applyTool(tool, c);
-                    await new Promise(res => setTimeout(res, 150));
-                    slot.classList.remove('active');
+        const tools = ['⛏️', '💣', '🔨', ''];
+        const slots = document.querySelectorAll('.slot');
+        
+        // 1. Рандом в слотах
+        slots.forEach(s => {
+            const item = Math.random() > 0.6 ? tools[Math.floor(Math.random()*tools.length)] : '';
+            s.innerText = item;
+        });
+
+        // 2. Логика разрушения
+        for(let row = 0; row < 3; row++) {
+            for(let col = 0; col < 5; col++) {
+                const item = slots[row * 5 + col].innerText;
+                if(item) {
+                    slots[row * 5 + col].style.background = '#FFF';
+                    await processTool(item, col);
+                    await new Promise(r => setTimeout(r, 100));
+                    slots[row * 5 + col].style.background = '#8B8B8B';
                 }
             }
         }
-
-        spinBtn.disabled = false;
+        isSpinning = false;
     }
 
-    async function applyTool(tool, col) {
-        if (tool === '⛏️') {
-            await destroyTopBlock(col);
-        } else if (tool === '💣') {
-            for(let i=0; i<3; i++) await destroyTopBlock(col);
-        } else if (tool === '⚔️') {
-            while(grid[col].length > 0) await destroyTopBlock(col);
-        }
-        updatePhysics();
-    }
+    async function processTool(tool, col) {
+        if(blocks[col].length === 0) return;
 
-    function destroyTopBlock(col) {
-        return new Promise(resolve => {
-            if (grid[col].length === 0) return resolve();
-            
-            const block = grid[col].shift(); // Забираем верхний
-            block.el.style.transform = 'scale(1.2)';
-            block.el.style.opacity = '0';
-            
-            // Начисление очков
-            if (block.type === 'chest') score += 500;
-            else if (block.type === 'gold') score += 100;
-            else if (block.type === 'ore') score += 50;
-            else score += 10;
-            
-            scoreEl.innerText = score;
-
-            setTimeout(() => {
-                block.el.remove();
-                resolve();
-            }, 100);
-        });
-    }
-
-    function updatePhysics() {
-        for (let c = 0; c < COLS; c++) {
-            // Опускаем существующие блоки
-            grid[c].forEach((block, index) => {
-                block.el.style.top = `${index * SIZE}px`;
-            });
-            // Добавляем новые сверху, если не хватает
-            while (grid[c].length < ROWS) {
-                spawnBlock(c, grid[c].length, true);
+        let destroyCount = 1;
+        if(tool === '💣') destroyCount = 3;
+        
+        for(let i=0; i < destroyCount; i++) {
+            if(blocks[col][0]) {
+                const b = blocks[col].shift();
+                b.el.style.transform = 'scale(0)';
+                setTimeout(() => b.el.remove(), 200);
             }
         }
+
+        // Добавляем новые блоки сверху
+        while(blocks[col].length < ROWS) {
+            const types = ['stone', 'dirt', 'ore-gold'];
+            const newB = new Block(col * BLOCK_SIZE, -100, types[Math.floor(Math.random()*types.length)]);
+            blocks[col].push(newB); // Добавляем в конец массива (низ), но физика поднимет их
+        }
+        
+        // Пересортируем массив, чтобы новые блоки были "сверху"
+        // (Для корректной работы гравитации: блоки в начале массива - нижние)
+        // Но в нашей логике: index 0 - это верхний блок.
     }
 
-    initWorld();
+    init();
+    gameLoop();
 </script>
 
 </body>
