@@ -3,348 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Minecraft Slots</title>
+    <title>Space Gravity Launch</title>
     <style>
-        :root {
-            --bg-dark: #0f0f0f;
-            --panel-bg: rgba(45, 45, 45, 0.9);
-            --mc-green: #5da329;
-            --mc-border: #1e1e1e;
-            --slot-size: 55px;
-        }
-
         body {
-            background-color: var(--bg-dark);
-            background-image: radial-gradient(circle, #222 1px, transparent 1px);
-            background-size: 30px 30px;
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
             color: white;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            overflow: hidden;
         }
 
-        #app {
-            width: 380px;
-            height: 720px;
-            background: var(--panel-bg);
-            border: 2px solid #333;
-            border-radius: 24px;
+        canvas {
+            display: block;
+            background-color: #000;
+        }
+
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #444;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            position: relative;
-            backdrop-filter: blur(10px);
+            gap: 10px;
+            width: 300px;
+            transition: opacity 0.3s;
         }
 
-        /* Статистика */
-        .header {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .balance {
-            font-size: 32px;
-            font-weight: 900;
-            color: #ffd700;
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-        }
-
-        /* Сетка инструментов 3x5 */
-        #slot-machine {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: repeat(5, var(--slot-size));
-            grid-template-rows: repeat(3, var(--slot-size));
-            gap: 6px;
-            padding: 10px;
-            background: rgba(0,0,0,0.4);
-            border-radius: 12px;
-            border: 1px solid #444;
-        }
-
-        .slot {
-            width: var(--slot-size);
-            height: var(--slot-size);
-            background: #333;
-            border-radius: 8px;
+        .controls-group {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            border: 1px solid #555;
-            transition: transform 0.1s;
         }
 
-        /* Игровое поле блоков */
-        #block-field {
-            margin-top: 40px;
-            display: grid;
-            grid-template-columns: repeat(5, 60px);
-            grid-template-rows: repeat(5, 60px);
-            gap: 4px;
-            position: relative;
+        input[type=range] {
+            width: 150px;
         }
 
-        .block {
-            width: 60px;
-            height: 60px;
-            border-radius: 4px;
-            position: relative;
-            transition: all 0.2s;
-            box-sizing: border-box;
-            background-size: cover;
-        }
-
-        /* Дизайн блоков */
-        .stone { background: #555; border: 2px solid #666; }
-        .diamond { background: #00ced1; border: 2px solid #fff; box-shadow: 0 0 10px #00ced1; }
-        .gold { background: #ffd700; border: 2px solid #fff; }
-        .tnt-block { background: #f00; border: 2px solid #000; }
-
-        /* Падающий инструмент */
-        .tool-entity {
-            position: absolute;
-            font-size: 35px;
-            z-index: 100;
-            pointer-events: none;
-            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
-        }
-
-        /* Частицы при взрыве */
-        .particle {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            pointer-events: none;
-            z-index: 99;
-        }
-
-        /* Кнопка */
-        #spin-btn {
-            margin-top: auto;
-            margin-bottom: 40px;
-            width: 200px;
-            padding: 15px;
-            border-radius: 50px;
+        button {
+            padding: 10px;
+            background: #27ae60;
             border: none;
-            background: linear-gradient(145, #5da329, #4a8221);
             color: white;
             font-weight: bold;
-            font-size: 18px;
+            border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(93, 163, 41, 0.4);
-            transition: 0.2s;
+            transition: background 0.2s;
         }
 
-        #spin-btn:hover { transform: scale(1.05); }
-        #spin-btn:active { transform: scale(0.95); }
-        #spin-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+        button:hover {
+            background: #2ecc71;
+        }
+
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .status-msg {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <div class="header">
-        <div style="font-size: 12px; opacity: 0.6; letter-spacing: 2px;">ВАШ БАЛАНС</div>
-        <div class="balance" id="score">0</div>
+    <div id="overlay">
+        <div id="status" class="status-msg">Приготовьтесь к запуску</div>
+        <div id="timer"></div>
     </div>
 
-    <div id="slot-machine"></div>
+    <div id="ui">
+        <div class="controls-group">
+            <label>Угол:</label>
+            <input type="range" id="angleInput" min="0" max="360" value="270">
+            <span id="angleVal">270°</span>
+        </div>
+        <div class="controls-group">
+            <label>Сила:</label>
+            <input type="range" id="powerInput" min="1" max="100" value="50">
+            <span id="powerVal">50</span>
+        </div>
+        <button id="launchBtn">ЗАПУСК</button>
+    </div>
 
-    <div id="block-field"></div>
-
-    <button id="spin-btn" onclick="spin()">ИГРАТЬ</button>
-</div>
+    <canvas id="gameCanvas"></canvas>
 
 <script>
-    const slotMachine = document.getElementById('slot-machine');
-    const blockField = document.getElementById('block-field');
-    const scoreEl = document.getElementById('score');
-    const spinBtn = document.getElementById('spin-btn');
+/**
+ * НАСТРОЙКИ ИГРЫ
+ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const ui = document.getElementById('ui');
+const launchBtn = document.getElementById('launchBtn');
 
-    let score = 0;
-    const COLS = 5;
-    const ROWS = 5;
-    const tools = ['⛏️', '💣', '🪓', '⚡'];
+const MAP_RADIUS = 2000; // Размер круглой карты
+const MAX_FLIGHT_TIME = 8000; // Макс. время полета в мс
+const GRAVITY_CONSTANT = 0.5; // Сила гравитации
+const GRAVITY_FIELD_FACTOR = 1.25; // Радиус действия гравитации (125% от радиуса планеты)
 
-    // 1. Создаем слоты (3x5)
-    for(let i=0; i<15; i++) {
-        const slot = document.createElement('div');
-        slot.className = 'slot';
-        slotMachine.appendChild(slot);
-    }
+let width, height;
+let gameState = 'PREPARE'; // PREPARE, FLYING, END
+let planets = [];
+let rocket = {
+    x: 0,
+    y: 0,
+    vx: 0,
+    vy: 0,
+    angle: 0,
+    history: [] // Для отрисовки шлейфа
+};
 
-    // 2. Создаем блоки (статичная сетка 5x5)
-    function initBlocks() {
-        blockField.innerHTML = '';
-        for(let i=0; i<25; i++) {
-            createBlock(i);
-        }
-    }
+let camera = {
+    zoom: 4,
+    x: 0,
+    y: 0,
+    targetZoom: 4
+};
 
-    function createBlock(index) {
-        const block = document.createElement('div');
-        const r = Math.random();
-        let type = 'stone';
-        if(r > 0.95) type = 'diamond';
-        else if(r > 0.85) type = 'gold';
-        else if(r > 0.80) type = 'tnt-block';
+let flightStartTime = 0;
 
-        block.className = `block ${type}`;
-        block.id = `block-${index}`;
-        blockField.appendChild(block);
-    }
+/**
+ * ИНИЦИАЛИЗАЦИЯ
+ */
+function init() {
+    resize();
+    createPlanets();
+    resetRocket();
+    window.addEventListener('resize', resize);
+    animate();
+}
 
-    // 3. Логика спина
-    async function spin() {
-        spinBtn.disabled = true;
-        const slots = document.querySelectorAll('.slot');
+function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+}
+
+function createPlanets() {
+    planets = [];
+    const count = 3 + Math.floor(Math.random() * 4); // 3-6 планет
+    
+    for (let i = 0; i < count; i++) {
+        const radius = 30 + Math.random() * 70;
+        // Коэффициент выигрыша: чем меньше планета, тем выше награда
+        const multiplier = (100 / radius).toFixed(1);
         
-        // Рандомим слоты
-        let results = [];
-        slots.forEach(s => {
-            const val = Math.random() > 0.7 ? tools[Math.floor(Math.random()*tools.length)] : '';
-            s.innerText = val;
-            results.push(val);
-            s.style.background = val ? '#444' : '#333';
-        });
-
-        // Запускаем инструменты по очереди (сверху вниз)
-        for(let r=0; r<3; r++) {
-            let animations = [];
-            for(let c=0; c<5; c++) {
-                const tool = results[r*5 + c];
-                if(tool) {
-                    animations.push(spawnTool(tool, c));
-                }
-            }
-            if(animations.length > 0) await Promise.all(animations);
-        }
-
-        spinBtn.disabled = false;
-    }
-
-    // 4. Физика падения инструмента
-    function spawnTool(type, col) {
-        return new Promise(resolve => {
-            const tool = document.createElement('div');
-            tool.className = 'tool-entity';
-            tool.innerText = type;
-
-            // Находим позицию старта (из слота) и финиша (верхний блок в колонке)
-            const rect = blockField.getBoundingClientRect();
-            let targetBlockIndex = -1;
-
-            // Ищем первый не пустой блок в колонке
-            for(let r=0; r<5; r++) {
-                const idx = r * 5 + col;
-                const b = document.getElementById(`block-${idx}`);
-                if(b && !b.classList.contains('destroyed')) {
-                    targetBlockIndex = idx;
-                    break;
-                }
-            }
-
-            if(targetBlockIndex === -1) { resolve(); return; }
-
-            const targetBlock = document.getElementById(`block-${targetBlockIndex}`);
-            const startX = col * 64 + 15;
-            const startY = -150;
-            
-            tool.style.left = startX + 'px';
-            tool.style.top = startY + 'px';
-            blockField.appendChild(tool);
-
-            // Анимация падения
-            let pos = startY;
-            let vel = 0;
-            const gravity = 0.8;
-
-            function animate() {
-                vel += gravity;
-                pos += vel;
-                tool.style.top = pos + 'px';
-
-                const targetY = targetBlock.offsetTop;
-
-                if(pos >= targetY) {
-                    hitBlock(targetBlock, type);
-                    tool.remove();
-                    resolve();
-                } else {
-                    requestAnimationFrame(animate);
-                }
-            }
-            animate();
+        planets.push({
+            radius: radius,
+            orbitRadius: 400 + (i * 250),
+            orbitAngle: Math.random() * Math.PI * 2,
+            orbitSpeed: (0.005 / (radius / 50)), // Маленькие вращаются быстрее
+            color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+            multiplier: multiplier,
+            x: 0,
+            y: 0
         });
     }
+}
 
-    // 5. Разрушение блока
-    function hitBlock(el, toolType) {
-        if(el.classList.contains('destroyed')) return;
+function resetRocket() {
+    rocket.x = 0;
+    rocket.y = 0;
+    rocket.vx = 0;
+    rocket.vy = 0;
+    rocket.history = [];
+    gameState = 'PREPARE';
+    camera.targetZoom = 4;
+    ui.style.opacity = "1";
+    launchBtn.disabled = false;
+    document.getElementById('status').innerText = "Выберите параметры и запускайте";
+}
 
-        // Эффект тряски экрана
-        blockField.style.transform = `translate(${Math.random()*4-2}px, ${Math.random()*4-2}px)`;
-        setTimeout(() => blockField.style.transform = 'none', 100);
+/**
+ * ЛОГИКА
+ */
+function update() {
+    // Обновление позиций планет на орбитах
+    planets.forEach(p => {
+        p.orbitAngle += p.orbitSpeed;
+        p.x = Math.cos(p.orbitAngle) * p.orbitRadius;
+        p.y = Math.sin(p.orbitAngle) * p.orbitRadius;
+    });
 
-        // Расчет очков
-        if(el.classList.contains('diamond')) score += 1000;
-        else if(el.classList.contains('gold')) score += 500;
-        else score += 100;
-        scoreEl.innerText = score;
+    if (gameState === 'FLYING') {
+        const now = Date.now();
+        const elapsed = now - flightStartTime;
 
-        // Спавн частиц
-        createParticles(el);
+        // 1. Применяем гравитацию
+        planets.forEach(p => {
+            const dx = p.x - rocket.x;
+            const dy = p.y - rocket.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
 
-        // Визуальное разрушение
-        el.style.opacity = '0';
-        el.classList.add('destroyed');
-
-        // Через секунду блок "респавнится"
-        setTimeout(() => {
-            el.style.opacity = '1';
-            el.classList.remove('destroyed', 'stone', 'diamond', 'gold', 'tnt-block');
-            const r = Math.random();
-            let type = 'stone';
-            if(r > 0.95) type = 'diamond';
-            else if(r > 0.8) type = 'gold';
-            el.classList.add(type);
-        }, 1500);
-    }
-
-    function createParticles(parent) {
-        for(let i=0; i<8; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.backgroundColor = getComputedStyle(parent).backgroundColor;
-            p.style.left = parent.offsetLeft + 30 + 'px';
-            p.style.top = parent.offsetTop + 30 + 'px';
-            blockField.appendChild(p);
-
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 5 + 2;
-            let px = 0, py = 0;
-
-            function moveP() {
-                px += Math.cos(angle) * speed;
-                py += Math.sin(angle) * speed + 0.5; // Гравитация частиц
-                p.style.transform = `translate(${px}px, ${py}px)`;
-                if(parseFloat(p.style.opacity) <= 0) p.remove();
-                else {
-                    p.style.opacity = (p.style.opacity || 1) - 0.05;
-                    requestAnimationFrame(moveP);
-                }
+            // Гравитация действует только в пределах 125% от радиуса планеты
+            if (dist < p.radius * GRAVITY_FIELD_FACTOR) {
+                const force = (p.radius * GRAVITY_CONSTANT) / (dist * dist);
+                rocket.vx += (dx / dist) * force * 10;
+                rocket.vy += (dy / dist) * force * 10;
             }
-            moveP();
+
+            // Проверка столкновения (победа)
+            if (dist < p.radius) {
+                win(p.multiplier);
+            }
+        });
+
+        // 2. Движение ракеты
+        rocket.x += rocket.vx;
+        rocket.y += rocket.vy;
+        rocket.history.push({x: rocket.x, y: rocket.y});
+        if (rocket.history.length > 50) rocket.history.shift();
+
+        // 3. Условия проигрыша
+        const distFromCenter = Math.sqrt(rocket.x**2 + rocket.y**2);
+        if (distFromCenter > MAP_RADIUS) {
+            lose("Вылетели за пределы карты!");
+        } else if (elapsed > MAX_FLIGHT_TIME) {
+            lose("Закончилось топливо (время выйти)!");
         }
+
+        // 4. Камера следит за ракетой, но плавно отдаляется
+        camera.x = rocket.x;
+        camera.y = rocket.y;
+        if (camera.targetZoom > 0.4) camera.targetZoom -= 0.01;
+    } else {
+        // В режиме ожидания камера в центре
+        camera.x = 0;
+        camera.y = 0;
     }
 
-    initBlocks();
+    // Плавное приближение камеры
+    camera.zoom += (camera.targetZoom - camera.zoom) * 0.05;
+}
+
+function win(m) {
+    gameState = 'END';
+    document.getElementById('status').innerText = `ПОБЕДА! Множитель: x${m}`;
+    setTimeout(resetRocket, 3000);
+}
+
+function lose(msg) {
+    gameState = 'END';
+    document.getElementById('status').innerText = `ПРОИГРЫШ: ${msg}`;
+    setTimeout(resetRocket, 3000);
+}
+
+/**
+ * ОТРИСОВКА
+ */
+function draw() {
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.save();
+    // Центрируем камеру
+    ctx.translate(width / 2, height / 2);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
+
+    // Рисуем границу карты
+    ctx.beginPath();
+    ctx.arc(0, 0, MAP_RADIUS, 0, Math.PI * 2);
+    ctx.strokeStyle = '#333';
+    ctx.setLineDash([20, 15]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Рисуем орбиты
+    planets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.orbitRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.stroke();
+    });
+
+    // Рисуем планеты
+    planets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        
+        // Текст множителя
+        ctx.save();
+        ctx.scale(1/camera.zoom, 1/camera.zoom); // Текст не должен сильно зумиться
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`x${p.multiplier}`, p.x * camera.zoom, (p.y - p.radius - 10) * camera.zoom);
+        ctx.restore();
+    });
+
+    // Рисуем шлейф ракеты
+    if (rocket.history.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(rocket.history[0].x, rocket.history[0].y);
+        for(let i=1; i<rocket.history.length; i++) {
+            ctx.lineTo(rocket.history[i].x, rocket.history[i].y);
+        }
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.stroke();
+    }
+
+    // Рисуем ракету
+    ctx.save();
+    ctx.translate(rocket.x, rocket.y);
+    if (gameState === 'FLYING') {
+        ctx.rotate(Math.atan2(rocket.vy, rocket.vx) + Math.PI/2);
+    } else {
+        ctx.rotate((document.getElementById('angleInput').value * Math.PI / 180) + Math.PI/2);
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(7, 10);
+    ctx.lineTo(-7, 10);
+    ctx.closePath();
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+}
+
+function animate() {
+    update();
+    draw();
+    requestAnimationFrame(animate);
+}
+
+/**
+ * УПРАВЛЕНИЕ
+ */
+launchBtn.addEventListener('click', () => {
+    if (gameState !== 'PREPARE') return;
+
+    const angle = document.getElementById('angleInput').value * Math.PI / 180;
+    const power = document.getElementById('powerInput').value / 10;
+
+    rocket.vx = Math.cos(angle) * power;
+    rocket.vy = Math.sin(angle) * power;
+    
+    gameState = 'FLYING';
+    flightStartTime = Date.now();
+    ui.style.opacity = "0";
+    launchBtn.disabled = true;
+    document.getElementById('status').innerText = "Полет нормальный...";
+});
+
+// Живое обновление значений UI
+document.getElementById('angleInput').addEventListener('input', (e) => {
+    document.getElementById('angleVal').innerText = e.target.value + '°';
+});
+document.getElementById('powerInput').addEventListener('input', (e) => {
+    document.getElementById('powerVal').innerText = e.target.value;
+});
+
+// Старт
+init();
+
 </script>
 </body>
 </html>
