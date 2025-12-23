@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Gravity Launch</title>
+    <title>Space Bet Launcher</title>
     <style>
         body {
             margin: 0;
@@ -28,15 +28,25 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 15px;
+            background: rgba(20, 20, 25, 0.9);
+            padding: 15px 25px;
+            border-radius: 12px;
             border: 1px solid #444;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            width: 300px;
-            transition: opacity 0.3s;
+            gap: 12px;
+            width: 320px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #f1c40f;
+            font-size: 18px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
         }
 
         .controls-group {
@@ -45,107 +55,114 @@
             align-items: center;
         }
 
-        input[type=range] {
-            width: 150px;
+        label { font-size: 14px; color: #ccc; }
+
+        input[type=range] { width: 140px; cursor: pointer; }
+        input[type=number] { 
+            width: 80px; 
+            background: #222; 
+            border: 1px solid #555; 
+            color: white; 
+            padding: 4px; 
+            border-radius: 4px;
         }
 
         button {
-            padding: 10px;
-            background: #27ae60;
+            padding: 12px;
+            background: #e67e22;
             border: none;
             color: white;
             font-weight: bold;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
+            font-size: 16px;
+            transition: background 0.2s, transform 0.1s;
         }
 
-        button:hover {
-            background: #2ecc71;
-        }
-
-        button:disabled {
-            background: #7f8c8d;
-            cursor: not-allowed;
-        }
+        button:hover { background: #d35400; }
+        button:active { transform: scale(0.98); }
+        button:disabled { background: #34495e; cursor: not-allowed; }
 
         #overlay {
             position: absolute;
-            top: 20px;
+            top: 40px;
             left: 50%;
             transform: translateX(-50%);
             text-align: center;
             pointer-events: none;
+            width: 100%;
         }
 
-        .status-msg {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
+        .status-msg { font-size: 28px; font-weight: bold; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        .win { color: #2ecc71; }
+        .lose { color: #e74c3c; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
         <div id="status" class="status-msg">Приготовьтесь к запуску</div>
-        <div id="timer"></div>
     </div>
 
     <div id="ui">
+        <div class="info-row">
+            <span>Баланс:</span>
+            <span id="balanceDisplay">1000</span>
+        </div>
+        
+        <div class="controls-group">
+            <label>Ваша ставка:</label>
+            <input type="number" id="betInput" value="10" min="1">
+        </div>
+
         <div class="controls-group">
             <label>Угол:</label>
             <input type="range" id="angleInput" min="0" max="360" value="270">
-            <span id="angleVal">270°</span>
+            <span id="angleVal" style="width: 40px">270°</span>
         </div>
+
         <div class="controls-group">
             <label>Сила:</label>
-            <input type="range" id="powerInput" min="1" max="100" value="50">
-            <span id="powerVal">50</span>
+            <input type="range" id="powerInput" min="10" max="100" value="60">
+            <span id="powerVal" style="width: 40px">60</span>
         </div>
-        <button id="launchBtn">ЗАПУСК</button>
+
+        <button id="launchBtn">ЗАПУСТИТЬ РАКЕТУ</button>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
 <script>
 /**
- * НАСТРОЙКИ ИГРЫ
+ * НАСТРОЙКИ (Карта уменьшена в 2.5 раза: 2000 / 2.5 = 800)
  */
+const MAP_RADIUS = 800; 
+const MAX_FLIGHT_TIME = 8000;
+const GRAVITY_CONSTANT = 0.6;
+const GRAVITY_FIELD_FACTOR = 1.25;
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const ui = document.getElementById('ui');
-const launchBtn = document.getElementById('launchBtn');
-
-const MAP_RADIUS = 2000; // Размер круглой карты
-const MAX_FLIGHT_TIME = 8000; // Макс. время полета в мс
-const GRAVITY_CONSTANT = 0.5; // Сила гравитации
-const GRAVITY_FIELD_FACTOR = 1.25; // Радиус действия гравитации (125% от радиуса планеты)
 
 let width, height;
 let gameState = 'PREPARE'; // PREPARE, FLYING, END
 let planets = [];
+let balance = 1000;
+let currentBet = 0;
+
 let rocket = {
-    x: 0,
-    y: 0,
-    vx: 0,
-    vy: 0,
-    angle: 0,
-    history: [] // Для отрисовки шлейфа
+    x: 0, y: 0, vx: 0, vy: 0,
+    history: []
 };
 
 let camera = {
     zoom: 4,
-    x: 0,
-    y: 0,
+    x: 0, y: 0,
     targetZoom: 4
 };
 
 let flightStartTime = 0;
 
-/**
- * ИНИЦИАЛИЗАЦИЯ
- */
 function init() {
     resize();
     createPlanets();
@@ -161,24 +178,34 @@ function resize() {
     canvas.height = height;
 }
 
+/**
+ * СОЗДАНИЕ ПЛАНЕТ С ИКСАМИ 0.8 - 10.0
+ */
 function createPlanets() {
     planets = [];
-    const count = 3 + Math.floor(Math.random() * 4); // 3-6 планет
+    const count = 4 + Math.floor(Math.random() * 3);
     
+    // Диапазон радиусов для планет (влияет на сложность)
+    const minR = 20;
+    const maxR = 60;
+
     for (let i = 0; i < count; i++) {
-        const radius = 30 + Math.random() * 70;
-        // Коэффициент выигрыша: чем меньше планета, тем выше награда
-        const multiplier = (100 / radius).toFixed(1);
+        const radius = minR + Math.random() * (maxR - minR);
+        
+        // Маппинг радиуса в множитель: 
+        // Самая маленькая (20) -> 10.0x
+        // Самая большая (60) -> 0.8x
+        const t = (radius - minR) / (maxR - minR);
+        const multiplier = (10.0 - t * (10.0 - 0.8)).toFixed(2);
         
         planets.push({
             radius: radius,
-            orbitRadius: 400 + (i * 250),
+            orbitRadius: 180 + (i * 100), // Расстояние уменьшено под новую карту
             orbitAngle: Math.random() * Math.PI * 2,
-            orbitSpeed: (0.005 / (radius / 50)), // Маленькие вращаются быстрее
-            color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-            multiplier: multiplier,
-            x: 0,
-            y: 0
+            orbitSpeed: (0.004 / (radius / 40)),
+            color: `hsl(${Math.random() * 360}, 65%, 55%)`,
+            multiplier: parseFloat(multiplier),
+            x: 0, y: 0
         });
     }
 }
@@ -191,16 +218,20 @@ function resetRocket() {
     rocket.history = [];
     gameState = 'PREPARE';
     camera.targetZoom = 4;
-    ui.style.opacity = "1";
-    launchBtn.disabled = false;
-    document.getElementById('status').innerText = "Выберите параметры и запускайте";
+    camera.x = 0;
+    camera.y = 0;
+    
+    document.getElementById('ui').style.pointerEvents = "auto";
+    document.getElementById('ui').style.opacity = "1";
+    document.getElementById('launchBtn').disabled = false;
+    
+    const statusEl = document.getElementById('status');
+    statusEl.innerText = "Сделайте ставку и запуск";
+    statusEl.className = "status-msg";
 }
 
-/**
- * ЛОГИКА
- */
 function update() {
-    // Обновление позиций планет на орбитах
+    // Движение планет
     planets.forEach(p => {
         p.orbitAngle += p.orbitSpeed;
         p.x = Math.cos(p.orbitAngle) * p.orbitRadius;
@@ -208,125 +239,113 @@ function update() {
     });
 
     if (gameState === 'FLYING') {
-        const now = Date.now();
-        const elapsed = now - flightStartTime;
+        const elapsed = Date.now() - flightStartTime;
 
-        // 1. Применяем гравитацию
         planets.forEach(p => {
             const dx = p.x - rocket.x;
             const dy = p.y - rocket.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
 
-            // Гравитация действует только в пределах 125% от радиуса планеты
             if (dist < p.radius * GRAVITY_FIELD_FACTOR) {
                 const force = (p.radius * GRAVITY_CONSTANT) / (dist * dist);
-                rocket.vx += (dx / dist) * force * 10;
-                rocket.vy += (dy / dist) * force * 10;
+                rocket.vx += (dx / dist) * force * 12;
+                rocket.vy += (dy / dist) * force * 12;
             }
 
-            // Проверка столкновения (победа)
-            if (dist < p.radius) {
-                win(p.multiplier);
-            }
+            if (dist < p.radius) win(p);
         });
 
-        // 2. Движение ракеты
         rocket.x += rocket.vx;
         rocket.y += rocket.vy;
         rocket.history.push({x: rocket.x, y: rocket.y});
-        if (rocket.history.length > 50) rocket.history.shift();
+        if (rocket.history.length > 40) rocket.history.shift();
 
-        // 3. Условия проигрыша
         const distFromCenter = Math.sqrt(rocket.x**2 + rocket.y**2);
         if (distFromCenter > MAP_RADIUS) {
-            lose("Вылетели за пределы карты!");
+            lose("Вылет за пределы системы!");
         } else if (elapsed > MAX_FLIGHT_TIME) {
-            lose("Закончилось топливо (время выйти)!");
+            lose("Время полета истекло!");
         }
 
-        // 4. Камера следит за ракетой, но плавно отдаляется
+        // Камера следит за ракетой
         camera.x = rocket.x;
         camera.y = rocket.y;
-        if (camera.targetZoom > 0.4) camera.targetZoom -= 0.01;
-    } else {
-        // В режиме ожидания камера в центре
-        camera.x = 0;
-        camera.y = 0;
     }
 
-    // Плавное приближение камеры
-    camera.zoom += (camera.targetZoom - camera.zoom) * 0.05;
+    // Плавный зум
+    camera.zoom += (camera.targetZoom - camera.zoom) * 0.08;
 }
 
-function win(m) {
+function win(planet) {
     gameState = 'END';
-    document.getElementById('status').innerText = `ПОБЕДА! Множитель: x${m}`;
+    const winAmount = Math.floor(currentBet * planet.multiplier);
+    balance += winAmount;
+    
+    const statusEl = document.getElementById('status');
+    statusEl.innerText = `ПОБЕДА! x${planet.multiplier} (+${winAmount})`;
+    statusEl.classList.add('win');
+    
+    updateUI();
     setTimeout(resetRocket, 3000);
 }
 
 function lose(msg) {
     gameState = 'END';
-    document.getElementById('status').innerText = `ПРОИГРЫШ: ${msg}`;
+    const statusEl = document.getElementById('status');
+    statusEl.innerText = msg;
+    statusEl.classList.add('lose');
+    
+    updateUI();
     setTimeout(resetRocket, 3000);
 }
 
-/**
- * ОТРИСОВКА
- */
+function updateUI() {
+    document.getElementById('balanceDisplay').innerText = Math.floor(balance);
+}
+
 function draw() {
     ctx.clearRect(0, 0, width, height);
-
     ctx.save();
-    // Центрируем камеру
+    
     ctx.translate(width / 2, height / 2);
     ctx.scale(camera.zoom, camera.zoom);
     ctx.translate(-camera.x, -camera.y);
 
-    // Рисуем границу карты
+    // Граница (атмосфера системы)
     ctx.beginPath();
     ctx.arc(0, 0, MAP_RADIUS, 0, Math.PI * 2);
-    ctx.strokeStyle = '#333';
-    ctx.setLineDash([20, 15]);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 2 / camera.zoom;
     ctx.stroke();
-    ctx.setLineDash([]);
 
-    // Рисуем орбиты
-    planets.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(0, 0, p.orbitRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-        ctx.stroke();
-    });
-
-    // Рисуем планеты
+    // Планеты
     planets.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
         ctx.fill();
         
-        // Текст множителя
+        // Подписи множителей
         ctx.save();
-        ctx.scale(1/camera.zoom, 1/camera.zoom); // Текст не должен сильно зумиться
+        ctx.translate(p.x, p.y);
+        ctx.scale(1/camera.zoom, 1/camera.zoom);
         ctx.fillStyle = "white";
-        ctx.font = "12px Arial";
+        ctx.font = "bold 14px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(`x${p.multiplier}`, p.x * camera.zoom, (p.y - p.radius - 10) * camera.zoom);
+        ctx.fillText(`${p.multiplier}x`, 0, -p.radius * camera.zoom - 10);
         ctx.restore();
     });
 
-    // Рисуем шлейф ракеты
+    // Ракета и шлейф
     if (rocket.history.length > 1) {
         ctx.beginPath();
         ctx.moveTo(rocket.history[0].x, rocket.history[0].y);
-        for(let i=1; i<rocket.history.length; i++) {
-            ctx.lineTo(rocket.history[i].x, rocket.history[i].y);
-        }
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        rocket.history.forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1 / camera.zoom;
         ctx.stroke();
     }
 
-    // Рисуем ракету
     ctx.save();
     ctx.translate(rocket.x, rocket.y);
     if (gameState === 'FLYING') {
@@ -334,11 +353,10 @@ function draw() {
     } else {
         ctx.rotate((document.getElementById('angleInput').value * Math.PI / 180) + Math.PI/2);
     }
-    
     ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(7, 10);
-    ctx.lineTo(-7, 10);
+    ctx.moveTo(0, -8);
+    ctx.lineTo(5, 8);
+    ctx.lineTo(-5, 8);
     ctx.closePath();
     ctx.fillStyle = '#fff';
     ctx.fill();
@@ -354,25 +372,46 @@ function animate() {
 }
 
 /**
- * УПРАВЛЕНИЕ
+ * ЛОГИКА ЗАПУСКА
  */
-launchBtn.addEventListener('click', () => {
-    if (gameState !== 'PREPARE') return;
+document.getElementById('launchBtn').addEventListener('click', () => {
+    const betVal = parseInt(document.getElementById('betInput').value);
+    
+    if (isNaN(betVal) || betVal <= 0) {
+        alert("Введите корректную ставку");
+        return;
+    }
+    if (betVal > balance) {
+        alert("Недостаточно средств!");
+        return;
+    }
+
+    // Списание ставки
+    currentBet = betVal;
+    balance -= currentBet;
+    updateUI();
 
     const angle = document.getElementById('angleInput').value * Math.PI / 180;
-    const power = document.getElementById('powerInput').value / 10;
+    const power = document.getElementById('powerInput').value / 12;
 
     rocket.vx = Math.cos(angle) * power;
     rocket.vy = Math.sin(angle) * power;
     
     gameState = 'FLYING';
     flightStartTime = Date.now();
-    ui.style.opacity = "0";
-    launchBtn.disabled = true;
-    document.getElementById('status').innerText = "Полет нормальный...";
+    
+    // Мгновенная настройка камеры на "Zoom Out", чтобы видеть всю карту
+    // Вычисляем оптимальный зум, чтобы MAP_RADIUS вписался в экран
+    const minSide = Math.min(width, height);
+    camera.targetZoom = minSide / (MAP_RADIUS * 2.3); 
+
+    document.getElementById('ui').style.opacity = "0.2";
+    document.getElementById('ui').style.pointerEvents = "none";
+    document.getElementById('launchBtn').disabled = true;
+    document.getElementById('status').innerText = "Полет...";
 });
 
-// Живое обновление значений UI
+// Слушатели для UI
 document.getElementById('angleInput').addEventListener('input', (e) => {
     document.getElementById('angleVal').innerText = e.target.value + '°';
 });
@@ -380,9 +419,7 @@ document.getElementById('powerInput').addEventListener('input', (e) => {
     document.getElementById('powerVal').innerText = e.target.value;
 });
 
-// Старт
 init();
-
 </script>
 </body>
 </html>
