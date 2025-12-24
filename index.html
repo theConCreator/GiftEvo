@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Compact & Precise</title>
+    <title>Orbit Pro: Deep Space Edition</title>
     <style>
         :root {
             --primary: #2ecc71;
             --danger: #9b59b6;
-            --bg: #020204;
-            --glass: rgba(10, 10, 15, 0.95);
-            --border: rgba(255, 255, 255, 0.1);
+            --bg: #010103;
+            --glass: rgba(10, 10, 18, 0.96);
+            --border: rgba(255, 255, 255, 0.08);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; outline: none; }
@@ -18,11 +18,11 @@
         canvas { display: block; }
 
         #ui-layer { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px; z-index: 10; }
-        .panel { pointer-events: auto; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 15px; padding: 10px; }
+        .panel { pointer-events: auto; background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--border); border-radius: 15px; padding: 10px; }
         
         .history-ribbon { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: none; z-index: 15; }
         .history-item { 
-            background: rgba(46, 204, 113, 0.2); border: 1px solid var(--primary); color: var(--primary);
+            background: rgba(46, 204, 113, 0.15); border: 1px solid var(--primary); color: var(--primary);
             padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 900; animation: slideIn 0.3s ease-out;
         }
 
@@ -32,7 +32,7 @@
 
         .camera-btns { display: flex; gap: 5px; }
         .cam-btn {
-            background: #111; border: 1px solid #333; color: #555; padding: 8px 12px;
+            background: #111; border: 1px solid #333; color: #666; padding: 8px 12px;
             border-radius: 10px; font-size: 10px; cursor: pointer; font-weight: 800; transition: 0.2s;
         }
         .cam-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
@@ -82,7 +82,7 @@
 
 <div id="result-overlay">
     <div class="result-card" id="resultCard">
-        <div id="resStatus" style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 10px;">Status</div>
+        <div id="resStatus" style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 10px;">Mission Status</div>
         <div id="resMult" style="font-size: 44px; font-weight: 900; color: var(--primary);">x0.0</div>
         <div id="resAmt" style="font-size: 18px; color: #f1c40f; font-weight: bold;">+0 Credits</div>
     </div>
@@ -119,7 +119,6 @@
 </div>
 
 <script>
-// Настройки масштаба: Уменьшено в 1.5 раза (с 600 до 400)
 const MAP_RADIUS = 400; 
 const FIXED_POWER = 1.45; 
 const GRAVITY_CONSTANT = 0.22; 
@@ -149,10 +148,16 @@ function resize() {
 }
 
 function createStars() {
-    stars = Array.from({length: 400}, () => ({
-        x: Math.random() * 4000 - 2000, y: Math.random() * 4000 - 2000,
-        size: 0.5 + Math.random() * 1.5, depth: 0.05 + Math.random() * 0.9
-    }));
+    stars = [];
+    // Уплотненный параллакс: 1000 звезд разной глубины
+    for(let i=0; i<1000; i++) {
+        stars.push({
+            x: Math.random() * 5000 - 2500,
+            y: Math.random() * 5000 - 2500,
+            size: 0.4 + Math.random() * 1.6,
+            depth: 0.02 + Math.random() * 0.98 // Широкий диапазон слоев
+        });
+    }
 }
 
 function createPlanets() {
@@ -160,26 +165,25 @@ function createPlanets() {
     anomalies = [];
     const count = 5;
     
-    // Начальный отступ от центра
-    let currentOrbit = 140; 
+    // Расстояние до первой орбиты увеличено в 1.7 раза (с 140 до 240)
+    let currentOrbit = 240; 
     let lastRadius = 0;
 
     for (let i = 0; i < count; i++) {
-        const r = 20 + Math.random() * 25; // Радиус планеты (тоже чуть уменьшен для компактности)
-        const mult = (18 - ((r - 20)/25) * 15).toFixed(1);
+        const r = 18 + Math.random() * 22; 
+        const mult = (20 - ((r - 18)/22) * 16).toFixed(1);
         
-        // Математика бесконфликтных орбит:
-        // Новая орбита = Текущая + Радиус прошлой планеты + Радиус новой + зазор (15px)
         if (i > 0) {
-            currentOrbit += lastRadius + r + 25; 
+            // Расстояние между траекториями >= сумме радиусов + комфортный зазор 30px
+            currentOrbit += lastRadius + r + 30; 
         }
 
         planets.push({
             radius: r,
             orbitRadius: currentOrbit,
             orbitAngle: Math.random() * Math.PI * 2,
-            orbitSpeed: (0.0012 + Math.random() * 0.0018) * (Math.random() > 0.5 ? 1 : -1),
-            color: `hsl(${Math.random() * 360}, 70%, 55%)`,
+            orbitSpeed: (0.001 + Math.random() * 0.0015) * (Math.random() > 0.5 ? 1 : -1),
+            color: `hsl(${Math.random() * 360}, 75%, 60%)`,
             multiplier: parseFloat(mult),
             x: 0, y: 0
         });
@@ -187,11 +191,11 @@ function createPlanets() {
         lastRadius = r;
     }
 
-    // Черная дыра на свободном пространстве
-    if (Math.random() < 0.3) {
+    // Аномалия теперь появляется во внутренней "чистой" зоне
+    if (Math.random() < 0.35) {
         const dist = 100 + Math.random() * 80;
         const ang = Math.random() * Math.PI * 2;
-        anomalies.push({ x: Math.cos(ang)*dist, y: Math.sin(ang)*dist, radius: 18, gravity: 0.35 });
+        anomalies.push({ x: Math.cos(ang)*dist, y: Math.sin(ang)*dist, radius: 16, gravity: 0.38 });
     }
 }
 
@@ -276,14 +280,14 @@ function update() {
         anomalies.forEach(a => {
             const dx = a.x - rocket.x, dy = a.y - rocket.y, d = Math.sqrt(dx*dx + dy*dy);
             if (d < 140) {
-                const f = (a.gravity * 15) / (d + 10);
+                const f = (a.gravity * 16) / (d + 12);
                 rocket.vx += (dx/d) * f; rocket.vy += (dy/d) * f;
                 if(d < a.radius) lose("PULLED INTO VOID");
             }
         });
 
         rocket.x += rocket.vx; rocket.y += rocket.vy;
-        if (Math.sqrt(rocket.x**2 + rocket.y**2) > MAP_RADIUS + 100) lose("LOST IN SPACE");
+        if (Math.sqrt(rocket.x**2 + rocket.y**2) > 1200) lose("LOST IN SPACE");
     } else if (gameState === 'LANDED' && rocket.targetPlanet) {
         rocket.x = rocket.targetPlanet.x + rocket.offsetX;
         rocket.y = rocket.targetPlanet.y + rocket.offsetY;
@@ -297,7 +301,7 @@ function update() {
     } else {
         if (camera.mode === 'WORLD') {
             camera.x += (0 - camera.x)*0.05; camera.y += (0 - camera.y)*0.05;
-            camera.targetZoom = Math.min(width, height) / (MAP_RADIUS * 2.8);
+            camera.targetZoom = Math.min(width, height) / 1000;
         } else {
             camera.x += (rocket.x - camera.x)*0.1; camera.y += (rocket.y - camera.y)*0.1;
             camera.targetZoom = (gameState === 'LANDED') ? 2.5 : 1.8;
@@ -307,12 +311,15 @@ function update() {
 }
 
 function draw() {
-    ctx.fillStyle = '#020204'; ctx.fillRect(0,0,width,height);
+    ctx.fillStyle = '#010103'; ctx.fillRect(0,0,width,height);
+    
+    // Отрисовка параллакса
     stars.forEach(s => {
         const sx = (s.x - camera.x * s.depth) * camera.zoom + width/2;
         const sy = (s.y - camera.y * s.depth) * camera.zoom + height/2;
-        ctx.fillStyle = `rgba(255,255,255,${s.depth*0.6})`;
-        ctx.beginPath(); ctx.arc(sx, sy, s.size * camera.zoom * 0.4, 0, Math.PI*2); ctx.fill();
+        // Более глубокие звезды рисуются тусклее
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.depth * 0.7})`;
+        ctx.beginPath(); ctx.arc(sx, sy, s.size * camera.zoom * 0.3, 0, Math.PI*2); ctx.fill();
     });
 
     ctx.save();
@@ -325,21 +332,19 @@ function draw() {
 
     anomalies.forEach(a => {
         const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.radius*4);
-        g.addColorStop(0, '#000'); g.addColorStop(0.3, '#4b0082'); g.addColorStop(1, 'transparent');
+        g.addColorStop(0, '#000'); g.addColorStop(0.3, '#300050'); g.addColorStop(1, 'transparent');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(a.x, a.y, a.radius*4, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(a.x, a.y, a.radius, 0, Math.PI*2); ctx.fill();
     });
 
-    // Орбиты и планеты
-    ctx.setLineDash([5, 10]); ctx.lineWidth = 1/camera.zoom; ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.setLineDash([5, 12]); ctx.lineWidth = 1/camera.zoom; ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     planets.forEach(p => {
         ctx.beginPath(); ctx.arc(0,0, p.orbitRadius, 0, Math.PI*2); ctx.stroke();
         
-        // Свечение планеты
-        const pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius*2);
-        pg.addColorStop(0, p.color.replace('hsl', 'hsla').replace(')', ',0.3)'));
+        const pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius*2.2);
+        pg.addColorStop(0, p.color.replace('hsl', 'hsla').replace(')', ',0.25)'));
         pg.addColorStop(1, 'transparent');
-        ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius*2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius*2.2, 0, Math.PI*2); ctx.fill();
 
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
         
@@ -347,7 +352,7 @@ function draw() {
         ctx.translate(p.x, p.y);
         ctx.scale(1/camera.zoom, 1/camera.zoom);
         ctx.fillStyle = "white";
-        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.font = "bold 12px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(p.multiplier + "x", 0, -p.radius * camera.zoom - 10);
         ctx.restore();
@@ -356,7 +361,7 @@ function draw() {
 
     particles.forEach(p => {
         ctx.fillStyle = `rgba(46, 204, 113, ${p.life})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 2.5 * p.life, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2 * p.life, 0, Math.PI*2); ctx.fill();
     });
 
     ctx.save();
@@ -370,7 +375,7 @@ function draw() {
 function win(p) {
     const amt = Math.floor(currentBet * p.multiplier);
     balance += amt; updateHistory(p.multiplier);
-    document.getElementById('resStatus').innerText = "SUCCESS";
+    document.getElementById('resStatus').innerText = "SUCCESSFUL LANDING";
     document.getElementById('resMult').innerText = 'x' + p.multiplier;
     document.getElementById('resAmt').innerText = '+' + amt + ' Credits';
     document.getElementById('result-overlay').style.display = 'flex';
@@ -382,7 +387,7 @@ function lose(m) {
     gameState = 'END';
     document.getElementById('resStatus').innerText = m;
     document.getElementById('resMult').innerText = 'x0.0';
-    document.getElementById('resAmt').innerText = 'FAILED';
+    document.getElementById('resAmt').innerText = 'MISSION FAILED';
     document.getElementById('result-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('resultCard').classList.add('show'), 50);
     setTimeout(reset, 3000);
