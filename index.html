@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Ultimate Edition</title>
+    <title>Orbit Pro: Ultimate Balance</title>
     <style>
         :root {
             --primary: #2ecc71;
@@ -20,7 +20,6 @@
         #ui-layer { position: absolute; inset: 0; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 15px; z-index: 10; }
         .panel { pointer-events: auto; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 15px; padding: 10px; }
         
-        /* Лента истории */
         .history-ribbon { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; pointer-events: none; z-index: 15; }
         .history-item { 
             background: rgba(46, 204, 113, 0.2); border: 1px solid var(--primary); color: var(--primary);
@@ -31,7 +30,6 @@
         .balance-box { border-bottom: 3px solid #f1c40f; min-width: 110px; }
         .balance-val { font-size: 20px; font-weight: 900; color: #f1c40f; }
 
-        /* Камера кнопки */
         .camera-btns { display: flex; gap: 5px; }
         .cam-btn {
             background: #111; border: 1px solid #333; color: #555; padding: 8px 12px;
@@ -40,14 +38,13 @@
         .cam-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .cam-btn:disabled { opacity: 0.2; }
 
-        /* Контроллер */
         .rotation-gizmo-container {
             position: absolute; right: 25px; top: 45%; transform: translateY(-50%);
             display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: auto;
         }
         .gizmo-circle {
             width: 100px; height: 100px; border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 50%; position: relative; background: radial-gradient(circle, rgba(46,204,113,0.1) 0%, transparent 80%);
+            border-radius: 50%; position: relative; background: radial-gradient(circle, rgba(46,204,113,0.05) 0%, transparent 75%);
             cursor: pointer;
         }
         .gizmo-handle {
@@ -59,7 +56,7 @@
         .bottom-area { display: flex; flex-direction: column; align-items: center; width: 100%; transition: 0.3s; }
         .bet-panel { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
         .input-row { display: flex; align-items: center; gap: 12px; }
-        input[type=number] { background: #000; border: 1px solid #333; color: white; padding: 8px; border-radius: 10px; width: 70px; text-align: center; font-weight: 900; }
+        input[type=number] { background: #000; border: 1px solid #333; color: white; padding: 8px; border-radius: 10px; width: 75px; text-align: center; font-weight: 900; }
         input[type=range] { flex: 1; accent-color: var(--primary); cursor: pointer; }
 
         .launch-btn {
@@ -69,7 +66,6 @@
         }
         .launch-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #1b633a; }
 
-        /* Итоги */
         #result-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 100; pointer-events: none; }
         .result-card {
             background: var(--glass); padding: 30px; border-radius: 25px; border: 2px solid var(--primary);
@@ -87,7 +83,7 @@
 
 <div id="result-overlay">
     <div class="result-card" id="resultCard">
-        <div id="resStatus" style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 10px;">Mission Log</div>
+        <div id="resStatus" style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-bottom: 10px;">Mission Status</div>
         <div id="resMult" style="font-size: 44px; font-weight: 900; color: var(--primary);">x0.0</div>
         <div id="resAmt" style="font-size: 18px; color: #f1c40f; font-weight: bold;">+0 Credits</div>
     </div>
@@ -100,8 +96,8 @@
             <div style="font-size: 9px; color: #888; text-transform: uppercase;">Credits</div>
         </div>
         <div class="camera-btns panel">
-            <button class="cam-btn" data-mode="WORLD" id="btnCamWorld">WORLD</button>
-            <button class="cam-btn active" data-mode="ROCKET" id="btnCamRocket">ROCKET</button>
+            <button class="cam-btn" data-mode="WORLD">WORLD</button>
+            <button class="cam-btn active" data-mode="ROCKET">ROCKET</button>
         </div>
     </div>
 
@@ -126,7 +122,7 @@
 <script>
 const MAP_RADIUS = 600; 
 const FIXED_POWER = 1.45; 
-const GRAVITY_CONSTANT = 0.25; 
+const GRAVITY_CONSTANT = 0.22; 
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -134,14 +130,14 @@ const ctx = canvas.getContext('2d');
 let width, height, balance = 1000, currentBet = 0, historyMults = [];
 let gameState = 'PREPARE';
 let planets = [], stars = [], particles = [], anomalies = [];
-let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 270, trail: [], targetPlanet: null, offsetX: 0, offsetY: 0 };
+let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 270, offsetX: 0, offsetY: 0, targetPlanet: null };
 let camera = { x: 0, y: 0, zoom: 4, targetZoom: 4, mode: 'ROCKET' };
 let launchFlash = 0;
 
 function init() {
     resize();
     createStars();
-    resetUniverse();
+    createPlanets(); 
     setupControls();
     window.addEventListener('resize', resize);
     animate();
@@ -153,28 +149,41 @@ function resize() {
 }
 
 function createStars() {
-    stars = Array.from({length: 600}, () => ({
+    stars = Array.from({length: 500}, () => ({
         x: Math.random() * 5000 - 2500, y: Math.random() * 5000 - 2500,
-        size: Math.random() * 1.8, depth: 0.1 + Math.random() * 0.9
+        size: 0.5 + Math.random() * 1.5, depth: 0.05 + Math.random() * 0.9
     }));
 }
 
-function resetUniverse() {
-    planets = []; anomalies = [];
-    for (let i = 0; i < 5; i++) {
-        const r = 25 + Math.random() * 35;
+// РАСПОЛОЖЕНИЕ ПЛАНЕТ ИЗ ВАШЕГО КОДА
+function createPlanets() {
+    planets = [];
+    anomalies = [];
+    const count = 5;
+    const lane = (MAP_RADIUS - 220) / count; // Рассчитываем ширину дорожек
+    
+    for (let i = 0; i < count; i++) {
+        const r = 28 + Math.random() * 42;
+        // Множитель зависит от размера (чем меньше планета, тем выше награда)
+        const mult = (15 - ((r - 28)/42) * 13).toFixed(1);
+        
         planets.push({
-            radius: r, orbitRadius: 240 + (i * 80) + Math.random() * 30,
+            radius: r,
+            // Слойность: каждая планета на своем удалении + небольшой разброс
+            orbitRadius: 250 + (i * lane) + (Math.random() * 30),
             orbitAngle: Math.random() * Math.PI * 2,
-            orbitSpeed: (0.0008 + Math.random() * 0.0012) * (Math.random() > 0.5 ? 1 : -1),
-            color: `hsl(${Math.random() * 360}, 75%, 60%)`,
-            multiplier: (18 - (r/35)*14).toFixed(1), x: 0, y: 0
+            orbitSpeed: (0.001 + Math.random() * 0.0015) * (Math.random() > 0.5 ? 1 : -1),
+            color: `hsl(${Math.random() * 360}, 70%, 55%)`,
+            multiplier: parseFloat(mult),
+            x: 0, y: 0
         });
     }
+
+    // Редкая черная дыра (30% шанс)
     if (Math.random() < 0.3) {
-        const dist = 180 + Math.random() * 180;
-        const angle = Math.random() * Math.PI * 2;
-        anomalies.push({ x: Math.cos(angle)*dist, y: Math.sin(angle)*dist, radius: 20, gravity: 0.35 });
+        const dist = 180 + Math.random() * 150;
+        const ang = Math.random() * Math.PI * 2;
+        anomalies.push({ x: Math.cos(ang)*dist, y: Math.sin(ang)*dist, radius: 22, gravity: 0.35 });
     }
 }
 
@@ -199,15 +208,17 @@ function setupControls() {
     window.addEventListener('mouseup', () => isDragging = false);
     window.addEventListener('touchend', () => isDragging = false);
 
-    document.getElementById('betSlider').addEventListener('input', (e) => document.getElementById('betInput').value = e.target.value);
+    document.getElementById('betSlider').addEventListener('input', (e) => {
+        document.getElementById('betInput').value = e.target.value;
+    });
     document.getElementById('launchBtn').addEventListener('click', handleLaunch);
 
     document.querySelectorAll('.cam-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.onclick = () => {
             camera.mode = btn.dataset.mode;
             document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-        });
+        };
     });
 }
 
@@ -238,13 +249,14 @@ function update() {
     });
 
     if (gameState === 'FLYING') {
-        if(Math.random() > 0.2) particles.push({ x: rocket.x, y: rocket.y, life: 1, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3 });
+        if(Math.random() > 0.2) particles.push({ x: rocket.x, y: rocket.y, life: 1, vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2 });
 
         planets.forEach(p => {
             const dx = p.x - rocket.x, dy = p.y - rocket.y, d = Math.sqrt(dx*dx + dy*dy);
-            if (d < p.radius * 2.5) {
-                rocket.vx += (dx/d) * (p.radius * GRAVITY_CONSTANT) / (d*0.6);
-                rocket.vy += (dy/d) * (p.radius * GRAVITY_CONSTANT) / (d*0.6);
+            if (d < p.radius * 2.8) {
+                const f = (p.radius * GRAVITY_CONSTANT) / (d * d);
+                rocket.vx += (dx/d) * f * 10;
+                rocket.vy += (dy/d) * f * 10;
             }
             if (d < p.radius) { 
                 gameState = 'LANDED'; rocket.targetPlanet = p; 
@@ -256,7 +268,7 @@ function update() {
         anomalies.forEach(a => {
             const dx = a.x - rocket.x, dy = a.y - rocket.y, d = Math.sqrt(dx*dx + dy*dy);
             if (d < 160) {
-                const f = (a.gravity * 20) / (d + 10);
+                const f = (a.gravity * 15) / (d + 10);
                 rocket.vx += (dx/d) * f; rocket.vy += (dy/d) * f;
                 if(d < a.radius) lose("PULLED INTO VOID");
             }
@@ -272,7 +284,6 @@ function update() {
     particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.025; if(p.life <= 0) particles.splice(i, 1); });
     launchFlash *= 0.94;
     
-    // Камера логика
     if(gameState === 'PREPARE') {
         camera.x = rocket.x; camera.y = rocket.y; camera.targetZoom = 4;
     } else {
@@ -292,7 +303,7 @@ function draw() {
     stars.forEach(s => {
         const sx = (s.x - camera.x * s.depth) * camera.zoom + width/2;
         const sy = (s.y - camera.y * s.depth) * camera.zoom + height/2;
-        ctx.fillStyle = `rgba(255,255,255,${s.depth*0.5})`;
+        ctx.fillStyle = `rgba(255,255,255,${s.depth*0.6})`;
         ctx.beginPath(); ctx.arc(sx, sy, s.size * camera.zoom * 0.4, 0, Math.PI*2); ctx.fill();
     });
 
@@ -305,8 +316,6 @@ function draw() {
     }
 
     anomalies.forEach(a => {
-        ctx.beginPath(); ctx.arc(a.x, a.y, 100, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(155, 89, 182, 0.05)'; ctx.lineWidth = 1; ctx.stroke();
         const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.radius*4);
         g.addColorStop(0, '#000'); g.addColorStop(0.3, '#4b0082'); g.addColorStop(1, 'transparent');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(a.x, a.y, a.radius*4, 0, Math.PI*2); ctx.fill();
@@ -317,6 +326,16 @@ function draw() {
     planets.forEach(p => {
         ctx.beginPath(); ctx.arc(0,0, p.orbitRadius, 0, Math.PI*2); ctx.stroke();
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
+        
+        // Множитель над планетой
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(1/camera.zoom, 1/camera.zoom);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 12px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(p.multiplier + "x", 0, -p.radius * camera.zoom - 10);
+        ctx.restore();
     });
     ctx.setLineDash([]);
 
@@ -328,7 +347,7 @@ function draw() {
     ctx.save();
     ctx.translate(rocket.x, rocket.y);
     ctx.rotate((gameState==='FLYING' || gameState==='LANDED')?Math.atan2(rocket.vy, rocket.vx):rocket.angle*Math.PI/180);
-    ctx.fillStyle = 'white'; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-8,-6); ctx.lineTo(-8,6); ctx.fill();
+    ctx.fillStyle = "white"; ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-8,-6); ctx.lineTo(-8,6); ctx.fill();
     ctx.restore();
     ctx.restore();
 }
@@ -336,34 +355,34 @@ function draw() {
 function win(p) {
     const amt = Math.floor(currentBet * p.multiplier);
     balance += amt; updateHistory(p.multiplier);
-    document.getElementById('resStatus').innerText = "LANDING SUCCESS";
+    document.getElementById('resStatus').innerText = "MISSION SUCCESS";
     document.getElementById('resMult').innerText = 'x' + p.multiplier;
     document.getElementById('resAmt').innerText = '+' + amt + ' Credits';
     document.getElementById('result-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('resultCard').classList.add('show'), 50);
-    setTimeout(reset, 4000);
+    setTimeout(reset, 4500);
 }
 
 function lose(m) {
     gameState = 'END';
     document.getElementById('resStatus').innerText = m;
     document.getElementById('resMult').innerText = 'x0.0';
-    document.getElementById('resAmt').innerText = 'MISSION FAILED';
+    document.getElementById('resAmt').innerText = 'CRASHED';
     document.getElementById('result-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('resultCard').classList.add('show'), 50);
-    setTimeout(reset, 3000);
+    setTimeout(reset, 3500);
 }
 
 function updateHistory(m) {
-    historyMults.unshift(m); if(historyMults.length > 6) historyMults.pop();
+    historyMults.unshift(m); if(historyMults.length > 7) historyMults.pop();
     document.getElementById('historyRibbon').innerHTML = historyMults.map(h => `<div class="history-item">x${h}</div>`).join('');
 }
 
 function reset() {
     document.getElementById('resultCard').classList.remove('show');
     setTimeout(() => document.getElementById('result-overlay').style.display = 'none', 400);
-    resetUniverse();
-    rocket = { x:0, y:0, vx:0, vy:0, angle:270, trail:[], targetPlanet:null, offsetX:0, offsetY:0 };
+    createPlanets();
+    rocket = { x:0, y:0, vx:0, vy:0, angle:270, targetPlanet:null, offsetX:0, offsetY:0 };
     gameState = 'PREPARE';
     document.getElementById('bottomArea').style.opacity = 1; document.getElementById('bottomArea').style.pointerEvents = "auto";
     document.getElementById('gizmoBox').style.opacity = 1; document.getElementById('gizmoBox').style.pointerEvents = "auto";
