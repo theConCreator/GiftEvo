@@ -3,43 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Juicy Gravity</title>
+    <title>Orbit Pro: Balanced & Fixed</title>
     <style>
         :root { --primary: #00ff88; --gold: #ffcc00; --bg: #010105; --glass: rgba(15, 20, 40, 0.9); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Orbitron', 'Segoe UI', sans-serif; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; z-index: 1; }
         
         #ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-        .panel { background: var(--glass); backdrop-filter: blur(15px); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 20px; pointer-events: auto; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .panel { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; pointer-events: auto; }
         
         .top-row { display: flex; justify-content: space-between; align-items: center; }
-        .stat-card { padding: 15px 25px; border-bottom: 3px solid var(--primary); }
-        .val { font-size: 26px; font-weight: 900; color: var(--primary); text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+        .stat-card { padding: 12px 20px; }
+        .val { font-size: 24px; font-weight: 900; color: var(--primary); }
 
-        .settings-btn { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; transition: 0.3s; }
-        .settings-btn:hover { background: rgba(255,255,255,0.1); transform: rotate(45deg); }
-        
-        #settingsMenu { position: absolute; top: 90px; right: 20px; width: 280px; padding: 25px; display: none; flex-direction: column; gap: 18px; z-index: 100; border-color: var(--primary); animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; font-weight: bold; letter-spacing: 1px; }
-        .switch { width: 50px; height: 26px; appearance: none; background: #222; border-radius: 13px; position: relative; cursor: pointer; border: 1px solid #444; }
-        .switch:checked { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
-        .switch::before { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
-        .switch:checked::before { left: 26px; }
+        /* Улучшенный штурвал */
+        .gizmo-wrap { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; }
+        .gizmo-touch-zone { width: 220px; height: 220px; border-radius: 50%; pointer-events: auto; cursor: crosshair; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        .gizmo-visual { width: 180px; height: 180px; border: 3px solid rgba(0, 255, 136, 0.3); border-radius: 50%; position: relative; background: radial-gradient(circle, rgba(0,255,136,0.1), transparent); }
+        .handle { width: 34px; height: 34px; background: var(--primary); border: 4px solid white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 20px var(--primary); pointer-events: none; }
 
-        .gizmo-wrap { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); text-align: center; }
-        .gizmo { width: 200px; height: 200px; border: 5px solid rgba(0, 255, 136, 0.15); border-radius: 50%; position: relative; background: radial-gradient(circle, rgba(0,255,136,0.1) 0%, transparent 70%); }
-        .handle { width: 40px; height: 40px; background: var(--primary); border: 4px solid #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 30px var(--primary); }
+        .bet-panel { width: 100%; max-width: 400px; margin: 0 auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
+        .launch-btn { background: var(--primary); border: none; color: #000; padding: 18px; border-radius: 15px; font-size: 20px; font-weight: 900; cursor: pointer; transition: 0.2s; }
+        .launch-btn:active { transform: scale(0.95); }
 
-        .bet-panel { width: 100%; max-width: 450px; margin: 0 auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
-        .launch-btn { background: linear-gradient(135deg, var(--primary), #00cc6e); border: none; color: #000; padding: 22px; border-radius: 18px; font-size: 22px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.2s; }
-        .launch-btn:hover { filter: brightness(1.1); transform: scale(1.02); }
-        .launch-btn:active { transform: scale(0.98); }
-
-        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: 0.4s; backdrop-filter: blur(10px); }
-        .card { background: #080815; padding: 60px; border-radius: 40px; border: 4px solid var(--primary); text-align: center; box-shadow: 0 0 100px rgba(0,255,136,0.3); }
+        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: 0.4s; }
+        .card { background: #080815; padding: 50px; border-radius: 35px; border: 3px solid var(--primary); text-align: center; }
     </style>
 </head>
 <body>
@@ -50,66 +39,53 @@
     <div class="top-row">
         <div class="panel stat-card">
             <span id="balance" class="val">1000</span><br>
-            <span style="font-size:11px; opacity:0.7; font-weight:bold; letter-spacing:2px">CREDITS</span>
+            <span style="font-size:10px; opacity:0.6; font-weight:bold;">CREDITS</span>
         </div>
-        <div style="display:flex; gap:12px;">
-            <div class="panel" style="display:flex; padding:6px; gap:6px;">
-                <button class="btn-cam" id="btnWorld" style="background:none; border:none; color:white; padding:12px; border-radius:14px; font-size:12px; font-weight:900; cursor:pointer; opacity:0.5;">WORLD</button>
-                <button class="btn-cam" id="btnRocket" style="background:var(--primary); border:none; color:#000; padding:12px; border-radius:14px; font-size:12px; font-weight:900; cursor:pointer;">FOLLOW</button>
-            </div>
-            <div class="panel settings-btn" id="setBtn">⚙️</div>
+        <div class="panel" style="display:flex; padding:5px; gap:5px;">
+            <button id="btnWorld" style="background:none; border:none; color:white; padding:8px 12px; border-radius:10px; font-size:11px; cursor:pointer;">WORLD</button>
+            <button id="btnRocket" style="background:var(--primary); border:none; color:#000; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:bold; cursor:pointer;">FOLLOW</button>
         </div>
-    </div>
-
-    <div class="panel" id="settingsMenu">
-        <div class="toggle-row"><span>ORBITS</span><input type="checkbox" id="checkOrbits" class="switch" checked></div>
-        <div class="toggle-row"><span>TRAJECTORY</span><input type="checkbox" id="checkPath" class="switch" checked></div>
-        <div class="toggle-row"><span>G-FIELDS</span><input type="checkbox" id="checkGravity" class="switch"></div>
     </div>
 
     <div class="gizmo-wrap" id="gizmoBox">
-        <div class="gizmo" id="gizmoMain"><div class="handle" id="gizmoHandle"></div></div>
-        <div id="angleShow" style="margin-top:20px; font-weight:900; color:var(--primary); font-size:32px; text-shadow: 0 0 15px var(--primary);">270°</div>
+        <div class="gizmo-touch-zone" id="gizmoZone">
+            <div class="gizmo-visual">
+                <div class="handle" id="gizmoHandle"></div>
+            </div>
+        </div>
+        <div id="angleShow" style="margin-top:10px; font-weight:900; color:var(--primary); font-size:24px;">270°</div>
     </div>
 
     <div class="bet-panel panel" id="betBox">
-        <div style="display: flex; gap: 25px; align-items: center;">
-            <input type="range" id="betRange" min="10" max="1000" value="50" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
-            <span id="betValue" style="font-weight: 900; font-size: 24px; width: 60px; color: var(--gold);">50</span>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <input type="range" id="betRange" min="10" max="1000" value="100" style="flex: 1; accent-color: var(--primary);">
+            <span id="betValue" style="font-weight: 900; width: 50px;">100</span>
         </div>
-        <button class="launch-btn" id="launchBtn">Engage Engines</button>
+        <button class="launch-btn" id="launchBtn">LAUNCH</button>
     </div>
 </div>
 
-<div id="overlay">
-    <div class="card">
-        <h2 id="resTitle" style="margin:0; font-size:18px; opacity:0.8; letter-spacing:4px;">SYSTEM ALERT</h2>
-        <div id="resMult" style="font-size:100px; font-weight:900; color:var(--primary); margin:15px 0; text-shadow: 0 0 30px var(--primary);">x1.0</div>
-        <div id="resAdd" style="color:var(--gold); font-size:24px; font-weight:bold; letter-spacing:1px;">+0 CREDITS</div>
-    </div>
-</div>
+<div id="overlay"><div class="card"><h2 id="resTitle">MISSION END</h2><div id="resMult" style="font-size:80px; font-weight:900; color:var(--primary);">x0</div><div id="resAdd"></div></div></div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// --- Физика и Масштабы ---
-const WORLD_SIZE = 1600; 
-const G_RADIUS = 750; // Зона влияния стала больше
-const G_POWER = 8.75; // Увеличено в 2.5 раза (было ~3.5)
+// --- Настройки Баланса ---
+const WORLD_SIZE = 1700;
+const G_POWER = 9.2; // Сильная гравитация
 let balance = 1000, gameState = 'PREPARE', cameraMode = 'ROCKET';
-let lastAction = Date.now();
-const cfg = { orbits: true, path: true, gravity: false };
+let isInteracting = false; // Для показа траектории
 
 let planets = [], stars = [], particles = [];
 let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 270, alive: true };
-let cam = { x: 0, y: 0, zoom: 2.5, tZoom: 2.5, isDragging: false };
+let cam = { x: 0, y: 0, zoom: 2.5, tZoom: 2.5 };
 
 function init() {
     resize();
     createStars();
     createLevel();
-    setupEvents();
+    setupControls();
     loop();
 }
 
@@ -121,72 +97,47 @@ window.addEventListener('resize', resize);
 
 function createStars() {
     stars = [];
-    for(let i=0; i<1500; i++) {
-        stars.push({ x: Math.random()*4000-2000, y: Math.random()*4000-2000, s: Math.random()*2 + 1, op: Math.random() });
-    }
+    for(let i=0; i<1500; i++) stars.push({ x: Math.random()*4000-2000, y: Math.random()*4000-2000, s: Math.random()*2 });
 }
 
 function createLevel() {
     planets = [];
-    let d = 500;
-    const colors = ['#00f2ff', '#7000ff', '#ff007b', '#ffcc00'];
-    for(let i=0; i<4; i++) {
+    let d = 500; // Минимальная дистанция спавна (Безопасная зона)
+    for(let i=0; i<5; i++) {
         let angle = Math.random() * Math.PI * 2;
         planets.push({
             orbitR: d, angle: angle,
-            speed: (0.0003 + (4-i)*0.0004) * (Math.random() > 0.5 ? 1 : -1),
-            r: 130 + Math.random() * 50,
-            color: colors[i % colors.length],
-            mult: (15 - i * 3).toFixed(1),
-            x: Math.cos(angle) * d,
-            y: Math.sin(angle) * d
+            speed: (0.0004 + i*0.0002) * (Math.random() > 0.5 ? 1 : -1),
+            r: 100 + Math.random() * 60,
+            color: `hsl(${160 + i * 40}, 80%, 50%)`,
+            mult: (6.5 - i * 1.2).toFixed(1), // Баланс RTP 85%
+            x: 0, y: 0
         });
-        d += 400;
+        d += 300;
     }
 }
 
-function setupEvents() {
-    const gizmo = document.getElementById('gizmoMain');
+function setupControls() {
+    const zone = document.getElementById('gizmoZone');
     const handle = document.getElementById('gizmoHandle');
-    let rotating = false;
 
-    const updateAngle = (e) => {
-        const rect = gizmo.getBoundingClientRect();
+    const handleRotate = (e) => {
+        const rect = zone.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
-        const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-        rocket.angle = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
-        handle.style.left = 50 + Math.cos(rocket.angle * Math.PI/180) * 45 + '%';
-        handle.style.top = 50 + Math.sin(rocket.angle * Math.PI/180) * 45 + '%';
+        const x = (e.clientX || e.touches[0].clientX) - cx;
+        const y = (e.clientY || e.touches[0].clientY) - cy;
+        
+        rocket.angle = Math.atan2(y, x) * 180 / Math.PI;
+        handle.style.left = 50 + Math.cos(rocket.angle * Math.PI/180) * 42 + '%';
+        handle.style.top = 50 + Math.sin(rocket.angle * Math.PI/180) * 42 + '%';
         document.getElementById('angleShow').innerText = Math.round((rocket.angle + 360) % 360) + '°';
-        lastAction = Date.now();
+        isInteracting = true;
     };
 
-    gizmo.onpointerdown = (e) => { rotating = true; updateAngle(e); gizmo.setPointerCapture(e.pointerId); };
-    gizmo.onpointermove = (e) => { if(rotating) updateAngle(e); };
-    gizmo.onpointerup = () => rotating = false;
-
-    document.getElementById('setBtn').onclick = () => {
-        const m = document.getElementById('settingsMenu');
-        m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-    };
-
-    document.getElementById('checkOrbits').onchange = e => cfg.orbits = e.target.checked;
-    document.getElementById('checkPath').onchange = e => cfg.path = e.target.checked;
-    document.getElementById('checkGravity').onchange = e => cfg.gravity = e.target.checked;
-
-    document.getElementById('btnWorld').onclick = () => {
-        cameraMode = 'WORLD';
-        document.getElementById('btnWorld').style.opacity = '1';
-        document.getElementById('btnRocket').style.opacity = '0.5';
-        cam.tZoom = Math.min(canvas.width, canvas.height) / (WORLD_SIZE * 2.5);
-    };
-    document.getElementById('btnRocket').onclick = () => {
-        cameraMode = 'ROCKET';
-        document.getElementById('btnRocket').style.opacity = '1';
-        document.getElementById('btnWorld').style.opacity = '0.5';
-    };
+    zone.onpointerdown = (e) => { zone.setPointerCapture(e.pointerId); handleRotate(e); };
+    zone.onpointermove = (e) => { if (e.buttons > 0) handleRotate(e); };
+    zone.onpointerup = () => { isInteracting = false; };
 
     document.getElementById('launchBtn').onclick = () => {
         if (gameState !== 'PREPARE') return;
@@ -194,13 +145,13 @@ function setupEvents() {
         if(bet > balance) return;
         balance -= bet;
         document.getElementById('balance').innerText = balance;
+        
         const rad = rocket.angle * Math.PI / 180;
-        rocket.vx = Math.cos(rad) * 5.5; // Чуть больше начальной скорости
-        rocket.vy = Math.sin(rad) * 5.5;
+        rocket.vx = Math.cos(rad) * 5.8;
+        rocket.vy = Math.sin(rad) * 5.8;
         gameState = 'FLYING';
         document.getElementById('betBox').style.display = 'none';
         document.getElementById('gizmoBox').style.display = 'none';
-        document.getElementById('settingsMenu').style.display = 'none';
     };
 
     document.getElementById('betRange').oninput = e => document.getElementById('betValue').innerText = e.target.value;
@@ -209,11 +160,10 @@ function setupEvents() {
 function getPhysics(px, py, stepPlanets) {
     let ax = 0, ay = 0;
     stepPlanets.forEach(p => {
-        const dx = p.x - px, dy = p.y - py, d = Math.sqrt(dx*dx + dy*dy);
-        if(d < G_RADIUS + p.r) {
-            const dist = Math.max(d, p.r * 0.8);
-            const force = (G_POWER * (p.r / 100)) / Math.pow(dist / 100, 1.8);
-            ax += (dx/d)*force; ay += (dy/d)*force;
+        const dx = p.x - px, dy = p.y - py, d = Math.hypot(dx, dy);
+        if(d < 800) {
+            const f = (G_POWER * (p.r/100)) / Math.pow(Math.max(d, 50)/100, 2);
+            ax += (dx/d)*f; ay += (dy/d)*f;
         }
     });
     return { ax, ay };
@@ -227,98 +177,68 @@ function update() {
     });
 
     if(gameState === 'FLYING') {
-        // Создаем "сочный" след
-        particles.push({ x: rocket.x, y: rocket.y, life: 1, r: 5 + Math.random()*5, c: varToRgba(cfg.primary, 0.5) });
-        
+        particles.push({ x: rocket.x, y: rocket.y, life: 1 });
         const f = getPhysics(rocket.x, rocket.y, planets);
         rocket.vx += f.ax; rocket.vy += f.ay;
         rocket.x += rocket.vx; rocket.y += rocket.vy;
 
-        planets.forEach(p => { if(Math.hypot(p.x-rocket.x, p.y-rocket.y) < p.r) finish('LANDED SUCCESS', p.mult); });
-        if(Math.hypot(rocket.x, rocket.y) > WORLD_SIZE) finish('MISSION FAILED', 0);
+        planets.forEach(p => { if(Math.hypot(p.x-rocket.x, p.y-rocket.y) < p.r) finish('LANDED', p.mult); });
+        if(Math.hypot(rocket.x, rocket.y) > WORLD_SIZE) finish('LOST', 0);
     }
 
-    particles.forEach((p, i) => { p.life -= 0.025; if(p.life <= 0) particles.splice(i,1); });
+    particles.forEach((p, i) => { p.life -= 0.03; if(p.life <= 0) particles.splice(i,1); });
 
     if(cameraMode === 'ROCKET' || gameState === 'PREPARE') {
         cam.x += (rocket.x - cam.x) * 0.1; cam.y += (rocket.y - cam.y) * 0.1;
-        const vel = Math.hypot(rocket.vx, rocket.vy);
-        cam.tZoom = (gameState === 'PREPARE') ? 2.5 : Math.max(0.8, 1.8 - vel * 0.05);
+        cam.tZoom = (gameState === 'PREPARE') ? 2.5 : 1.2;
     }
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.08;
+    cam.zoom += (cam.tZoom - cam.zoom) * 0.1;
 }
 
 function draw() {
     ctx.fillStyle = '#010105'; ctx.fillRect(0,0,canvas.width, canvas.height);
-    
     ctx.save();
     ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-    // Звезды с эффектом параллакса
-    stars.forEach(s => {
-        ctx.fillStyle = `rgba(255, 255, 255, ${s.op})`;
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.s/cam.zoom, 0, Math.PI*2); ctx.fill();
-    });
+    stars.forEach(s => { ctx.fillStyle = 'white'; ctx.fillRect(s.x, s.y, s.s, s.s); });
 
-    // Траектория
-    if(gameState === 'PREPARE' && cfg.path) {
-        ctx.beginPath(); ctx.setLineDash([15, 15]); ctx.strokeStyle = "rgba(0, 255, 136, 0.6)"; ctx.lineWidth = 4 / cam.zoom;
-        let tx = 0, ty = 0, tvx = Math.cos(rocket.angle*Math.PI/180)*5.5, tvy = Math.sin(rocket.angle*Math.PI/180)*5.5;
-        for(let i=0; i<100; i++) {
+    // Показываем траекторию ТОЛЬКО при взаимодействии или в полете
+    if(isInteracting && gameState === 'PREPARE') {
+        ctx.beginPath(); ctx.setLineDash([10, 10]); ctx.strokeStyle = "rgba(0,255,136,0.5)";
+        let tx = 0, ty = 0, tvx = Math.cos(rocket.angle*Math.PI/180)*5.8, tvy = Math.sin(rocket.angle*Math.PI/180)*5.8;
+        for(let i=0; i<80; i++) {
             const f = getPhysics(tx, ty, planets); tvx += f.ax; tvy += f.ay; tx += tvx; ty += tvy;
             i === 0 ? ctx.moveTo(tx, ty) : ctx.lineTo(tx, ty);
         }
         ctx.stroke(); ctx.setLineDash([]);
     }
 
-    // Планеты
     planets.forEach(p => {
-        if(cfg.orbits) {
-            ctx.beginPath(); ctx.strokeStyle = "rgba(255, 255, 255, 0.15)"; ctx.lineWidth = 2/cam.zoom; ctx.arc(0,0, p.orbitR, 0, Math.PI*2); ctx.stroke();
+        // Орбиты и гравитация скрыты до начала взаимодействия
+        if(isInteracting || gameState === 'FLYING') {
+            ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.1)"; ctx.arc(0,0, p.orbitR, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.fillStyle = "rgba(0,255,136,0.03)"; ctx.arc(p.x, p.y, 600, 0, Math.PI*2); ctx.fill();
         }
         
-        // Атмосферное свечение
-        const glow = ctx.createRadialGradient(p.x, p.y, p.r, p.x, p.y, p.r * 1.5);
-        glow.addColorStop(0, p.color + '66'); glow.addColorStop(1, 'transparent');
-        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 1.5, 0, Math.PI*2); ctx.fill();
-
-        // Тело планеты
-        const grad = ctx.createRadialGradient(p.x-p.r*0.4, p.y-p.r*0.4, p.r*0.1, p.x, p.y, p.r);
-        grad.addColorStop(0, '#fff'); grad.addColorStop(0.2, p.color); grad.addColorStop(1, '#000');
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        g.addColorStop(0, p.color); g.addColorStop(1, '#000');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
         
         ctx.save(); ctx.translate(p.x, p.y); ctx.scale(1/cam.zoom, 1/cam.zoom);
-        ctx.fillStyle = "white"; ctx.font = "900 28px Orbitron, sans-serif"; ctx.textAlign = "center";
-        ctx.shadowColor = p.color; ctx.shadowBlur = 10;
+        ctx.fillStyle = "white"; ctx.font = "bold 20px Arial"; ctx.textAlign = "center";
         ctx.fillText("x"+p.mult, 0, 10); ctx.restore();
     });
 
-    // След
-    particles.forEach(p => {
-        ctx.fillStyle = `rgba(0, 255, 136, ${p.life * 0.5})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-    });
+    particles.forEach(p => { ctx.fillStyle = `rgba(0,255,136,${p.life})`; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill(); });
 
-    // Ракета
     if(rocket.alive) {
         ctx.save(); ctx.translate(rocket.x, rocket.y);
         ctx.rotate(gameState === 'PREPARE' ? rocket.angle*Math.PI/180 : Math.atan2(rocket.vy, rocket.vx));
-        
-        // Огонь двигателя
-        if(gameState === 'FLYING') {
-            const fGlow = ctx.createRadialGradient(-20, 0, 0, -20, 0, 20);
-            fGlow.addColorStop(0, '#fff'); fGlow.addColorStop(1, 'transparent');
-            ctx.fillStyle = fGlow; ctx.beginPath(); ctx.arc(-20, 0, 15 + Math.random()*10, 0, Math.PI*2); ctx.fill();
-        }
-
-        ctx.fillStyle = "#fff"; ctx.shadowColor = varToRgba('#00ff88', 1); ctx.shadowBlur = 15;
-        ctx.beginPath(); ctx.moveTo(30,0); ctx.lineTo(-15,-15); ctx.lineTo(-15,15); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(-10,-10); ctx.lineTo(-10,10); ctx.fill();
         ctx.restore();
     }
     ctx.restore();
 }
-
-function varToRgba(hex, alpha) { return hex; } // Упрощение для стабильности
 
 function finish(t, m) {
     gameState = 'END';
@@ -327,7 +247,7 @@ function finish(t, m) {
     if(m > 0) balance += gain;
     document.getElementById('resTitle').innerText = t;
     document.getElementById('resMult').innerText = "x" + m;
-    document.getElementById('resAdd').innerText = m > 0 ? "+" + gain + " CREDITS" : "BET LOST";
+    document.getElementById('resAdd').innerText = m > 0 ? "+" + gain : "FAILED";
     const ov = document.getElementById('overlay');
     ov.style.display = 'flex'; setTimeout(() => ov.style.opacity = '1', 50);
     setTimeout(() => {
@@ -341,7 +261,7 @@ function finish(t, m) {
             document.getElementById('gizmoBox').style.display = 'flex';
             document.getElementById('balance').innerText = balance;
         }, 500);
-    }, 3500);
+    }, 3000);
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
