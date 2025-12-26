@@ -3,322 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Lottie & Hazards</title>
+    <title>Orbit Pro: Fixed & Juicy</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
-        :root { --primary: #00ff88; --danger: #ff4444; --gold: #ffcc00; --bg: #010105; --glass: rgba(10, 10, 25, 0.85); }
+        :root { --primary: #00ff88; --bg: #010105; --glass: rgba(15, 20, 40, 0.9); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; z-index: 1; }
         
-        /* Контейнер для Lottie-ракеты (скрыт, используется как текстура или оверлей) */
-        #rocket-container { position: absolute; width: 80px; height: 80px; pointer-events: none; z-index: 5; display: none; }
+        #rocket-asset { position: absolute; width: 100px; height: 100px; opacity: 0; pointer-events: none; }
 
-        #ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-        .panel { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; pointer-events: auto; }
+        #ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        .panel { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; pointer-events: auto; }
         
-        .top-row { display: flex; justify-content: space-between; align-items: center; }
-        .stat-card { padding: 12px 20px; border-left: 4px solid var(--primary); }
-        .val { font-size: 24px; font-weight: 900; color: var(--primary); }
+        .top-row { display: flex; justify-content: space-between; pointer-events: none; }
+        .stat-card { padding: 10px 20px; pointer-events: auto; }
 
-        /* Фикс крутилки */
-        .gizmo-wrap { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; }
-        .gizmo-area { width: 220px; height: 220px; border-radius: 50%; pointer-events: auto; position: relative; touch-action: none; }
-        .gizmo-visual { width: 180px; height: 180px; border: 2px solid rgba(0,255,136,0.3); border-radius: 50%; position: absolute; top: 20px; left: 20px; background: radial-gradient(circle, rgba(0,255,136,0.05), transparent); }
-        .handle { width: 34px; height: 34px; background: var(--primary); border: 4px solid white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--primary); pointer-events: none; }
+        .gizmo-wrap { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+        .gizmo-area { width: 200px; height: 200px; border-radius: 50%; border: 2px dashed rgba(0,255,136,0.2); position: relative; pointer-events: auto; }
+        .handle { width: 30px; height: 30px; background: var(--primary); border: 3px solid white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--primary); }
 
-        .bet-panel { width: 100%; max-width: 400px; margin: 0 auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; }
-        .launch-btn { background: var(--primary); border: none; color: #000; padding: 18px; border-radius: 15px; font-size: 20px; font-weight: 900; cursor: pointer; }
-
-        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: 0.4s; }
-        .card { background: #080815; padding: 50px; border-radius: 35px; border: 2px solid var(--primary); text-align: center; }
+        .bottom-ui { display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; pointer-events: none; }
+        .bet-panel { width: 300px; padding: 20px; pointer-events: auto; }
+        .launch-btn { width: 100%; background: var(--primary); border: none; padding: 15px; border-radius: 12px; font-weight: bold; font-size: 18px; cursor: pointer; color: black; }
     </style>
 </head>
 <body>
 
-<div id="rocket-container"></div>
+<div id="rocket-asset"></div>
 <canvas id="game"></canvas>
 
 <div id="ui">
     <div class="top-row">
         <div class="panel stat-card">
-            <span id="balance" class="val">1000</span><br>
-            <span style="font-size:10px; opacity:0.6; font-weight:bold;">CREDITS</span>
-        </div>
-        <div class="panel" style="display:flex; padding:5px; gap:5px;">
-            <button id="btnWorld" style="background:none; border:none; color:white; padding:8px 12px; border-radius:10px; font-size:11px; cursor:pointer;">WORLD</button>
-            <button id="btnRocket" style="background:var(--primary); border:none; color:#000; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:bold; cursor:pointer;">FOLLOW</button>
+            <span id="balance">1000</span> CR
         </div>
     </div>
 
-    <div class="gizmo-wrap" id="gizmoBox">
-        <div class="gizmo-area" id="gizmoZone">
-            <div class="gizmo-visual">
-                <div class="handle" id="gizmoHandle"></div>
-            </div>
+    <div class="gizmo-wrap">
+        <div class="gizmo-area" id="gizmo">
+            <div class="handle" id="handle"></div>
         </div>
-        <div id="angleShow" style="margin-top:10px; font-weight:900; color:var(--primary); font-size:24px;">270°</div>
     </div>
 
-    <div class="bet-panel panel" id="betBox">
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <input type="range" id="betRange" min="10" max="1000" value="100" style="flex: 1; accent-color: var(--primary);">
-            <span id="betValue" style="font-weight: 900; width: 50px;">100</span>
+    <div class="bottom-ui">
+        <div class="panel bet-panel">
+            <input type="range" id="betRange" min="10" max="500" value="100" style="width:100%; margin-bottom:10px;">
+            <button class="launch-btn" id="launch">LAUNCH</button>
         </div>
-        <button class="launch-btn" id="launchBtn">LAUNCH</button>
     </div>
 </div>
-
-<div id="overlay"><div class="card"><h2 id="resTitle">MISSION STATUS</h2><div id="resMult" style="font-size:80px; font-weight:900; color:var(--primary);">x0</div><div id="resAdd"></div></div></div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+let lottieAnim;
 
-// --- Состояние и Физика ---
+// Конфиг
 const WORLD_SIZE = 1800;
-const G_POWER = 9.5;
-let balance = 1000, gameState = 'PREPARE', cameraMode = 'ROCKET';
-let isInteracting = false;
+let gameState = 'PREPARE';
+let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: -90, alive: true };
+let cam = { x: 0, y: 0, zoom: 2.5 };
+let planets = [];
 
-let planets = [], stars = [], particles = [], hazards = [], nebulas = [];
-let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 270, alive: true };
-let cam = { x: 0, y: 0, zoom: 2.5, tZoom: 2.5 };
-
-// --- Lottie Setup ---
-let lottieRocket;
-function initLottie() {
-    lottieRocket = lottie.loadAnimation({
-        container: document.getElementById('rocket-container'),
-        renderer: 'canvas', // Рендерим в скрытый холст
+function init() {
+    resize();
+    // Загрузка Lottie
+    lottieAnim = lottie.loadAnimation({
+        container: document.getElementById('rocket-asset'),
+        renderer: 'canvas',
         loop: true,
         autoplay: true,
         path: 'rocket1.json'
     });
+
+    createLevel();
+    setupEvents();
+    loop();
 }
 
-function createNebulas() {
-    nebulas = [];
-    for(let i=0; i<3; i++) {
-        nebulas.push({
-            x: Math.random()*2000-1000,
-            y: Math.random()*2000-1000,
-            r: 800 + Math.random()*800,
-            color: i === 0 ? 'rgba(0, 255, 136, 0.05)' : 'rgba(112, 0, 255, 0.05)'
-        });
-    }
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 function createLevel() {
     planets = [];
-    hazards = [];
-    // Планеты (Safe zone > 450)
-    for(let i=0; i<5; i++) {
-        let dist = 500 + i * 350;
+    for(let i=0; i<4; i++) {
+        let dist = 600 + i * 400;
         let ang = Math.random() * Math.PI * 2;
         planets.push({
-            orbitR: dist, angle: ang,
-            speed: (0.0003 + i*0.0002) * (Math.random() > 0.5 ? 1 : -1),
-            r: 100 + Math.random()*60,
-            color: `hsl(${160 + i*40}, 80%, 50%)`,
-            mult: (7.5 - i * 1.3).toFixed(1),
+            orbitR: dist, 
+            angle: ang,
+            speed: (0.005 + Math.random()*0.005),
+            r: 80 + Math.random()*40,
+            color: `hsl(${i*70 + 150}, 70%, 50%)`,
             x: 0, y: 0
         });
     }
-    // Черная дыра
-    hazards.push({ x: 1200, y: -800, r: 80, type: 'BLACK_HOLE' });
 }
 
-function setupControls() {
-    const zone = document.getElementById('gizmoZone');
-    const handle = document.getElementById('gizmoHandle');
+function setupEvents() {
+    const gizmo = document.getElementById('gizmo');
+    const handle = document.getElementById('handle');
 
-    const updateRotate = (e) => {
-        const rect = zone.getBoundingClientRect();
-        const cx = rect.left + rect.width/2;
-        const cy = rect.top + rect.height/2;
-        const x = (e.clientX || e.touches[0].clientX) - cx;
-        const y = (e.clientY || e.touches[0].clientY) - cy;
-        rocket.angle = Math.atan2(y, x) * 180 / Math.PI;
-        handle.style.left = 50 + Math.cos(rocket.angle * Math.PI/180) * 42 + '%';
-        handle.style.top = 50 + Math.sin(rocket.angle * Math.PI/180) * 42 + '%';
-        document.getElementById('angleShow').innerText = Math.round((rocket.angle + 360)%360) + '°';
-        isInteracting = true;
+    const updateRotation = (e) => {
+        const rect = gizmo.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const ex = (e.clientX || e.touches?.[0].clientX);
+        const ey = (e.clientY || e.touches?.[0].clientY);
+        
+        const angleRad = Math.atan2(ey - cy, ex - cx);
+        rocket.angle = angleRad * 180 / Math.PI;
+        
+        handle.style.left = 50 + Math.cos(angleRad) * 45 + '%';
+        handle.style.top = 50 + Math.sin(angleRad) * 45 + '%';
     };
 
-    zone.onpointerdown = (e) => { zone.setPointerCapture(e.pointerId); updateRotate(e); };
-    zone.onpointermove = (e) => { if(e.buttons > 0) updateRotate(e); };
-    zone.onpointerup = () => isInteracting = false;
+    gizmo.addEventListener('pointerdown', (e) => {
+        gizmo.setPointerCapture(e.pointerId);
+        updateRotation(e);
+        gizmo.addEventListener('pointermove', updateRotation);
+    });
 
-    document.getElementById('launchBtn').onclick = () => {
+    gizmo.addEventListener('pointerup', () => {
+        gizmo.removeEventListener('pointermove', updateRotation);
+    });
+
+    document.getElementById('launch').onclick = () => {
         if(gameState !== 'PREPARE') return;
-        const bet = parseInt(document.getElementById('betRange').value);
-        if(bet > balance) return;
-        balance -= bet;
-        document.getElementById('balance').innerText = balance;
         const rad = rocket.angle * Math.PI / 180;
-        rocket.vx = Math.cos(rad) * 6;
-        rocket.vy = Math.sin(rad) * 6;
+        rocket.vx = Math.cos(rad) * 7;
+        rocket.vy = Math.sin(rad) * 7;
         gameState = 'FLYING';
-        document.getElementById('betBox').style.display = 'none';
-        document.getElementById('gizmoBox').style.display = 'none';
+        document.querySelector('.gizmo-wrap').style.display = 'none';
+        document.querySelector('.bet-panel').style.display = 'none';
     };
-    
-    document.getElementById('betRange').oninput = e => document.getElementById('betValue').innerText = e.target.value;
 }
 
-function getPhysics(px, py) {
-    let ax = 0, ay = 0;
-    planets.forEach(p => {
-        const dx = p.x - px, dy = p.y - py, d = Math.hypot(dx, dy);
-        if(d < 800) {
-            const f = (G_POWER * (p.r/100)) / Math.pow(Math.max(d, 60)/100, 2);
-            ax += (dx/d)*f; ay += (dy/d)*f;
-        }
-    });
-    hazards.forEach(h => {
-        if(h.type === 'BLACK_HOLE') {
-            const dx = h.x - px, dy = h.y - py, d = Math.hypot(dx, dy);
-            if(d < 1000) {
-                const f = 15 / Math.pow(Math.max(d, 40)/100, 2);
-                ax += (dx/d)*f; ay += (dy/d)*f;
-            }
-        }
-    });
-    return { ax, ay };
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
 }
 
 function update() {
     planets.forEach(p => {
-        p.angle += p.speed;
+        p.angle += p.speed * 0.1;
         p.x = Math.cos(p.angle) * p.orbitR;
         p.y = Math.sin(p.angle) * p.orbitR;
     });
 
     if(gameState === 'FLYING') {
-        particles.push({ x: rocket.x, y: rocket.y, life: 1, c: '#0f8' });
-        const f = getPhysics(rocket.x, rocket.y);
-        rocket.vx += f.ax; rocket.vy += f.ay;
-        rocket.x += rocket.vx; rocket.y += rocket.vy;
+        // Простая гравитация
+        planets.forEach(p => {
+            const dx = p.x - rocket.x;
+            const dy = p.y - rocket.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist < 800) {
+                const force = 8 / (dist/100);
+                rocket.vx += (dx/dist) * force * 0.1;
+                rocket.vy += (dy/dist) * force * 0.1;
+            }
+            if(dist < p.r) { 
+                gameState = 'PREPARE'; // Рестарт при попадании
+                resetRocket();
+            }
+        });
 
-        planets.forEach(p => { if(Math.hypot(p.x-rocket.x, p.y-rocket.y) < p.r) finish('SUCCESSFUL LANDING', p.mult); });
-        hazards.forEach(h => { if(Math.hypot(h.x-rocket.x, h.y-rocket.y) < h.r) { rocket.alive = false; finish('SINGULARITY REACHED', 0); } });
-        if(Math.hypot(rocket.x, rocket.y) > WORLD_SIZE) finish('LOST IN VOID', 0);
+        rocket.x += rocket.vx;
+        rocket.y += rocket.vy;
+
+        if(Math.abs(rocket.x) > WORLD_SIZE || Math.abs(rocket.y) > WORLD_SIZE) {
+            resetRocket();
+        }
     }
 
-    particles.forEach((p, i) => { p.life -= 0.03; if(p.life <= 0) particles.splice(i,1); });
+    cam.x += (rocket.x - cam.x) * 0.1;
+    cam.y += (rocket.y - cam.y) * 0.1;
+}
 
-    if(cameraMode === 'ROCKET' || gameState === 'PREPARE') {
-        cam.x += (rocket.x - cam.x) * 0.1; cam.y += (rocket.y - cam.y) * 0.1;
-        cam.tZoom = (gameState === 'PREPARE') ? 2.5 : 1.2;
-    }
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.1;
+function resetRocket() {
+    rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: -90, alive: true };
+    gameState = 'PREPARE';
+    document.querySelector('.gizmo-wrap').style.display = 'block';
+    document.querySelector('.bet-panel').style.display = 'block';
 }
 
 function draw() {
-    ctx.fillStyle = '#010105'; ctx.fillRect(0,0,canvas.width, canvas.height);
-    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.x, -cam.y);
 
-    // Nebula Background
-    nebulas.forEach(n => {
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-        g.addColorStop(0, n.color); g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g; ctx.fillRect(n.x-n.r, n.y-n.r, n.r*2, n.r*2);
-    });
-
-    stars.forEach(s => { ctx.fillStyle = 'white'; ctx.fillRect(s.x, s.y, s.s, s.s); });
-
-    // Path
-    if(isInteracting && gameState === 'PREPARE') {
-        ctx.beginPath(); ctx.setLineDash([10, 10]); ctx.strokeStyle = "rgba(0,255,136,0.4)";
-        let tx = 0, ty = 0, tvx = Math.cos(rocket.angle*Math.PI/180)*6, tvy = Math.sin(rocket.angle*Math.PI/180)*6;
-        for(let i=0; i<100; i++) {
-            const f = getPhysics(tx, ty); tvx += f.ax; tvy += f.ay; tx += tvx; ty += tvy;
-            i === 0 ? ctx.moveTo(tx, ty) : ctx.lineTo(tx, ty);
-        }
-        ctx.stroke(); ctx.setLineDash([]);
-    }
-
+    // Планеты
     planets.forEach(p => {
-        if(isInteracting || gameState === 'FLYING') {
-            ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.arc(0,0, p.orbitR, 0, Math.PI*2); ctx.stroke();
-        }
-        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-        g.addColorStop(0, p.color); g.addColorStop(1, '#000');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-        
-        ctx.save(); ctx.translate(p.x, p.y); ctx.scale(1/cam.zoom, 1/cam.zoom);
-        ctx.fillStyle = "white"; ctx.font = "bold 22px Arial"; ctx.textAlign = "center";
-        ctx.fillText("x"+p.mult, 0, 10); ctx.restore();
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
     });
 
-    hazards.forEach(h => {
-        if(h.type === 'BLACK_HOLE') {
-            const g = ctx.createRadialGradient(h.x, h.y, h.r*0.5, h.x, h.y, h.r*2);
-            g.addColorStop(0, '#000'); g.addColorStop(0.5, '#40f'); g.addColorStop(1, 'transparent');
-            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, h.r*2, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.fill();
-        }
-    });
-
-    particles.forEach(p => { ctx.fillStyle = `rgba(0,255,136,${p.life})`; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill(); });
-
-    // DRAW ROCKET (Lottie as texture)
+    // Ракета
     if(rocket.alive) {
         ctx.save();
         ctx.translate(rocket.x, rocket.y);
         
-        // Угол ракеты: угол вектора движения + коррекция 45 градусов (-PI/4)
-        let drawAngle = (gameState === 'PREPARE') ? rocket.angle * Math.PI/180 : Math.atan2(rocket.vy, rocket.vx);
-        ctx.rotate(drawAngle - Math.PI / 4); 
+        // Вращение: берем текущий угол + коррекция 45 градусов для модели
+        const currentAngle = gameState === 'PREPARE' 
+            ? rocket.angle * Math.PI / 180 
+            : Math.atan2(rocket.vy, rocket.vx);
+        
+        ctx.rotate(currentAngle - Math.PI/4);
 
-        // Отрисовка текущего кадра Lottie на основной Canvas
-        if(lottieRocket && lottieRocket.renderer && lottieRocket.renderer.canvasContext) {
-            const size = 60;
-            ctx.drawImage(lottieRocket.renderer.canvas, -size/2, -size/2, size, size);
+        // Рисуем Lottie
+        if(lottieAnim && lottieAnim.renderer.canvasContext) {
+            const lCanvas = lottieAnim.renderer.canvas;
+            ctx.drawImage(lCanvas, -40, -40, 80, 80);
         } else {
-            // Фолбэк если лотти не прогрузился
-            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(-10,-10); ctx.lineTo(-10,10); ctx.fill();
+            // Фолбэк на случай если json не загрузился
+            ctx.fillStyle = "white";
+            ctx.fillRect(-10, -10, 20, 20);
         }
         ctx.restore();
     }
+
     ctx.restore();
 }
 
-function finish(t, m) {
-    gameState = 'END';
-    const bet = parseInt(document.getElementById('betRange').value);
-    const gain = Math.floor(bet * m);
-    if(m > 0) balance += gain;
-    document.getElementById('resTitle').innerText = t;
-    document.getElementById('resMult').innerText = "x" + m;
-    document.getElementById('resAdd').innerText = m > 0 ? "+" + gain + " CREDITS" : "BET LOST";
-    const ov = document.getElementById('overlay');
-    ov.style.display = 'flex'; setTimeout(() => ov.style.opacity = '1', 50);
-    setTimeout(() => {
-        ov.style.opacity = '0';
-        setTimeout(() => {
-            ov.style.display = 'none';
-            gameState = 'PREPARE';
-            rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 270, alive: true };
-            createLevel();
-            document.getElementById('betBox').style.display = 'flex';
-            document.getElementById('gizmoBox').style.display = 'flex';
-            document.getElementById('balance').innerText = balance;
-        }, 500);
-    }, 3500);
-}
-
-function loop() { update(); draw(); requestAnimationFrame(loop); }
-
-window.onload = () => {
-    initLottie();
-    createNebulas();
-    init();
-};
+window.onload = init;
 </script>
 </body>
 </html>
