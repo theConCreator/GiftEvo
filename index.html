@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: High Stakes Edition</title>
+    <title>Orbit Pro: Cinematic Space</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <style>
-        :root { --primary: #00ff88; --bg: #050508; --glass: rgba(20, 20, 30, 0.95); --danger: #ff4444; }
+        :root { --primary: #00ff88; --bg: #030305; --glass: rgba(15, 15, 25, 0.95); --danger: #ff4444; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
         canvas { position: absolute; inset: 0; z-index: 1; display: block; }
@@ -39,7 +39,7 @@
         .launch-btn { width: 100%; background: var(--primary); border: none; padding: 16px; border-radius: 10px; font-weight: 900; font-size: 18px; cursor: pointer; color: black; margin-top: 10px; }
 
         #result-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; backdrop-filter: blur(5px); }
-        .result-box { text-align: center; padding: 40px; border-radius: 30px; border: 2px solid var(--primary); background: var(--bg); }
+        .result-box { text-align: center; padding: 40px; border-radius: 30px; border: 2px solid var(--primary); background: #050508; }
         .close-result { background: white; color: black; border: none; padding: 12px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
@@ -74,12 +74,11 @@
         <div class="gizmo-area" id="gizmo">
             <div class="handle" id="handle"></div>
         </div>
-        <div id="angText" style="margin-top:10px; font-weight:bold; color:var(--primary); font-size: 20px;">270°°</div>
+        <div id="angText" style="margin-top:10px; font-weight:bold; color:var(--primary); font-size: 20px;">270°</div>
     </div>
 
     <div class="bottom-ui">
         <div class="panel bet-panel" id="betUI">
-            <div style="font-size: 12px; opacity: 0.8;">SET MISSION BUDGET</div>
             <div class="bet-controls">
                 <input type="range" id="betRange" min="10" max="1000" value="100" style="flex:1; accent-color: var(--primary);">
                 <input type="number" id="betInput" value="100">
@@ -102,32 +101,44 @@ let shakeX = 0, shakeY = 0, currentShake = 0;
 
 let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: -90 };
 let cam = { x: 0, y: 0, zoom: 1.8, tZoom: 1.8, dragX: 0, dragY: 0, isDragging: false };
-let planets = [], trail = [];
+let planets = [], trail = [], stars = [];
 
 function init() {
     resize();
     lottie.loadAnimation({ container: rocketEl, renderer: 'svg', loop: true, autoplay: true, path: 'rocket1.json' });
     createWorld();
+    createStars();
     setupEvents();
     requestAnimationFrame(loop);
+}
+
+function createStars() {
+    stars = [];
+    for(let i=0; i<400; i++) {
+        stars.push({
+            x: Math.random() * 8000 - 4000,
+            y: Math.random() * 8000 - 4000,
+            size: Math.random() * 2,
+            opacity: Math.random() * 0.8 + 0.2
+        });
+    }
 }
 
 function createWorld() {
     planets = [];
     const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff'];
     for(let i=0; i<5; i++) {
-        let dist = 1000 + i * 750;
+        let dist = 1100 + i * 800;
         let ang = Math.random() * Math.PI * 2;
-        planets.push({ orbitR: dist, angle: ang, speed: 0.0008 + Math.random()*0.001, r: 200 + Math.random()*100, color: colors[i], mult: (8.0 - i*1.3).toFixed(1), x: 0, y: 0 });
+        planets.push({ orbitR: dist, angle: ang, speed: 0.0006 + Math.random()*0.001, r: 200 + Math.random()*100, color: colors[i], mult: (9.0 - i*1.4).toFixed(1), x: 0, y: 0 });
     }
 }
 
 function setupEvents() {
     window.addEventListener('resize', resize);
     const gizmo = document.getElementById('gizmo'), handle = document.getElementById('handle');
-    const bSlider = document.getElementById('betRange'), bInput = document.getElementById('betInput');
+    const bSlider = document.getElementById('betRange'), bInput = document.getElementById('betInput'), zSlider = document.getElementById('zoomSlider');
 
-    // Синхронизация ставки
     bSlider.oninput = () => bInput.value = bSlider.value;
     bInput.onchange = () => {
         let val = Math.max(10, Math.min(balance, bInput.value));
@@ -169,8 +180,13 @@ function setupEvents() {
         if(currentBet > balance) return;
         balance -= currentBet; document.getElementById('balance').innerText = balance;
         const r = rocket.angle * Math.PI / 180;
-        rocket.vx = Math.cos(r) * 10; rocket.vy = Math.sin(r) * 10;
+        rocket.vx = Math.cos(r) * 10.5; rocket.vy = Math.sin(r) * 10.5;
         gameState = 'FLYING';
+        
+        // КИНЕМАТОГРАФИЧНЫЙ ЗУМ ПРИ СТАРТЕ
+        cam.tZoom = 0.5;
+        zSlider.value = 0.5;
+
         document.getElementById('btnWorld').disabled = false;
         document.getElementById('zoomCont').removeAttribute('disabled');
         document.getElementById('gizmoUI').style.display = 'none';
@@ -194,21 +210,19 @@ function update() {
 
         planets.forEach(p => {
             const dx = p.x - rocket.x, dy = p.y - rocket.y, d = Math.sqrt(dx*dx + dy*dy);
-            // Гравитация в 1.5 раза ближе (1000 / 1.5 = 666)
-            if(d < 666) {
-                const f = (16 * (p.r/100)) / Math.pow(Math.max(d, 80)/100, 1.8);
+            // Гравитация в 1.3 раза дальше (666 * 1.3 = 865) и в 1.3 раза слабее (16 / 1.3 = 12.3)
+            if(d < 865) {
+                const f = (12.3 * (p.r/100)) / Math.pow(Math.max(d, 80)/100, 1.8);
                 rocket.vx += (dx/d) * f * 0.15; rocket.vy += (dy/d) * f * 0.15;
-                // Тряска при приближении
-                maxShake = Math.max(maxShake, (1 - d/666) * 15);
+                maxShake = Math.max(maxShake, (1 - d/865) * 12);
             }
             if(d < p.r) { balance += Math.floor(currentBet * p.mult); document.getElementById('balance').innerText = balance; endRound('MISSION SUCCESS', p.mult); }
         });
         currentShake = maxShake;
         rocket.x += rocket.vx; rocket.y += rocket.vy;
-        if(Math.hypot(rocket.x, rocket.y) > 6000) endRound('LOST IN SPACE', 0);
+        if(Math.hypot(rocket.x, rocket.y) > 7000) endRound('LOST IN SPACE', 0);
     }
 
-    // Тряска
     shakeX = (Math.random() - 0.5) * currentShake;
     shakeY = (Math.random() - 0.5) * currentShake;
 
@@ -219,9 +233,8 @@ function update() {
     }
 
     cam.tZoom = parseFloat(document.getElementById('zoomSlider').value);
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.1;
+    cam.zoom += (cam.tZoom - cam.zoom) * 0.05; // Более плавный зум
 
-    // Ракета +90 град по часовой (визуально +45 в коде из-за исходника)
     const sx = (rocket.x - cam.x) * cam.zoom + canvas.width/2 + shakeX;
     const sy = (rocket.y - cam.y) * cam.zoom + canvas.height/2 + shakeY;
     rocketEl.style.left = (sx - 50)+'px'; rocketEl.style.top = (sy - 50)+'px';
@@ -249,16 +262,21 @@ function reset() {
 }
 
 function draw() {
-    ctx.fillStyle = '#050508'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = var(--bg); ctx.fillRect(0,0,canvas.width,canvas.height);
     ctx.save();
-    // Применяем тряску ко всей сцене
     ctx.translate(canvas.width/2 + shakeX, canvas.height/2 + shakeY); 
     ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
+    // Звезды
+    stars.forEach(s => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.size / cam.zoom, 0, Math.PI*2); ctx.fill();
+    });
+
     // Бесконечный след
     if(trail.length > 1) {
-        ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5 / cam.zoom;
-        ctx.strokeStyle = 'rgba(0, 255, 136, 0.4)';
+        ctx.setLineDash([5, 5]); ctx.lineWidth = 1.2 / cam.zoom;
+        ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
         ctx.beginPath(); ctx.moveTo(trail[0].x, trail[0].y);
         for(let i=1; i<trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
         ctx.stroke(); ctx.setLineDash([]);
@@ -267,7 +285,7 @@ function draw() {
     // Планеты
     ctx.lineWidth = 1 / cam.zoom;
     planets.forEach(p => {
-        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.arc(0,0,p.orbitR,0,Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.06)"; ctx.arc(0,0,p.orbitR,0,Math.PI*2); ctx.stroke();
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "black"; ctx.font = `bold ${32/cam.zoom}px Arial`; ctx.textAlign="center"; ctx.fillText("x"+p.mult, p.x, p.y+10);
     });
