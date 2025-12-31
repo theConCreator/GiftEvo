@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Balance & Speed</title>
+    <title>Orbit Pro: Physical Engine</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root { --primary: #00ff88; --bg: #010103; --glass: rgba(15, 15, 25, 0.9); --danger: #ff4444; --warp: #00d4ff; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
         
         canvas { position: absolute; inset: 0; z-index: 1; display: block; }
         #rocket-layer { position: absolute; width: 80px; height: 80px; z-index: 10; pointer-events: none; }
@@ -17,33 +17,30 @@
         #ui-root { position: absolute; inset: 0; z-index: 100; pointer-events: none; padding: 20px; }
         .panel { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; pointer-events: auto; backdrop-filter: blur(15px); }
         
-        .stat-card { padding: 12px 24px; font-weight: 900; color: var(--primary); font-size: 20px; position: absolute; top: 20px; left: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .hash-info { position: absolute; top: 20px; right: 20px; font-size: 10px; opacity: 0.4; max-width: 150px; text-align: right; }
+        .stat-card { padding: 12px 24px; font-weight: 900; color: var(--primary); font-size: 20px; position: absolute; top: 20px; left: 20px; }
+        .hash-info { position: absolute; top: 20px; right: 20px; font-size: 10px; opacity: 0.4; text-align: right; }
 
         #timer-display { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .timer-val { font-size: 80px; font-weight: 900; color: var(--primary); text-shadow: 0 0 30px rgba(0,255,136,0.3); line-height: 1; }
-        .timer-status { font-size: 14px; letter-spacing: 3px; opacity: 0.7; margin-bottom: 5px; }
+        .timer-val { font-size: 80px; font-weight: 900; color: var(--primary); line-height: 1; }
 
-        .warp-tag { position: absolute; bottom: 30px; right: 30px; background: var(--warp); color: black; padding: 8px 16px; border-radius: 8px; font-weight: 900; display: none; box-shadow: 0 0 20px var(--warp); }
+        .warp-tag { position: absolute; bottom: 30px; right: 30px; background: var(--warp); color: black; padding: 8px 16px; border-radius: 8px; font-weight: 900; display: none; }
 
-        .bottom-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 360px; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .bottom-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 360px; transition: 0.4s; }
         .bottom-ui.disabled { opacity: 0; transform: translate(-50%, 50px); pointer-events: none; }
         .bet-panel { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
         .bet-row { display: flex; gap: 12px; align-items: center; }
         #betInput { width: 100px; background: #000; border: 2px solid #222; color: var(--primary); padding: 12px; border-radius: 10px; font-weight: 900; text-align: center; font-size: 18px; }
-        #betRange { flex: 1; accent-color: var(--primary); height: 8px; }
+        #betRange { flex: 1; accent-color: var(--primary); }
 
-        .btn-bet { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--primary); color: #000; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s; }
-        .btn-bet:hover { filter: brightness(1.1); }
+        .btn-bet { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--primary); color: #000; font-weight: 900; font-size: 18px; cursor: pointer; }
         .btn-bet.placed { background: #222; color: #555; pointer-events: none; }
 
         .history-bar { position: absolute; top: 85px; left: 20px; display: flex; gap: 8px; }
-        .hist-item { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 900; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15); animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } }
+        .hist-item { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 900; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15); }
 
         #result-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .result-box { text-align: center; padding: 50px; border-radius: 40px; border: 2px solid var(--primary); background: #08080c; box-shadow: 0 0 50px rgba(0,255,136,0.2); }
+        .result-box { text-align: center; padding: 50px; border-radius: 40px; border: 2px solid var(--primary); background: #08080c; }
     </style>
 </head>
 <body>
@@ -53,7 +50,7 @@
 
 <div id="result-modal">
     <div class="result-box">
-        <div id="res-status" style="font-size: 20px; opacity: 0.6; letter-spacing: 2px;">ROUND OVER</div>
+        <div id="res-status" style="font-size: 20px; opacity: 0.6;">MISSION STATUS</div>
         <div id="res-mult" style="font-size: 90px; color: var(--primary); margin: 10px 0; font-weight: 900;">x0.0</div>
         <div id="res-gain" style="font-size: 24px; font-weight: 900;"></div>
     </div>
@@ -61,10 +58,9 @@
 
 <div id="ui-root">
     <div class="panel stat-card">BANK: <span id="balance">1000</span></div>
-    <div class="hash-info">SEED HASH:<br><span id="roundHash">...</span></div>
+    <div class="hash-info">ROUND HASH:<br><span id="roundHash">...</span></div>
     
     <div id="timer-display">
-        <div class="timer-status">WINDING UP</div>
         <div class="timer-val" id="countdown">6.0</div>
     </div>
 
@@ -77,7 +73,7 @@
                 <input type="range" id="betRange" min="0" max="1000" value="100">
                 <input type="number" id="betInput" value="100">
             </div>
-            <button class="btn-bet" id="btnPlaceBet">CONFIRM MISSION</button>
+            <button class="btn-bet" id="btnPlaceBet">PLACE BET</button>
         </div>
     </div>
 </div>
@@ -86,13 +82,15 @@
 const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
 const rocketEl = document.getElementById('rocket-layer');
 
+const WORLD_LIMIT = 85000;
+const ROCKET_PHYS_RADIUS = 150; // Радиус хитбокса ракеты
+
 let gameState = 'PREPARE'; 
 let balance = 1000, currentBet = 0, isBetPlaced = false;
 let roundTimer = 6.0, flightTime = 0;
-let shakeX = 0, shakeY = 0;
 
 let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, visible: true, targetAngle: 0 };
-let cam = { x: 0, y: 0, zoom: 0.05, tZoom: 0.05 };
+let cam = { x: 0, y: 0, zoom: 0.05, tZoom: 0.05, tX: 0, tY: 0 };
 let planets = [], stars = [], particles = [];
 
 let precalculatedPath = [];
@@ -111,31 +109,21 @@ function init() {
 function createStars() {
     stars = [];
     for(let i=0; i<1500; i++) {
-        stars.push({ 
-            x: Math.random()*250000-125000, 
-            y: Math.random()*250000-125000, 
-            size: Math.random()*2.5, 
-            opacity: Math.random()*0.6+0.2,
-            depth: Math.random() * 0.8 + 0.1 
-        });
+        stars.push({ x: Math.random()*250000-125000, y: Math.random()*250000-125000, size: Math.random()*2, opacity: Math.random()*0.5+0.2, depth: Math.random()*0.8+0.1 });
     }
 }
 
 function createWorld() {
     planets = [];
-    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff', '#ffffff', '#ff6600'];
-    for(let i=0; i<8; i++) {
-        // Баланс: Компактные планеты + высокие множители для азарта
-        let radius = (120 + Math.random() * 250) * 2.2; 
-        let dist = 7000 + i * 6500;
-        // Расчет множителя для RTP 90% (базово)
-        let mult = ( (dist / 1500) * (500 / radius) ).toFixed(1);
+    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff', '#ffffff'];
+    for(let i=0; i<7; i++) {
+        let radius = (150 + Math.random() * 250) * 2.2; 
+        let dist = 8000 + i * 7500;
+        // Иксы уменьшены в два раза (0.5 множитель от старой формулы)
+        let mult = ( ((dist / 2000) * (600 / radius)) * 0.5 ).toFixed(1);
         planets.push({ 
-            orbitR: dist, 
-            angle: Math.random() * Math.PI * 2, 
-            speed: 0.0002 + Math.random()*0.0004, 
-            r: radius, color: colors[i % colors.length], 
-            mult: parseFloat(mult), x: 0, y: 0 
+            orbitR: dist, angle: Math.random()*Math.PI*2, speed: 0.0001+Math.random()*0.0002, 
+            r: radius, color: colors[i % colors.length], mult: parseFloat(mult), x: 0, y: 0 
         });
     }
 }
@@ -143,42 +131,39 @@ function createWorld() {
 function startNewRoundCycle() {
     createWorld();
     const seed = Math.random().toString(36).substring(2);
-    const hash = CryptoJS.SHA256(seed).toString();
-    document.getElementById('roundHash').innerText = hash.substring(0,24) + "...";
+    document.getElementById('roundHash').innerText = CryptoJS.SHA256(seed).toString().substring(0,20)+"...";
     rocket.targetAngle = Math.random() * 360;
     precalculate();
 }
 
 function precalculate() {
     precalculatedPath = [];
-    let pRocket = { x: 0, y: 0, vx: 0, vy: 0 };
-    const r = rocket.targetAngle * Math.PI / 180;
-    
-    // Увеличенная динамика (V=34)
-    pRocket.vx = Math.cos(r) * 34;
-    pRocket.vy = Math.sin(r) * 34;
-
-    let frames = 0, limit = 10000;
+    let pR = { x: 0, y: 0, vx: Math.cos(rocket.targetAngle * Math.PI / 180)*34, vy: Math.sin(rocket.targetAngle * Math.PI / 180)*34 };
+    let frames = 0, limit = 12000;
     let status = 'LOST', mult = 0;
     let sPlanets = planets.map(p => ({...p}));
 
     while(frames < limit) {
-        sPlanets.forEach(p => { p.angle += p.speed; p.x = Math.cos(p.angle) * p.orbitR; p.y = Math.sin(p.angle) * p.orbitR; });
+        sPlanets.forEach(p => { p.angle += p.speed; p.x = Math.cos(p.angle)*p.orbitR; p.y = Math.sin(p.angle)*p.orbitR; });
         sPlanets.forEach(p => {
-            const dx = p.x - pRocket.x, dy = p.y - pRocket.y, d = Math.sqrt(dx*dx+dy*dy);
-            if(d < 9000) {
-                // Более агрессивная гравитация
-                const f = (70 * (p.r/500)) / Math.pow(Math.max(d, 400)/500, 1.9);
-                pRocket.vx += (dx/d)*f*0.25; pRocket.vy += (dy/d)*f*0.25;
+            const dx = p.x - pR.x, dy = p.y - pR.y, d = Math.sqrt(dx*dx+dy*dy);
+            const gravRange = p.r * 2.5;
+            
+            if(d < gravRange) {
+                // Линейное ослабление гравитации: 1 у поверхности, 0 на границе 2.5R
+                const force = 1 - (d / gravRange);
+                const strength = 0.8; // Общее ослабление
+                pR.vx += (dx/d) * force * strength; pR.vy += (dy/d) * force * strength;
             }
-            if(d < p.r) { status = 'LANDED'; mult = p.mult; frames = limit; }
+            // Хитбокс: радиус планеты + радиус ракеты
+            if(d < p.r + ROCKET_PHYS_RADIUS * 0.5) { status = 'LANDED'; mult = p.mult; frames = limit; }
         });
-        pRocket.x += pRocket.vx; pRocket.y += pRocket.vy;
-        precalculatedPath.push({x: pRocket.x, y: pRocket.y, vx: pRocket.vx, vy: pRocket.vy});
-        if(Math.hypot(pRocket.x, pRocket.y) > 120000) frames = limit;
+        pR.x += pR.vx; pR.y += pR.vy;
+        precalculatedPath.push({x: pR.x, y: pR.y, vx: pR.vx, vy: pR.vy});
+        if(Math.hypot(pR.x, pR.y) > WORLD_LIMIT) frames = limit;
         frames++;
     }
-    roundResult = { status, mult, win: 0 };
+    roundResult = { status, mult };
 }
 
 function setupEvents() {
@@ -189,7 +174,7 @@ function setupEvents() {
         let val = parseInt(bInput.value);
         if(val > 0 && val <= balance) {
             currentBet = val; balance -= val; isBetPlaced = true;
-            bBtn.innerText = "MISSION STARTING"; bBtn.classList.add('placed');
+            bBtn.innerText = "BET CONFIRMED"; bBtn.classList.add('placed');
             document.getElementById('balance').innerText = balance;
         }
     };
@@ -201,10 +186,7 @@ function update() {
     if(gameState === 'PREPARE') {
         roundTimer -= 1/60;
         document.getElementById('countdown').innerText = Math.max(0, roundTimer).toFixed(1);
-        // Плавная рулетка
-        if(roundTimer > 1.5) rocket.angle += 3.5; 
-        else rocket.angle += (rocket.targetAngle - (rocket.angle % 360)) * 0.08;
-
+        if(roundTimer > 1.5) rocket.angle += 3; else rocket.angle += (rocket.targetAngle - (rocket.angle % 360)) * 0.08;
         if(roundTimer <= 0) {
             gameState = 'FLYING'; currentFrame = 0; flightTime = 0;
             document.getElementById('betContainer').classList.add('disabled');
@@ -212,12 +194,13 @@ function update() {
         }
     }
 
+    let nearestPlanet = null;
     if(gameState === 'FLYING') {
         flightTime += 1/60;
-        let warpSpeed = (flightTime > 7) ? 3 : 1;
-        document.getElementById('warpIndicator').style.display = (warpSpeed > 1) ? 'block' : 'none';
+        let warp = (flightTime > 7) ? 3 : 1;
+        document.getElementById('warpIndicator').style.display = (warp > 1) ? 'block' : 'none';
 
-        for(let i=0; i < warpSpeed; i++) {
+        for(let i=0; i < warp; i++) {
             if(currentFrame < precalculatedPath.length) {
                 let p = precalculatedPath[currentFrame];
                 rocket.x = p.x; rocket.y = p.y; rocket.vx = p.vx; rocket.vy = p.vy;
@@ -230,35 +213,50 @@ function update() {
                 break;
             }
         }
+        // Поиск ближайшей планеты для камеры
+        planets.forEach(p => {
+            let d = Math.hypot(p.x - rocket.x, p.y - rocket.y);
+            if(d < p.r * 4) nearestPlanet = p;
+        });
     }
 
-    // Оптика (Панорамный зум)
+    // УМНАЯ КАМЕРА
     if(gameState === 'FLYING') {
-        cam.x += (rocket.x - cam.x) * 0.12; cam.y += (rocket.y - cam.y) * 0.12;
-        let vel = Math.hypot(rocket.vx, rocket.vy);
-        let dynamicTZoom = 0.11 / (1 + vel * 0.015 + (Math.hypot(rocket.x, rocket.y) * 0.00003));
-        cam.tZoom = Math.max(0.02, dynamicTZoom);
+        if(nearestPlanet) {
+            // Режим Encounter: фокус на середине между ракетой и планетой
+            cam.tX = (rocket.x + nearestPlanet.x) * 0.5;
+            cam.tY = (rocket.y + nearestPlanet.y) * 0.5;
+            let d = Math.hypot(rocket.x - nearestPlanet.x, rocket.y - nearestPlanet.y);
+            cam.tZoom = Math.min(0.04, 0.4 / (d / 1000 + 5)); // Динамический зум чтобы влезли оба
+        } else {
+            // Режим Follow: фокус на ракете
+            cam.tX = rocket.x; cam.tY = rocket.y;
+            let vel = Math.hypot(rocket.vx, rocket.vy);
+            cam.tZoom = 0.035 / (1 + vel * 0.01);
+        }
     } else {
-        cam.x += (0 - cam.x) * 0.05; cam.y += (0 - cam.y) * 0.05;
-        cam.tZoom = 0.045; 
+        cam.tX = 0; cam.tY = 0; cam.tZoom = 0.03;
     }
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.06;
+    
+    cam.x += (cam.tX - cam.x) * 0.08;
+    cam.y += (cam.tY - cam.y) * 0.08;
+    cam.zoom += (cam.tZoom - cam.zoom) * 0.05;
 
-    for(let i=particles.length-1; i>=0; i--) { particles[i].x+=particles[i].vx; particles[i].y+=particles[i].vy; particles[i].life-=0.03; if(particles[i].life<=0) particles.splice(i,1); }
+    particles.forEach((p, i) => { p.x+=p.vx; p.y+=p.vy; p.life-=0.03; if(p.life<=0) particles.splice(i,1); });
 
     const sx = (rocket.x-cam.x)*cam.zoom + canvas.width/2;
     const sy = (rocket.y-cam.y)*cam.zoom + canvas.height/2;
     rocketEl.style.left = (sx-40)+'px'; rocketEl.style.top = (sy-40)+'px';
-    rocketEl.style.transform = `scale(${cam.zoom * 15})`; 
+    rocketEl.style.transform = `scale(${cam.zoom * 20})`; 
     rocketEl.style.rotate = ( (gameState==='PREPARE' ? rocket.angle : Math.atan2(rocket.vy, rocket.vx)*180/Math.PI) + 45 ) + 'deg';
 }
 
 function endRound(txt, m, win) {
     if(gameState === 'ENDED') return;
     gameState = 'ENDED'; addHistory(m);
-    document.getElementById('res-status').innerText = txt === 'LANDED' ? 'MISSION ACCOMPLISHED' : 'COMMUNICATION LOST';
-    document.getElementById('res-mult').innerText = m > 0 ? 'x'+m : '0.0';
-    document.getElementById('res-gain').innerText = isBetPlaced ? (win > 0 ? `+${win} Credits` : `-${currentBet} Credits`) : "SPECTATING ONLY";
+    document.getElementById('res-status').innerText = txt === 'LANDED' ? 'TARGET REACHED' : 'LOST IN DEEP SPACE';
+    document.getElementById('res-mult').innerText = 'x' + m;
+    document.getElementById('res-gain').innerText = isBetPlaced ? (win > 0 ? `+${win}` : `-${currentBet}`) : "NO BET";
     document.getElementById('res-gain').style.color = win > 0 ? 'var(--primary)' : 'var(--danger)';
     document.getElementById('result-modal').style.display = 'flex';
     setTimeout(() => { document.getElementById('result-modal').style.display = 'none'; reset(); }, 3500);
@@ -266,10 +264,10 @@ function endRound(txt, m, win) {
 
 function reset() {
     rocket = { x:0, y:0, vx:0, vy:0, angle:rocket.angle, visible:true };
-    gameState = 'PREPARE'; roundTimer = 6.0; flightTime = 0;
+    gameState = 'PREPARE'; roundTimer = 6.0;
     isBetPlaced = false; currentBet = 0;
-    const bBtn = document.getElementById('btnPlaceBet');
-    bBtn.innerText = "CONFIRM MISSION"; bBtn.classList.remove('placed');
+    document.getElementById('btnPlaceBet').innerText = "PLACE BET";
+    document.getElementById('btnPlaceBet').classList.remove('placed');
     document.getElementById('betContainer').classList.remove('disabled');
     document.getElementById('timer-display').style.opacity = '1';
     document.getElementById('balance').innerText = balance;
@@ -279,9 +277,8 @@ function reset() {
 
 function addHistory(m) {
     const bar = document.getElementById('historyBar'); const div = document.createElement('div');
-    div.className = `hist-item`; div.style.color = m > 0 ? 'var(--primary)' : 'rgba(255,255,255,0.3)';
+    div.className = `hist-item`; div.style.color = m > 0 ? 'var(--primary)' : '#444';
     div.innerText = 'x'+m; bar.prepend(div);
-    if(bar.children.length > 10) bar.lastChild.remove();
 }
 
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -293,37 +290,41 @@ function draw() {
     stars.forEach(s => {
         const px = (s.x - cam.x * s.depth) * cam.zoom + canvas.width/2;
         const py = (s.y - cam.y * s.depth) * cam.zoom + canvas.height/2;
-        if(px > 0 && px < canvas.width && py > 0 && py < canvas.height) {
-            ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-            ctx.beginPath(); ctx.arc(px, py, s.size * cam.zoom * 3, 0, Math.PI*2); ctx.fill();
-        }
+        ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
+        ctx.beginPath(); ctx.arc(px, py, s.size * cam.zoom * 5, 0, Math.PI*2); ctx.fill();
     });
 
     ctx.save();
     ctx.translate(canvas.width/2, canvas.height/2); 
     ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.04)"; ctx.lineWidth = 1 / cam.zoom;
+    // Граница мира
+    ctx.strokeStyle = "rgba(255, 68, 68, 0.3)"; ctx.lineWidth = 100;
+    ctx.beginPath(); ctx.arc(0,0, WORLD_LIMIT, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([500, 500]); ctx.strokeStyle = "rgba(255, 68, 68, 0.5)"; ctx.stroke(); ctx.setLineDash([]);
+
+    // Орбиты
+    ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 2 / cam.zoom;
     planets.forEach(p => { ctx.beginPath(); ctx.arc(0,0,p.orbitR,0,Math.PI*2); ctx.stroke(); });
 
     particles.forEach(p => { 
         ctx.fillStyle = `rgba(0, 255, 136, ${p.life})`; 
-        ctx.beginPath(); ctx.arc(p.x, p.y, 8*p.life/cam.zoom, 0, Math.PI*2); ctx.fill(); 
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10*p.life/cam.zoom, 0, Math.PI*2); ctx.fill(); 
     });
 
     planets.forEach(p => { 
+        // Зона гравитации (визуальная)
+        ctx.fillStyle = p.color + "08"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI*2); ctx.fill();
+        // Сама планета
         ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); 
-        // Легкий контур
-        ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.lineWidth = 4/cam.zoom; ctx.stroke();
     });
     ctx.restore();
 
-    // Множители (UI слой)
     planets.forEach(p => {
         const sx = (p.x - cam.x) * cam.zoom + canvas.width/2;
         const sy = (p.y - cam.y) * cam.zoom + canvas.height/2;
         if(sx > 0 && sx < canvas.width && sy > 0 && sy < canvas.height) {
-            ctx.fillStyle = "white"; ctx.font = "900 13px Inter, Arial"; ctx.textAlign = "center";
+            ctx.fillStyle = "white"; ctx.font = "900 12px Arial"; ctx.textAlign = "center";
             ctx.fillText("x" + p.mult, sx, sy - (p.r * cam.zoom) - 15);
         }
     });
