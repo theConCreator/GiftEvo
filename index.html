@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Orbit Pro: Deep Space Entities</title>
+    <title>Orbit Pro: Blue Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --primary: #00ff88; --bg: #010103; --glass: rgba(15, 15, 25, 0.9); --danger: #ff4444; --warp: #00d4ff; --hole: #9d00ff; }
+        :root { 
+            --primary: #00d4ff; /* Голубой цвет */
+            --bg: #010103; 
+            --glass: rgba(10, 20, 30, 0.9); 
+            --danger: #ff4444; 
+            --warp: #ffffff; 
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; width: 100vw; height: 100vh; }
         
@@ -15,34 +21,41 @@
         #rocket-layer { position: absolute; width: 80px; height: 80px; z-index: 10; pointer-events: none; }
         
         #ui-root { position: absolute; inset: 0; z-index: 100; pointer-events: none; padding: 20px; }
-        .panel { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; pointer-events: auto; backdrop-filter: blur(15px); }
+        .panel { background: var(--glass); border: 1px solid rgba(0, 212, 255, 0.1); border-radius: 16px; pointer-events: auto; backdrop-filter: blur(15px); }
         
-        .stat-card { padding: 12px 24px; font-weight: 900; color: var(--primary); font-size: 20px; position: absolute; top: 20px; left: 20px; }
-        .hash-info { position: absolute; top: 20px; right: 20px; font-size: 10px; opacity: 0.4; text-align: right; }
-
+        .stat-card { padding: 12px 24px; font-weight: 900; color: var(--primary); font-size: 20px; position: absolute; top: 20px; left: 20px; border: 1px solid var(--primary); box-shadow: 0 0 15px rgba(0, 212, 255, 0.2); }
+        
         #timer-display { position: absolute; top: 15%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .timer-val { font-size: 80px; font-weight: 900; color: var(--primary); line-height: 1; }
-        .bet-lock-msg { font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 5px; opacity: 0; transition: 0.3s; }
+        .timer-label { font-size: 11px; letter-spacing: 3px; opacity: 0.7; margin-bottom: 5px; text-transform: uppercase; }
+        .timer-val { font-size: 85px; font-weight: 900; color: var(--primary); line-height: 1; text-shadow: 0 0 20px rgba(0, 212, 255, 0.4); }
 
-        .warp-tag { position: absolute; bottom: 30px; right: 30px; background: var(--warp); color: black; padding: 8px 16px; border-radius: 8px; font-weight: 900; display: none; }
-
-        .bottom-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 360px; transition: 0.4s; }
-        .bottom-ui.locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
-        .bottom-ui.hidden { opacity: 0; transform: translate(-50%, 50px); pointer-events: none; }
+        .bottom-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 360px; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s; }
+        .bottom-ui.locked { opacity: 0.4; filter: blur(1px); pointer-events: none; }
+        .bottom-ui.hidden { opacity: 0; transform: translate(-50%, 100px); }
         
         .bet-panel { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bet-row { display: flex; gap: 12px; align-items: center; }
-        #betInput { width: 100px; background: #000; border: 2px solid #222; color: var(--primary); padding: 12px; border-radius: 10px; font-weight: 900; text-align: center; font-size: 18px; }
-        #betRange { flex: 1; accent-color: var(--primary); }
+        
+        #betInput { 
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #333; color: var(--primary); 
+            padding: 12px; border-radius: 10px; text-align: center; font-weight: 900; font-size: 18px;
+            transition: border-color 0.3s;
+        }
+        #betInput:focus { border-color: var(--primary); outline: none; }
 
-        .btn-bet { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--primary); color: #000; font-weight: 900; font-size: 18px; cursor: pointer; }
-        .btn-bet.placed { background: #222; color: #555; pointer-events: none; }
+        .btn-bet { 
+            width: 100%; padding: 20px; border-radius: 12px; border: none; 
+            background: var(--primary); color: #000; font-weight: 900; font-size: 18px; 
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 #0099cc;
+        }
+        .btn-bet:active { transform: translateY(2px); box-shadow: 0 2px 0 #0099cc; }
+        .btn-bet.placed { background: #1a1a1a; color: #555; box-shadow: none; pointer-events: none; }
 
         .history-bar { position: absolute; top: 85px; left: 20px; display: flex; gap: 8px; }
-        .hist-item { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 900; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15); }
+        .hist-item { padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 900; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.2); color: var(--primary); }
 
-        #result-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .result-box { text-align: center; padding: 50px; border-radius: 40px; border: 2px solid var(--primary); background: #08080c; }
+        #result-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
+        .result-box { text-align: center; padding: 60px; border-radius: 40px; border: 2px solid var(--primary); background: #01050a; box-shadow: 0 0 50px rgba(0, 212, 255, 0.2); }
     </style>
 </head>
 <body>
@@ -52,31 +65,26 @@
 
 <div id="result-modal">
     <div class="result-box">
-        <div id="res-status" style="font-size: 20px; opacity: 0.6;">MISSION LOG</div>
-        <div id="res-mult" style="font-size: 90px; color: var(--primary); margin: 10px 0; font-weight: 900;">x0.0</div>
-        <div id="res-gain" style="font-size: 24px; font-weight: 900;"></div>
+        <div id="res-status" style="font-size: 18px; opacity: 0.6; letter-spacing: 4px;">TELEMETRY LOST</div>
+        <div id="res-mult" style="font-size: 100px; color: var(--primary); margin: 15px 0; font-weight: 900;">x0.0</div>
+        <div id="res-gain" style="font-size: 26px; font-weight: 900;"></div>
     </div>
 </div>
 
 <div id="ui-root">
-    <div class="panel stat-card">BANK: <span id="balance">1000</span></div>
-    <div class="hash-info">ROUND SEED:<br><span id="roundHash">...</span></div>
+    <div class="panel stat-card">CREDITS: <span id="balance">1000</span></div>
     
     <div id="timer-display">
+        <div id="timer-label" class="timer-label">Awaiting Bets</div>
         <div class="timer-val" id="countdown">6.0</div>
-        <div class="bet-lock-msg" id="betLockMsg">BETTING CLOSED</div>
     </div>
 
     <div class="history-bar" id="historyBar"></div>
-    <div class="warp-tag" id="warpIndicator">WARP SPEED X3</div>
 
     <div class="bottom-ui" id="betContainer">
         <div class="panel bet-panel">
-            <div class="bet-row">
-                <input type="range" id="betRange" min="0" max="1000" value="100">
-                <input type="number" id="betInput" value="100">
-            </div>
-            <button class="btn-bet" id="btnPlaceBet">CONFIRM BET</button>
+            <input type="number" id="betInput" value="100" step="10" min="10">
+            <button class="btn-bet" id="btnPlaceBet">INITIALIZE MISSION</button>
         </div>
     </div>
 </div>
@@ -85,19 +93,18 @@
 const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
 const rocketEl = document.getElementById('rocket-layer');
 
-const WORLD_LIMIT = 100000;
-const ROCKET_PHYS_RADIUS = 150;
+const WORLD_LIMIT = 150000;
 
-let gameState = 'PREPARE'; 
+let gameState = 'BETTING'; 
 let balance = 1000, currentBet = 0, isBetPlaced = false;
-let roundTimer = 6.0, flightTime = 0;
+let roundTimer = 6.0;
 
-let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, visible: true, targetAngle: 0 };
-let cam = { x: 0, y: 0, zoom: 0.02, tZoom: 0.02, tX: 0, tY: 0 };
-let planets = [], stars = [], particles = [], asteroids = [], blackHoles = [], wormholes = [];
+let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, targetAngle: 0, trail: [] };
+let cam = { x: 0, y: 0, zoom: 0.015, tZoom: 0.015 };
+let planets = [], stars = [], asteroids = [], blackHoles = [], wormholes = [];
 
 let precalculatedPath = [];
-let roundResult = { status: '', mult: 0, win: 0 };
+let roundResult = { status: '', mult: 0 };
 let currentFrame = 0;
 
 function init() {
@@ -111,105 +118,91 @@ function init() {
 
 function createStars() {
     stars = [];
-    for(let i=0; i<2000; i++) {
-        stars.push({ x: Math.random()*300000-150000, y: Math.random()*300000-150000, size: Math.random()*2, opacity: Math.random()*0.5+0.2, depth: Math.random()*0.9+0.05 });
+    for(let i=0; i<2500; i++) {
+        stars.push({
+            x: Math.random() * 600000 - 300000,
+            y: Math.random() * 600000 - 300000,
+            size: Math.random() * 2.5 + 0.5,
+            opacity: Math.random() * 0.8 + 0.2,
+            depth: Math.random() * 0.9 + 0.05
+        });
     }
 }
 
 function createWorld() {
     planets = []; asteroids = []; blackHoles = []; wormholes = [];
-    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff', '#ffffff'];
-    
-    // ПЛАНЕТЫ (В 3 РАЗА БОЛЬШЕ)
+    const colors = ['#00d4ff', '#0077ff', '#ffffff', '#55aaff', '#002244'];
+
+    // Планеты (Большие объекты)
     for(let i=0; i<6; i++) {
-        let radius = (180 + Math.random() * 300) * 6.6; 
-        let dist = 12000 + i * 11000;
-        let mult = ( ((dist / 2500) * (800 / radius)) * 0.4 ).toFixed(1);
-        planets.push({ orbitR: dist, angle: Math.random()*Math.PI*2, speed: 0.00008+Math.random()*0.00015, r: radius, color: colors[i % colors.length], mult: parseFloat(mult), x: 0, y: 0 });
+        let radius = (800 + Math.random() * 1200) * 1.8; 
+        let dist = 22000 + i * 18000;
+        planets.push({ orbitR: dist, angle: Math.random()*Math.PI*2, speed: 0.00005 + i*0.00002, r: radius, color: colors[i % colors.length], mult: ( (dist/3500) * (1200/radius) ).toFixed(1), x: 0, y: 0 });
     }
 
-    // АСТЕРОИДЫ
+    // Процедурные астероиды (3х размер)
     for(let i=0; i<15; i++) {
-        asteroids.push({ x: Math.random()*120000-60000, y: Math.random()*120000-60000, r: 200 + Math.random()*300 });
+        let r = 700 + Math.random() * 1500;
+        let points = [];
+        for(let p=0; p<10; p++) {
+            let a = (p/10) * Math.PI * 2;
+            let d = r * (0.7 + Math.random() * 0.6);
+            points.push({x: Math.cos(a)*d, y: Math.sin(a)*d});
+        }
+        asteroids.push({ x: (Math.random()-0.5)*200000, y: (Math.random()-0.5)*200000, r: r, points: points });
     }
 
-    // ЧЕРНАЯ ДЫРА
-    blackHoles.push({ x: (Math.random()-0.5)*40000, y: (Math.random()-0.5)*40000, r: 1200, gravR: 15000 });
+    // Черная дыра
+    blackHoles.push({ x: (Math.random()-0.5)*80000, y: (Math.random()-0.5)*80000, r: 4000 });
 
-    // КРОТОВАЯ НОРА (ВХОД И ВЫХОД)
-    let whA = { x: -30000, y: (Math.random()-0.5)*20000, r: 1000 };
-    let whB = { x: 30000, y: (Math.random()-0.5)*20000, r: 1000 };
-    wormholes.push({ in: whA, out: whB }, { in: whB, out: whA });
+    // Кротовые норы
+    let wh1 = {x: -60000, y: (Math.random()-0.5)*50000, r: 3500};
+    let wh2 = {x: 60000, y: (Math.random()-0.5)*50000, r: 3500};
+    wormholes.push({in: wh1, out: wh2}, {in: wh2, out: wh1});
 }
 
 function startNewRoundCycle() {
     createWorld();
-    const seed = Math.random().toString(36).substring(2);
-    document.getElementById('roundHash').innerText = CryptoJS.SHA256(seed).toString().substring(0,24);
     rocket.targetAngle = Math.random() * 360;
+    rocket.trail = [];
     precalculate();
 }
 
 function precalculate() {
     precalculatedPath = [];
-    let pR = { x: 0, y: 0, vx: Math.cos(rocket.targetAngle * Math.PI / 180)*36, vy: Math.sin(rocket.targetAngle * Math.PI / 180)*36 };
-    let frames = 0, limit = 15000;
+    let pR = { x: 0, y: 0, vx: Math.cos(rocket.targetAngle * Math.PI / 180)*42, vy: Math.sin(rocket.targetAngle * Math.PI / 180)*42 };
     let status = 'LOST', mult = 0;
-    let sPlanets = planets.map(p => ({...p}));
 
-    while(frames < limit) {
-        sPlanets.forEach(p => { p.angle += p.speed; p.x = Math.cos(p.angle)*p.orbitR; p.y = Math.sin(p.angle)*p.orbitR; });
-        
-        // Гравитация планет (в 1.5 раза сильнее)
-        sPlanets.forEach(p => {
-            const dx = p.x - pR.x, dy = p.y - pR.y, d = Math.sqrt(dx*dx+dy*dy);
-            const gravRange = p.r * 2.5;
-            if(d < gravRange) {
-                const force = (1 - (d / gravRange)) * 1.8; // Усиление x1.5-1.8
-                pR.vx += (dx/d) * force; pR.vy += (dy/d) * force;
-            }
-            if(d < p.r + 75) { status = 'LANDED'; mult = p.mult; frames = limit; }
-        });
-
-        // Черные дыры
-        blackHoles.forEach(bh => {
-            const dx = bh.x - pR.x, dy = bh.y - pR.y, d = Math.sqrt(dx*dx+dy*dy);
-            if(d < bh.gravR) {
-                const force = Math.pow(1 - (d / bh.gravR), 2) * 5;
+    for(let f=0; f<15000; f++) {
+        planets.forEach(p => {
+            const px = Math.cos(p.angle + p.speed * f)*p.orbitR, py = Math.sin(p.angle + p.speed * f)*p.orbitR;
+            const dx = px - pR.x, dy = py - pR.y, d = Math.sqrt(dx*dx+dy*dy);
+            if(d < p.r * 2.5) {
+                const force = (1 - d/(p.r*2.5)) * 3.5;
                 pR.vx += (dx/d)*force; pR.vy += (dy/d)*force;
             }
-            if(d < bh.r) { status = 'CRUSHED'; mult = 0; frames = limit; }
+            if(d < p.r + 150) { status = 'LANDED'; mult = p.mult; f = 15000; }
         });
-
-        // Астероиды
-        asteroids.forEach(a => {
-            if(Math.hypot(a.x - pR.x, a.y - pR.y) < a.r) { status = 'CRASHED'; mult = 0; frames = limit; }
-        });
-
-        // Кротовые норы
-        wormholes.forEach(wh => {
-            if(Math.hypot(wh.in.x - pR.x, wh.in.y - pR.y) < wh.in.r) {
-                pR.x = wh.out.x; pR.y = wh.out.y; // Телепорт
-            }
+        
+        blackHoles.forEach(bh => {
+            if(Math.hypot(bh.x - pR.x, bh.y - pR.y) < bh.r) { status = 'SINGULARITY'; f = 15000; }
         });
 
         pR.x += pR.vx; pR.y += pR.vy;
         precalculatedPath.push({x: pR.x, y: pR.y, vx: pR.vx, vy: pR.vy});
-        if(Math.hypot(pR.x, pR.y) > WORLD_LIMIT) frames = limit;
-        frames++;
+        if(Math.hypot(pR.x, pR.y) > WORLD_LIMIT) break;
     }
     roundResult = { status, mult };
 }
 
 function setupEvents() {
-    const bSlider = document.getElementById('betRange'), bInput = document.getElementById('betInput'), bBtn = document.getElementById('btnPlaceBet');
-    bSlider.oninput = () => bInput.value = bSlider.value;
-    bInput.oninput = () => bSlider.value = bInput.value;
-    bBtn.onclick = () => {
-        let val = parseInt(bInput.value);
-        if(val > 0 && val <= balance && roundTimer > 3) {
+    document.getElementById('btnPlaceBet').onclick = () => {
+        if(gameState === 'BETTING') {
+            let val = parseInt(document.getElementById('betInput').value);
+            if(val > balance) val = balance;
             currentBet = val; balance -= val; isBetPlaced = true;
-            bBtn.innerText = "MISSION ACTIVE"; bBtn.classList.add('placed');
+            document.getElementById('btnPlaceBet').innerText = "SYSTEMS READY";
+            document.getElementById('btnPlaceBet').classList.add('placed');
             document.getElementById('balance').innerText = balance;
         }
     };
@@ -218,153 +211,108 @@ function setupEvents() {
 function update() {
     planets.forEach(p => { p.angle += p.speed; p.x = Math.cos(p.angle)*p.orbitR; p.y = Math.sin(p.angle)*p.orbitR; });
 
-    if(gameState === 'PREPARE') {
+    if(gameState === 'BETTING') {
         roundTimer -= 1/60;
         document.getElementById('countdown').innerText = Math.max(0, roundTimer).toFixed(1);
-        
-        // БЛОКИРОВКА СТАВОК ПОСЛЕ 3 СЕКУНД
-        if(roundTimer <= 3) {
-            document.getElementById('betContainer').classList.add('locked');
-            document.getElementById('betLockMsg').style.opacity = '1';
-        }
-
-        if(roundTimer > 1.5) rocket.angle += 3.5; else rocket.angle += (rocket.targetAngle - (rocket.angle % 360)) * 0.08;
+        rocket.angle += 3.5;
         if(roundTimer <= 0) {
-            gameState = 'FLYING'; currentFrame = 0; flightTime = 0;
-            document.getElementById('betContainer').classList.add('hidden');
-            document.getElementById('timer-display').style.opacity = '0';
+            gameState = 'LOCKING'; roundTimer = 2.0;
+            document.getElementById('timer-label').innerText = "Locking Vector";
+            document.getElementById('betContainer').classList.add('locked');
         }
-    }
-
-    let nearest = null;
-    if(gameState === 'FLYING') {
-        flightTime += 1/60;
-        let warp = (flightTime > 7) ? 3 : 1;
-        document.getElementById('warpIndicator').style.display = (warp > 1) ? 'block' : 'none';
-
-        for(let i=0; i < warp; i++) {
+    } else if(gameState === 'LOCKING') {
+        roundTimer -= 1/60;
+        document.getElementById('countdown').innerText = Math.max(0, roundTimer).toFixed(1);
+        let diff = rocket.targetAngle - (rocket.angle % 360);
+        rocket.angle += diff * 0.12;
+        if(roundTimer <= 0) {
+            gameState = 'FLYING'; currentFrame = 0;
+            document.getElementById('timer-display').style.opacity = '0';
+            document.getElementById('betContainer').classList.add('hidden');
+        }
+    } else if(gameState === 'FLYING') {
+        let warp = (currentFrame > 500) ? 3 : 1;
+        for(let i=0; i<warp; i++) {
             if(currentFrame < precalculatedPath.length) {
                 let p = precalculatedPath[currentFrame];
-                // Плавная камера при телепорте
-                if(Math.hypot(rocket.x - p.x, rocket.y - p.y) > 5000) { cam.x = p.x; cam.y = p.y; }
                 rocket.x = p.x; rocket.y = p.y; rocket.vx = p.vx; rocket.vy = p.vy;
+                if(currentFrame % 4 === 0) rocket.trail.push({x: p.x, y: p.y});
+                if(rocket.trail.length > 150) rocket.trail.shift();
                 currentFrame++;
-                if(Math.random() > 0.4) particles.push({ x: rocket.x, y: rocket.y, vx: -rocket.vx*0.2, vy: -rocket.vy*0.2, life: 1 });
-            } else {
-                let win = isBetPlaced ? Math.floor(currentBet * roundResult.mult) : 0;
-                if(win > 0) balance += win;
-                endRound(roundResult.status, roundResult.mult, win);
-                break;
-            }
+            } else { endRound(); break; }
         }
-        planets.forEach(p => { if(Math.hypot(p.x - rocket.x, p.y - rocket.y) < p.r * 3.5) nearest = p; });
-        blackHoles.forEach(bh => { if(Math.hypot(bh.x - rocket.x, bh.y - rocket.y) < bh.gravR) nearest = bh; });
     }
 
-    // УМНАЯ КАМЕРА (АДАПТИРОВАННАЯ ПОД ГИГАНТОВ)
+    // Камера (возвращенный зум под компактную ракету)
     if(gameState === 'FLYING') {
-        if(nearest) {
-            cam.tX = (rocket.x + nearest.x) * 0.5; cam.tY = (rocket.y + nearest.y) * 0.5;
-            let d = Math.hypot(rocket.x - nearest.x, rocket.y - nearest.y);
-            cam.tZoom = Math.min(0.02, 0.4 / (d / 1500 + 10));
-        } else {
-            cam.tX = rocket.x; cam.tY = rocket.y;
-            cam.tZoom = 0.015 / (1 + Math.hypot(rocket.vx, rocket.vy) * 0.01);
-        }
+        cam.x += (rocket.x - cam.x) * 0.1; cam.y += (rocket.y - cam.y) * 0.1;
+        cam.tZoom = 0.02 / (1 + Math.hypot(rocket.vx, rocket.vy)*0.008);
     } else {
-        cam.tX = 0; cam.tY = 0; cam.tZoom = 0.015;
+        cam.x += (0 - cam.x) * 0.05; cam.y += (0 - cam.y) * 0.05;
+        cam.tZoom = 0.015;
     }
-    
-    cam.x += (cam.tX - cam.x) * 0.07; cam.y += (cam.tY - cam.y) * 0.07;
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.04;
-
-    particles.forEach((p, i) => { p.x+=p.vx; p.y+=p.vy; p.life-=0.03; if(p.life<=0) particles.splice(i,1); });
+    cam.zoom += (cam.tZoom - cam.zoom) * 0.06;
 
     const sx = (rocket.x-cam.x)*cam.zoom + canvas.width/2;
     const sy = (rocket.y-cam.y)*cam.zoom + canvas.height/2;
     rocketEl.style.left = (sx-40)+'px'; rocketEl.style.top = (sy-40)+'px';
-    rocketEl.style.transform = `scale(${cam.zoom * 40})`; 
-    rocketEl.style.rotate = ( (gameState==='PREPARE' ? rocket.angle : Math.atan2(rocket.vy, rocket.vx)*180/Math.PI) + 45 ) + 'deg';
+    rocketEl.style.transform = `scale(${cam.zoom * 28})`;
+    rocketEl.style.rotate = ( (gameState === 'FLYING' ? Math.atan2(rocket.vy, rocket.vx)*180/Math.PI : rocket.angle) + 45 ) + 'deg';
 }
-
-function endRound(txt, m, win) {
-    if(gameState === 'ENDED') return;
-    gameState = 'ENDED'; addHistory(m);
-    document.getElementById('res-status').innerText = txt.replace('_',' ');
-    document.getElementById('res-mult').innerText = 'x' + m;
-    document.getElementById('res-gain').innerText = isBetPlaced ? (win > 0 ? `+${win}` : `-${currentBet}`) : "VIEWER";
-    document.getElementById('res-gain').style.color = win > 0 ? 'var(--primary)' : 'var(--danger)';
-    document.getElementById('result-modal').style.display = 'flex';
-    setTimeout(() => { document.getElementById('result-modal').style.display = 'none'; reset(); }, 3500);
-}
-
-function reset() {
-    rocket = { x:0, y:0, vx:0, vy:0, angle:rocket.angle, visible:true };
-    gameState = 'PREPARE'; roundTimer = 6.0;
-    isBetPlaced = false; currentBet = 0;
-    const bBtn = document.getElementById('btnPlaceBet');
-    bBtn.innerText = "CONFIRM BET"; bBtn.classList.remove('placed');
-    document.getElementById('betContainer').classList.remove('locked', 'hidden');
-    document.getElementById('betLockMsg').style.opacity = '0';
-    document.getElementById('timer-display').style.opacity = '1';
-    document.getElementById('balance').innerText = balance;
-    startNewRoundCycle();
-}
-
-function addHistory(m) {
-    const bar = document.getElementById('historyBar'); const div = document.createElement('div');
-    div.className = `hist-item`; div.style.color = m > 0 ? 'var(--primary)' : '#444';
-    div.innerText = 'x'+m; bar.prepend(div);
-}
-
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
 function draw() {
     ctx.fillStyle = '#010103'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    
+
+    // Параллакс звезд
     stars.forEach(s => {
         const px = (s.x - cam.x * s.depth) * cam.zoom + canvas.width/2;
         const py = (s.y - cam.y * s.depth) * cam.zoom + canvas.height/2;
-        ctx.fillStyle = `rgba(255,255,255,${s.opacity})`;
-        ctx.beginPath(); ctx.arc(px, py, s.size * cam.zoom * 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = `rgba(0, 212, 255, ${s.opacity * 0.6})`;
+        ctx.beginPath(); ctx.arc(px, py, s.size * cam.zoom * 25, 0, Math.PI*2); ctx.fill();
     });
 
     ctx.save();
     ctx.translate(canvas.width/2, canvas.height/2); ctx.scale(cam.zoom, cam.zoom); ctx.translate(-cam.x, -cam.y);
 
-    // Граница
-    ctx.strokeStyle = "rgba(255, 68, 68, 0.2)"; ctx.lineWidth = 200;
-    ctx.beginPath(); ctx.arc(0,0, WORLD_LIMIT, 0, Math.PI*2); ctx.stroke();
+    // Отрисовка орбит (ВОЗВРАЩЕНО)
+    ctx.strokeStyle = "rgba(0, 212, 255, 0.05)"; 
+    ctx.lineWidth = 2 / cam.zoom;
+    planets.forEach(p => { ctx.beginPath(); ctx.arc(0,0,p.orbitR,0,Math.PI*2); ctx.stroke(); });
 
-    // Кротовые норы
-    wormholes.forEach(wh => {
-        let grad = ctx.createRadialGradient(wh.in.x, wh.in.y, 0, wh.in.x, wh.in.y, wh.in.r);
-        grad.addColorStop(0, '#fff'); grad.addColorStop(0.5, '#00d4ff'); grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(wh.in.x, wh.in.y, wh.in.r, 0, Math.PI*2); ctx.fill();
-    });
+    // Линия полета
+    if(rocket.trail.length > 1) {
+        ctx.beginPath(); ctx.strokeStyle = "rgba(0, 212, 255, 0.3)"; ctx.lineWidth = 150;
+        ctx.moveTo(rocket.trail[0].x, rocket.trail[0].y);
+        for(let t of rocket.trail) ctx.lineTo(t.x, t.y);
+        ctx.stroke();
+    }
 
     // Черные дыры
     blackHoles.forEach(bh => {
-        ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(bh.x, bh.y, bh.r, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = "#9d00ff"; ctx.lineWidth = 100; ctx.stroke();
+        let g = ctx.createRadialGradient(bh.x, bh.y, 0, bh.x, bh.y, bh.r * 1.5);
+        g.addColorStop(0, '#000'); g.addColorStop(0.5, '#000'); g.addColorStop(0.8, '#0077ff'); g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bh.x, bh.y, bh.r * 1.5, 0, Math.PI*2); ctx.fill();
     });
 
     // Астероиды
-    ctx.fillStyle = "#444";
-    asteroids.forEach(a => { ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI*2); ctx.fill(); });
-
-    // Планеты
-    planets.forEach(p => { 
-        ctx.fillStyle = p.color + "08"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); 
+    ctx.fillStyle = "#111"; ctx.strokeStyle = "#00d4ff22"; ctx.lineWidth = 60;
+    asteroids.forEach(a => {
+        ctx.beginPath(); ctx.moveTo(a.x + a.points[0].x, a.y + a.points[0].y);
+        a.points.forEach(p => ctx.lineTo(a.x + p.x, a.y + p.y));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
     });
 
-    particles.forEach(p => { 
-        ctx.fillStyle = `rgba(0, 255, 136, ${p.life})`; ctx.beginPath(); ctx.arc(p.x, p.y, 20*p.life, 0, Math.PI*2); ctx.fill(); 
+    // Планеты
+    planets.forEach(p => {
+        let g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        g.addColorStop(0, p.color); g.addColorStop(1, '#000');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "rgba(0, 212, 255, 0.2)"; ctx.lineWidth = 100; ctx.stroke();
     });
 
     ctx.restore();
 
+    // Множители
     planets.forEach(p => {
         const sx = (p.x - cam.x) * cam.zoom + canvas.width/2;
         const sy = (p.y - cam.y) * cam.zoom + canvas.height/2;
@@ -375,7 +323,34 @@ function draw() {
     });
 }
 
+function endRound() {
+    gameState = 'ENDED';
+    let win = isBetPlaced ? Math.floor(currentBet * roundResult.mult) : 0;
+    if(win > 0) balance += win;
+    document.getElementById('res-status').innerText = roundResult.status;
+    document.getElementById('res-mult').innerText = 'x' + roundResult.mult;
+    document.getElementById('res-gain').innerText = win > 0 ? `+${win}` : `-${currentBet}`;
+    document.getElementById('res-gain').style.color = win > 0 ? 'var(--primary)' : 'var(--danger)';
+    document.getElementById('result-modal').style.display = 'flex';
+    setTimeout(() => {
+        document.getElementById('result-modal').style.display = 'none';
+        resetGame();
+    }, 4000);
+}
+
+function resetGame() {
+    gameState = 'BETTING'; roundTimer = 6.0; isBetPlaced = false;
+    document.getElementById('btnPlaceBet').innerText = "INITIALIZE MISSION";
+    document.getElementById('btnPlaceBet').classList.remove('placed');
+    document.getElementById('betContainer').classList.remove('locked', 'hidden');
+    document.getElementById('timer-display').style.opacity = '1';
+    document.getElementById('timer-label').innerText = "Awaiting Bets";
+    rocket.x = 0; rocket.y = 0; rocket.trail = [];
+    startNewRoundCycle();
+}
+
 function loop() { update(); draw(); requestAnimationFrame(loop); }
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.onload = init;
 window.onresize = resize;
 </script>
