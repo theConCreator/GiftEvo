@@ -3,193 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Orbit Pro: Legacy Restored</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <title>Orbit Pro: Zero Bug Edition</title>
     <style>
-        :root { --primary: #00ff88; --bg: #010103; --surface: rgba(15, 15, 25, 0.9); --danger: #ff4444; --void: #7000ff; --gold: #ffcc00; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; height: 100vh; }
+        :root {
+            --primary: #00ff88;
+            --bg: #020205;
+            --surface: rgba(25, 25, 35, 0.95);
+            --danger: #ff4444;
+            --gold: #ffcc00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: -apple-system, system-ui, sans-serif; 
+            overflow: hidden; 
+            height: 100vh; 
+            touch-action: none;
+        }
         
-        canvas { position: absolute; inset: 0; z-index: 1; }
-        #rocket-node { position: absolute; width: 80px; height: 80px; z-index: 10; pointer-events: none; }
+        canvas { display: block; width: 100%; height: 100%; }
 
-        /* UI ELEMENTS */
-        #ui-root { position: absolute; inset: 0; z-index: 100; pointer-events: none; padding: 15px; }
-        .panel { background: var(--surface); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; pointer-events: auto; }
-        
-        .top-bar { display: flex; justify-content: space-between; align-items: center; }
-        .stat-card { padding: 10px 18px; font-weight: 900; color: var(--primary); font-size: 18px; }
-        
-        .history-bar { position: absolute; top: 75px; left: 15px; display: flex; gap: 6px; flex-wrap: wrap; max-width: 300px; }
-        .h-pill { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 900; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); }
+        /* UI Overlay */
+        #ui-layer {
+            position: fixed; inset: 0;
+            pointer-events: none;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 10;
+        }
 
-        /* GIZMO (AIMING) */
-        .gizmo-wrap { position: absolute; right: 25px; top: 50%; transform: translateY(-50%); text-align: center; }
-        .gizmo-disk { width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--primary); background: rgba(0,255,136,0.05); position: relative; cursor: crosshair; }
-        .gizmo-handle { width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 15px var(--primary); }
+        .panel { 
+            pointer-events: auto; 
+            background: var(--surface); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            border-radius: 16px; 
+            padding: 12px 20px;
+        }
 
-        /* BOTTOM PANEL */
-        .bottom-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 320px; display: flex; flex-direction: column; gap: 10px; }
-        .bet-box { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .launch-btn { width: 100%; background: var(--primary); border: none; padding: 18px; border-radius: 12px; font-weight: 900; font-size: 18px; cursor: pointer; color: black; box-shadow: 0 5px 20px rgba(0,255,136,0.3); }
-        .launch-btn:disabled { background: #333; color: #666; box-shadow: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .balance-val { color: var(--primary); font-weight: 900; font-size: 20px; }
+        .history { display: flex; gap: 8px; margin-top: 10px; }
+        .h-item { font-size: 11px; font-weight: 800; opacity: 0.7; }
 
-        /* RESULT */
-        #result-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.94); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
-        .res-val { font-size: 90px; font-weight: 900; color: var(--primary); }
+        .bottom-controls {
+            display: flex; flex-direction: column; gap: 12px;
+            width: 100%; max-width: 400px; margin: 0 auto;
+            transition: transform 0.4s ease;
+        }
+        .bottom-controls.hidden { transform: translateY(150%); }
+
+        .bet-slider-wrap { display: flex; align-items: center; gap: 15px; }
+        input[type="range"] { flex: 1; accent-color: var(--primary); }
+
+        .btn-main {
+            background: var(--primary); color: #000; border: none;
+            padding: 20px; border-radius: 18px; font-weight: 900;
+            font-size: 18px; cursor: pointer; text-transform: uppercase;
+        }
+
+        #result-screen {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100;
+        }
+        .res-text { font-size: 80px; font-weight: 900; color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div id="rocket-node"></div>
-<canvas id="game"></canvas>
+<canvas id="gameCanvas"></canvas>
 
-<div id="ui-root">
-    <div class="top-bar">
-        <div class="panel stat-card">BANK: $<span id="bank">1000</span></div>
-        <div class="panel" style="padding: 5px; display: flex; gap: 5px;">
-            <button id="camFollow" class="panel" style="padding: 8px 12px; font-size: 10px; font-weight: 900; background: var(--primary); color: black;">FOLLOW</button>
-            <button id="camWorld" class="panel" style="padding: 8px 12px; font-size: 10px; font-weight: 900; background: transparent; color: white;">WORLD</button>
+<div id="ui-layer">
+    <div class="header">
+        <div class="panel">
+            <div style="font-size: 10px; opacity: 0.6;">CREDITS</div>
+            <div class="balance-val">$<span id="balance">1000</span></div>
+            <div id="history" class="history"></div>
         </div>
+        <div class="panel" id="camBtn" style="cursor: pointer;">VIEW: FOLLOW</div>
     </div>
 
-    <div class="history-bar" id="historyBar"></div>
-
-    <div class="gizmo-wrap" id="aimUI">
-        <div class="panel gizmo-disk" id="gizmo">
-            <div class="gizmo-handle" id="handle"></div>
+    <div class="bottom-controls" id="controls">
+        <div class="panel bet-slider-wrap">
+            <input type="range" id="betRange" min="10" max="500" step="10" value="100">
+            <div style="width: 50px; font-weight: 900; text-align: right;">$<span id="betText">100</span></div>
         </div>
-        <div id="angleDisplay" style="margin-top:10px; font-weight:900; color:var(--primary); font-size: 18px;">270°</div>
-    </div>
-
-    <div class="bottom-ui" id="controlsUI">
-        <div class="panel bet-box">
-            <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14px;">
-                <span>BET AMOUNT</span>
-                <span id="betDisplay" style="color: var(--primary);">100</span>
-            </div>
-            <input type="range" id="betSlider" min="10" max="1000" step="10" value="100" style="accent-color: var(--primary);">
-            <div id="bonusTag" style="font-size: 10px; font-weight: 900; color: var(--gold); text-align: center;">BONUS x0.0</div>
-        </div>
-        <button class="launch-btn" id="launchBtn">IGNITION</button>
+        <button class="btn-main" id="launchBtn">LAUNCH MISSION</button>
     </div>
 </div>
 
-<div id="result-modal">
-    <div style="letter-spacing: 5px; opacity: 0.5; font-weight: 800;">MISSION STATUS</div>
-    <div class="res-val" id="resMult">x0.0</div>
-    <button class="launch-btn" onclick="location.reload()" style="width: auto; padding: 15px 60px;">NEXT ROUND</button>
+<div id="result-screen">
+    <div style="font-weight: 800; letter-spacing: 5px; opacity: 0.5;">MULTIPLIKATOR</div>
+    <div class="res-text" id="resMult">x2.5</div>
+    <button class="btn-main" onclick="location.reload()" style="padding: 15px 40px; margin-top: 20px;">CONTINUE</button>
 </div>
 
 <script>
-const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
-const rocketNode = document.getElementById('rocket-node');
+/** GAME CONFIGURATION **/
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const WORLD_SIZE = 12000;
 
-// Game State
-const WORLD_LIMIT = 10000;
-let state = 'IDLE', timer = 5.0, balance = 1000, currentBet = 100, bonusMult = 0;
-let cam = { x: 0, y: 0, z: 1.5, targetZ: 1.5, mode: 'follow' };
-let rocket = { x: 0, y: 0, vx: 0, vy: 0, angle: -90, trail: [] };
-let world = { planets: [], stars: [], hazards: [], gold: [], asteroids: [] };
-let history = [1.5, 0.0, 4.2, 1.8];
-let shake = { x: 0, y: 0, p: 0 };
+let balance = 1000, currentBet = 100, gameState = 'IDLE';
+let cam = { x: 0, y: 0, zoom: 0.1, tZoom: 0.1, mode: 'follow' };
+let rocket = { x: 0, y: 0, vx: 0, vy: 0, rot: -90, aimAngle: -90, particles: [] };
+let world = { planets: [], stars: [], hazards: [], gold: [] };
 
 function init() {
     resize();
     window.addEventListener('resize', resize);
+    generateStars();
+    generateLevel();
     
-    // Lottie Initialization
-    lottie.loadAnimation({
-        container: rocketNode,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        path: 'rocket1.json'
-    });
-
-    createWorld();
-    setupEvents();
-    renderHistory();
-    requestAnimationFrame(loop);
-}
-
-function createWorld() {
-    // Звезды
-    world.stars = Array.from({length: 400}, () => ({ 
-        x: Math.random()*40000-20000, y: Math.random()*40000-20000, s: Math.random()*2 
-    }));
-    
-    // Планеты (Как в твоем варианте: Орбиты вокруг центра)
-    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff'];
-    for(let i=0; i<5; i++) {
-        world.planets.push({
-            orbit: 1800 + i * 1400,
-            angle: Math.random() * Math.PI * 2,
-            speed: 0.0003 + (i * 0.0001),
-            r: 250 + Math.random() * 200,
-            color: colors[i],
-            mult: (1.5 + (i * 2.5)).toFixed(1),
-            x: 0, y: 0
-        });
-    }
-
-    // Черная дыра
-    world.hazards.push({ x: 3500, y: -3500, r: 200, gravityR: 2500 });
-    
-    // Золото
-    world.gold = Array.from({length: 20}, () => ({ 
-        x: Math.random()*16000-8000, y: Math.random()*16000-8000, active: true 
-    }));
-
-    // Астероиды
-    for(let i=0; i<15; i++) {
-        world.asteroids.push({
-            x: Math.random()*18000-9000, y: Math.random()*18000-9000, r: 80 + Math.random()*100
-        });
-    }
-}
-
-function setupEvents() {
-    const slider = document.getElementById('betSlider');
-    slider.oninput = (e) => {
-        currentBet = e.target.value;
-        document.getElementById('betDisplay').innerText = currentBet;
+    // UI Events
+    document.getElementById('betRange').oninput = (e) => {
+        currentBet = parseInt(e.target.value);
+        document.getElementById('betText').innerText = currentBet;
     };
 
     document.getElementById('launchBtn').onclick = () => {
-        if(state === 'IDLE' && balance >= currentBet) {
+        if (balance >= currentBet) {
             balance -= currentBet;
-            document.getElementById('bank').innerText = balance;
+            document.getElementById('balance').innerText = balance;
             startFlight();
         }
     };
 
-    // Gizmo Logic
-    const gizmo = document.getElementById('gizmo'), handle = document.getElementById('handle');
-    const updateAim = (e) => {
-        const rect = gizmo.getBoundingClientRect();
-        const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-        const ex = e.clientX || e.touches?.[0].clientX, ey = e.clientY || e.touches?.[0].clientY;
-        const rad = Math.atan2(ey-cy, ex-cx);
-        rocket.angle = rad * 180 / Math.PI;
-        handle.style.left = (50 + Math.cos(rad)*40)+'%';
-        handle.style.top = (50 + Math.sin(rad)*40)+'%';
-        document.getElementById('angleDisplay').innerText = Math.round((rocket.angle+360)%360)+'°';
+    document.getElementById('camBtn').onclick = () => {
+        cam.mode = cam.mode === 'follow' ? 'world' : 'follow';
+        document.getElementById('camBtn').innerText = `VIEW: ${cam.mode.toUpperCase()}`;
     };
-    gizmo.onpointerdown = (e) => { gizmo.setPointerCapture(e.pointerId); updateAim(e); gizmo.onpointermove = updateAim; };
-    gizmo.onpointerup = () => gizmo.onpointermove = null;
 
-    // Camera Modes
-    document.getElementById('camFollow').onclick = () => setCamMode('follow');
-    document.getElementById('camWorld').onclick = () => setCamMode('world');
+    requestAnimationFrame(loop);
 }
 
-function setCamMode(m) {
-    cam.mode = m;
-    document.getElementById('camFollow').style.background = m === 'follow' ? 'var(--primary)' : 'transparent';
-    document.getElementById('camFollow').style.color = m === 'follow' ? 'black' : 'white';
-    document.getElementById('camWorld').style.background = m === 'world' ? 'var(--primary)' : 'transparent';
-    document.getElementById('camWorld').style.color = m === 'world' ? 'black' : 'white';
+function generateStars() {
+    world.stars = Array.from({length: 400}, () => ({
+        x: (Math.random() - 0.5) * WORLD_SIZE * 4,
+        y: (Math.random() - 0.5) * WORLD_SIZE * 4,
+        s: Math.random() * 2
+    }));
+}
+
+function generateLevel() {
+    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff'];
+    for(let i=0; i<5; i++) {
+        world.planets.push({
+            orbit: 2000 + i * 1600,
+            angle: Math.random() * Math.PI * 2,
+            speed: 0.0004 - (i * 0.00005),
+            r: 300 + Math.random() * 200,
+            color: colors[i],
+            mult: (1.5 + i * 3.2).toFixed(1)
+        });
+    }
+    // Hazard (Black Hole)
+    world.hazards.push({ x: 4000, y: -4000, r: 250, gR: 2500 });
+}
+
+function startFlight() {
+    gameState = 'FLYING';
+    document.getElementById('controls').classList.add('hidden');
+    const rad = rocket.aimAngle * Math.PI / 180;
+    rocket.vx = Math.cos(rad) * 95;
+    rocket.vy = Math.sin(rad) * 95;
 }
 
 function loop() {
@@ -199,165 +180,171 @@ function loop() {
 }
 
 function update() {
-    // Планеты
+    // Planets Motion
     world.planets.forEach(p => {
         p.angle += p.speed;
         p.x = Math.cos(p.angle) * p.orbit;
         p.y = Math.sin(p.angle) * p.orbit;
     });
 
-    if(state === 'FLYING') {
-        rocket.trail.push({x: rocket.x, y: rocket.y});
-        if(rocket.trail.length > 40) rocket.trail.shift();
+    if (gameState === 'IDLE') {
+        rocket.aimAngle = -90 + Math.sin(Date.now() * 0.002) * 60;
+        rocket.rot = rocket.aimAngle;
+    } else if (gameState === 'FLYING') {
+        // Particles
+        if (Math.random() > 0.2) {
+            rocket.particles.push({ x: rocket.x, y: rocket.y, life: 1, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5 });
+        }
 
-        let maxShake = 0;
-        // Гравитация планет
+        // Gravity Logic
         world.planets.forEach(p => {
-            const dx = p.x-rocket.x, dy = p.y-rocket.y, d = Math.hypot(dx,dy);
-            if(d < p.r * 3) {
-                rocket.vx += (dx/d)*6; rocket.vy += (dy/d)*6;
-                maxShake = Math.max(maxShake, 8);
-                if(d < p.r) finishRound('WIN', p.mult);
+            const dx = p.x - rocket.x, dy = p.y - rocket.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < p.r * 3) {
+                rocket.vx += (dx / dist) * 5.5;
+                rocket.vy += (dy / dist) * 5.5;
+                if (dist < p.r + 50) finishRound('WIN', p.mult);
             }
         });
 
-        // Черная дыра
+        // Hazards
         world.hazards.forEach(h => {
-            const dx = h.x-rocket.x, dy = h.y-rocket.y, d = Math.hypot(dx,dy);
-            if(d < h.gravityR) {
-                rocket.vx += (dx/d)*9; rocket.vy += (dy/d)*9;
-                maxShake = 15;
-                if(d < h.r) finishRound('LOST', 0);
+            const dx = h.x - rocket.x, dy = h.y - rocket.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < h.gR) {
+                rocket.vx += (dx / dist) * 7;
+                rocket.vy += (dy / dist) * 7;
+                if (dist < h.r) finishRound('LOST', 0);
             }
         });
 
-        // Золото
-        world.gold.forEach(g => {
-            if(g.active && Math.hypot(g.x-rocket.x, g.y-rocket.y) < 500) {
-                g.active = false; bonusMult += 0.2;
-                document.getElementById('bonusTag').innerText = `BONUS x${bonusMult.toFixed(1)}`;
-            }
-        });
+        rocket.x += rocket.vx;
+        rocket.y += rocket.vy;
+        rocket.rot = Math.atan2(rocket.vy, rocket.vx) * 180 / Math.PI;
 
-        // Препятствия
-        world.asteroids.forEach(a => {
-            if(Math.hypot(a.x-rocket.x, a.y-rocket.y) < a.r + 50) finishRound('LOST', 0);
-        });
-
-        shake.p = maxShake;
-        rocket.x += rocket.vx; rocket.y += rocket.vy;
-        rocket.angle = Math.atan2(rocket.vy, rocket.vx) * 180 / Math.PI;
-
-        if(Math.hypot(rocket.x, rocket.y) > WORLD_LIMIT) finishRound('LOST', 0);
+        if (Math.hypot(rocket.x, rocket.y) > WORLD_SIZE) finishRound('LOST', 0);
     }
 
-    // Camera Logic
-    if(cam.mode === 'follow') {
+    rocket.particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+        if(p.life <= 0) rocket.particles.splice(i, 1);
+    });
+
+    // Camera
+    if (cam.mode === 'follow') {
         cam.x += (rocket.x - cam.x) * 0.1;
         cam.y += (rocket.y - cam.y) * 0.1;
-        cam.targetZ = 0.05 / (1 + Math.hypot(rocket.vx, rocket.vy)*0.01);
+        cam.tZoom = 0.6 / (1 + Math.hypot(rocket.vx, rocket.vy) * 0.005);
     } else {
         cam.x *= 0.1; cam.y *= 0.1;
-        cam.targetZ = Math.min(canvas.width, canvas.height) / (WORLD_LIMIT * 2.2);
+        cam.tZoom = Math.min(canvas.width, canvas.height) / (WORLD_SIZE * 2.2);
     }
-    cam.z += (cam.targetZ - cam.z) * 0.05;
-
-    // Rocket Sync (FIXED SIZE)
-    shake.x = (Math.random()-0.5) * shake.p;
-    shake.y = (Math.random()-0.5) * shake.p;
-    
-    const sx = (rocket.x - cam.x)*cam.z + canvas.width/2 + shake.x;
-    const sy = (rocket.y - cam.y)*cam.z + canvas.height/2 + shake.y;
-    rocketNode.style.left = sx-40+'px'; 
-    rocketNode.style.top = sy-40+'px';
-    // Масштабируем ракету так, чтобы она всегда была видна
-    rocketNode.style.transform = `scale(${cam.z * 35})`; 
-    rocketNode.style.rotate = (rocket.angle + 45) + 'deg';
+    cam.zoom += (cam.tZoom - cam.zoom) * 0.05;
 }
 
 function draw() {
-    ctx.fillStyle = '#010103'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
     ctx.save();
-    ctx.translate(canvas.width/2 + shake.x, canvas.height/2 + shake.y);
-    ctx.scale(cam.z, cam.z);
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.scale(cam.zoom, cam.zoom);
     ctx.translate(-cam.x, -cam.y);
 
     // Stars
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    world.stars.forEach(s => ctx.fillRect(s.x, s.y, s.s/cam.z, s.s/cam.z));
+    ctx.fillStyle = "#fff";
+    world.stars.forEach(s => ctx.fillRect(s.x, s.y, s.s/cam.zoom, s.s/cam.zoom));
 
-    // Trajectory
-    if(state === 'IDLE') {
-        const rad = rocket.angle * Math.PI / 180;
-        ctx.setLineDash([100, 100]); ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)'; ctx.lineWidth = 100;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(rad)*6000, Math.sin(rad)*6000); ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    // Trail
-    if(rocket.trail.length > 1) {
-        ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)'; ctx.lineWidth = 100; ctx.beginPath();
-        rocket.trail.forEach((t, i) => i===0 ? ctx.moveTo(t.x, t.y) : ctx.lineTo(t.x, t.y));
+    // Orbits
+    world.planets.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.orbit, 0, Math.PI*2);
+        ctx.strokeStyle = "rgba(255,255,255,0.05)";
+        ctx.lineWidth = 2 / cam.zoom;
         ctx.stroke();
+    });
+
+    // Aim Line
+    if (gameState === 'IDLE') {
+        ctx.beginPath();
+        ctx.setLineDash([20, 20]);
+        const r = rocket.aimAngle * Math.PI / 180;
+        ctx.moveTo(0,0);
+        ctx.lineTo(Math.cos(r)*5000, Math.sin(r)*5000);
+        ctx.strokeStyle = "rgba(0, 255, 136, 0.3)";
+        ctx.stroke();
+        ctx.setLineDash([]);
     }
 
     // Hazards
     world.hazards.forEach(h => {
-        ctx.fillStyle = '#0a001a'; ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#7000ff'; ctx.lineWidth = 30; ctx.stroke();
+        const grad = ctx.createRadialGradient(h.x, h.y, h.r, h.x, h.y, h.gR);
+        grad.addColorStop(0, '#000');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.gR, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#7000ff'; ctx.lineWidth = 5 / cam.zoom;
+        ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.stroke();
     });
 
-    // Gold
-    world.gold.forEach(g => {
-        if(!g.active) return;
-        ctx.fillStyle = '#ffcc00'; ctx.shadowBlur = 50; ctx.shadowColor = '#ffcc00';
-        ctx.beginPath(); ctx.arc(g.x, g.y, 150, 0, Math.PI*2); ctx.fill();
-        ctx.shadowBlur = 0;
+    // Particles
+    rocket.particles.forEach(p => {
+        ctx.fillStyle = `rgba(0, 255, 136, ${p.life})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI*2); ctx.fill();
     });
 
     // Planets
     world.planets.forEach(p => {
-        // Orbit line
-        ctx.beginPath(); ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.arc(0,0,p.orbit,0,Math.PI*2); ctx.stroke();
-        // Body
-        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-        // Text
-        ctx.fillStyle = 'white'; ctx.font = 'bold 350px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('x'+p.mult, p.x, p.y - p.r - 200);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `bold ${100}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(`x${p.mult}`, p.x, p.y - p.r - 50);
     });
+
+    // Rocket (Clean Canvas Drawing)
+    ctx.save();
+    ctx.translate(rocket.x, rocket.y);
+    ctx.rotate((rocket.rot + 90) * Math.PI / 180);
+    
+    // Body
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.moveTo(0, -60);
+    ctx.lineTo(30, 40);
+    ctx.lineTo(-30, 40);
+    ctx.closePath();
+    ctx.fill();
+    // Engine Glow
+    if (gameState === 'FLYING') {
+        ctx.fillStyle = varColor('--primary');
+        ctx.beginPath(); ctx.arc(0, 45, 20 * (0.8 + Math.random()*0.4), 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
 
     ctx.restore();
 }
 
-function startFlight() {
-    state = 'FLYING';
-    const rad = rocket.angle * Math.PI / 180;
-    rocket.vx = Math.cos(rad) * 110;
-    rocket.vy = Math.sin(rad) * 110;
-    document.getElementById('aimUI').style.display = 'none';
-    document.getElementById('controlsUI').style.display = 'none';
-}
-
-function finishRound(res, mult) {
-    if(state === 'ENDED') return;
-    state = 'ENDED';
-    const final = res === 'WIN' ? parseFloat(mult) + bonusMult : 0;
-    if(final > 0) balance += Math.floor(currentBet * final);
+function finishRound(type, mult) {
+    if (gameState === 'ENDED') return;
+    gameState = 'ENDED';
+    const win = parseFloat(mult);
+    if (win > 0) balance += Math.floor(currentBet * win);
     
-    document.getElementById('resMult').innerText = 'x' + final.toFixed(1);
-    document.getElementById('result-modal').style.display = 'flex';
+    document.getElementById('resMult').innerText = `x${win.toFixed(1)}`;
+    document.getElementById('resMult').style.color = win > 0 ? 'var(--primary)' : 'var(--danger)';
+    document.getElementById('result-screen').style.display = 'flex';
 }
 
-function renderHistory() {
-    document.getElementById('historyBar').innerHTML = history.map(h => `<div class="h-pill">x${h.toFixed(1)}</div>`).join('');
-}
+function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
 
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 }
 
-window.onload = init;
+init();
 </script>
 </body>
 </html>
