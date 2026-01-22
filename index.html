@@ -2,271 +2,273 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Plinko Cyber Evolution</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plinko Chaos Edition</title>
     <style>
-        :root {
-            --bg: #020205;
-            --panel: #0a0a15;
-            --gold: #ffcc00;
-            --cyan: #00f2ff;
-            --pink: #ff007b;
-        }
-
         body {
-            margin: 0; background: var(--bg); color: white;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; overflow: hidden;
+            margin: 0;
+            background: #1a1a2e;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
         }
 
-        /* Интерфейс */
-        .top-bar {
-            width: 100%; max-width: 500px;
-            display: flex; justify-content: space-between;
-            padding: 15px; box-sizing: border-box; z-index: 10;
-        }
-
-        .balance-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 5px 20px; border-radius: 12px;
-            border-left: 4px solid var(--cyan);
-        }
-
-        .fever-bar-container {
-            width: 150px; height: 10px; background: #222;
-            border-radius: 5px; margin-top: 10px; overflow: hidden;
-        }
-
-        #fever-fill {
-            width: 0%; height: 100%; background: linear-gradient(90deg, var(--pink), var(--gold));
-            transition: width 0.3s;
-        }
-
-        /* Игровое поле */
-        #container { position: relative; transition: filter 0.3s; }
         canvas {
-            border-radius: 0 0 20px 20px;
-            background: radial-gradient(circle at 50% 20%, #16162d 0%, #020205 80%);
-            box-shadow: 0 0 40px rgba(0, 242, 255, 0.1);
+            background: #16213e;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border-radius: 10px;
+            cursor: crosshair;
         }
 
-        /* Кнопки */
         .controls {
-            margin-top: 20px; display: flex; flex-direction: column; gap: 10px;
-            width: 90%; max-width: 400px;
+            margin: 20px;
+            display: flex;
+            gap: 15px;
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 10px;
         }
 
         button {
-            background: linear-gradient(135deg, #1a1a3a, #0a0a15);
-            border: 1px solid var(--cyan); color: var(--cyan);
-            padding: 15px; border-radius: 12px; font-weight: bold;
-            cursor: pointer; transition: 0.2s;
-            text-transform: uppercase; letter-spacing: 1px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
         }
 
-        button:hover { background: var(--cyan); color: black; box-shadow: 0 0 20px var(--cyan); }
-        button:active { transform: scale(0.96); }
+        .btn-normal { background: #e94560; color: white; }
+        .btn-heavy { background: #533483; color: white; }
+        .btn-gold { background: #f9d423; color: #333; }
+        
+        button:hover { transform: scale(1.05); opacity: 0.9; }
 
-        .fever-active button {
-            border-color: var(--gold); color: var(--gold);
-            animation: glow 1s infinite alternate;
+        .stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
         }
 
-        @keyframes glow {
-            from { box-shadow: 0 0 5px var(--gold); }
-            to { box-shadow: 0 0 20px var(--gold); }
+        .hint {
+            color: #888;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="balance-card">
-            <small>БАЛАНС</small>
-            <div id="balance" style="font-size: 1.5rem; font-weight: bold;">1000</div>
-        </div>
-        <div style="text-align: right;">
-            <small id="fever-label">FEVER MODE</small>
-            <div class="fever-bar-container"><div id="fever-fill"></div></div>
-        </div>
-    </div>
-
-    <div id="container">
-        <canvas id="plinko"></canvas>
-    </div>
+    <div class="stats">Счёт: <span id="score">0</span></div>
 
     <div class="controls">
-        <button id="dropBtn">Сбросить шар ($10)</button>
-        <button id="multiDrop" style="font-size: 0.7rem; opacity: 0.7;">Сбросить 5 шаров сразу</button>
+        <button class="btn-normal" onclick="spawnBall('normal')">Обычный (x1)</button>
+        <button class="btn-heavy" onclick="spawnBall('heavy')">Тяжелый (x2)</button>
+        <button class="btn-gold" onclick="spawnBall('gold')">Золотой (x5)</button>
     </div>
+    
+    <div class="hint">Зажми левую кнопку мыши, чтобы активировать МАГНИТ!</div>
+
+    <canvas id="gameCanvas"></canvas>
 
     <script>
-        const canvas = document.getElementById('plinko');
+        const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const balanceEl = document.getElementById('balance');
-        const feverFill = document.getElementById('fever-fill');
-        
-        let balance = 1000;
-        let feverPoints = 0;
-        let isFever = false;
-        
-        const config = {
-            rows: 12,
-            ballR: 10,
-            pegR: 3,
-            gravity: 0.4, // Тяжелее
-            bounce: 0.35, // Меньше прыгучести (было 0.6)
-            friction: 0.98
-        };
+        const scoreElement = document.getElementById('score');
 
+        canvas.width = 600;
+        canvas.height = 700;
+
+        let score = 0;
         let balls = [];
-        let pegs = [];
-        let effects = [];
-        const multipliers = [15, 5, 2, 1, 0.5, 0.2, 0.5, 1, 2, 5, 15];
+        let pins = [];
+        let portals = [];
+        let movingPlats = [];
+        let isMouseDown = false;
+        let mousePos = { x: 0, y: 0 };
 
-        function resize() {
-            canvas.width = Math.min(window.innerWidth - 20, 480);
-            canvas.height = canvas.width * 1.2;
-            initPegs();
-        }
+        const gravity = 0.2;
+        const friction = 0.98;
 
-        function initPegs() {
-            pegs = [];
-            const spacing = canvas.width / (config.rows + 1);
-            for (let i = 2; i < config.rows; i++) {
-                const xShift = (canvas.width - (i * spacing)) / 2;
-                for (let j = 0; j <= i; j++) {
-                    pegs.push({ x: xShift + j * spacing, y: 100 + i * (spacing * 0.85), active: 0 });
+        // Инициализация препятствий
+        function initBoard() {
+            // Обычные гвоздики (сетка)
+            for (let row = 2; row < 10; row++) {
+                let cols = row + 3;
+                let spacing = canvas.width / (cols + 1);
+                for (let col = 1; col <= cols; col++) {
+                    pins.push({
+                        x: col * spacing + (row % 2 * 10),
+                        y: row * 60,
+                        r: 5
+                    });
                 }
             }
+
+            // Порталы
+            portals.push({ x: 100, y: 350, targetX: 500, targetY: 200, color: '#00d2ff' });
+            portals.push({ x: 500, y: 350, targetX: 100, targetY: 200, color: '#00d2ff' });
+
+            // Движущиеся платформы
+            movingPlats.push({ x: 300, y: 450, w: 100, dir: 1, speed: 2 });
         }
 
-        function createBall() {
-            if (balance < 10) return;
-            balance -= 10;
-            updateUI();
+        function spawnBall(type) {
+            let config = {
+                normal: { r: 8, color: '#e94560', weight: 1, multiplier: 1 },
+                heavy: { r: 12, color: '#533483', weight: 2, multiplier: 2 },
+                gold: { r: 10, color: '#f9d423', weight: 1.2, multiplier: 5 }
+            };
             
+            let c = config[type];
             balls.push({
-                x: canvas.width / 2 + (Math.random() * 10 - 5),
-                y: 40, vx: (Math.random() - 0.5) * 2, vy: 0,
-                color: isFever ? '#ffcc00' : '#00f2ff',
-                isFever: isFever
+                x: canvas.width / 2 + (Math.random() * 40 - 20),
+                y: 20,
+                vx: (Math.random() - 0.5) * 4,
+                vy: 0,
+                ...c
             });
         }
 
-        function updateUI() {
-            balanceEl.innerText = Math.floor(balance);
-            feverFill.style.width = feverPoints + '%';
-            if (feverPoints >= 100 && !isFever) activateFever();
-        }
-
-        function activateFever() {
-            isFever = true;
-            document.body.classList.add('fever-active');
-            setTimeout(() => {
-                isFever = false;
-                feverPoints = 0;
-                document.body.classList.remove('fever-active');
-                updateUI();
-            }, 8000);
-        }
+        // Обработка мыши (магнит)
+        canvas.onmousedown = () => isMouseDown = true;
+        window.onmouseup = () => isMouseDown = false;
+        canvas.onmousemove = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = e.clientX - rect.left;
+            mousePos.y = e.clientY - rect.top;
+        };
 
         function update() {
-            balls.forEach((ball, bIdx) => {
-                ball.vy += config.gravity;
-                ball.vx *= config.friction;
+            // Движение платформ
+            movingPlats.forEach(p => {
+                p.x += p.dir * p.speed;
+                if (p.x < 50 || p.x > canvas.width - 150) p.dir *= -1;
+            });
+
+            balls.forEach((ball, index) => {
+                // Магнитная сила
+                if (isMouseDown) {
+                    let dx = mousePos.x - ball.x;
+                    let dy = mousePos.y - ball.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 200) {
+                        ball.vx += dx * 0.005;
+                        ball.vy += dy * 0.005;
+                    }
+                }
+
+                ball.vy += gravity * ball.weight;
+                ball.vx *= friction;
                 ball.x += ball.vx;
                 ball.y += ball.vy;
 
-                // Столкновение с колышками
-                pegs.forEach(peg => {
-                    const dx = ball.x - peg.x;
-                    const dy = ball.y - peg.y;
-                    const d = Math.sqrt(dx*dx + dy*dy);
-                    if (d < config.ballR + config.pegR) {
-                        peg.active = 1.0;
-                        if (!isFever) feverPoints = Math.min(100, feverPoints + 0.5);
-                        
-                        const angle = Math.atan2(dy, dx);
-                        const speed = Math.sqrt(ball.vx**2 + ball.vy**2);
-                        ball.vx = Math.cos(angle) * speed * config.bounce + (Math.random() - 0.5);
-                        ball.vy = Math.sin(angle) * speed * config.bounce;
-                        ball.x = peg.x + Math.cos(angle) * (config.ballR + config.pegR);
-                        ball.y = peg.y + Math.sin(angle) * (config.ballR + config.pegR);
-                        
-                        updateUI();
+                // Стенки
+                if (ball.x < ball.r || ball.x > canvas.width - ball.r) ball.vx *= -0.6;
+
+                // Столкновение с гвоздиками
+                pins.forEach(pin => {
+                    let dx = ball.x - pin.x;
+                    let dy = ball.y - pin.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < ball.r + pin.r) {
+                        let angle = Math.atan2(dy, dx);
+                        let speed = Math.sqrt(ball.vx**2 + ball.vy**2);
+                        ball.vx = Math.cos(angle) * speed * 0.7;
+                        ball.vy = Math.sin(angle) * speed * 0.7;
+                        ball.y += ball.vy; // Выталкивание
                     }
                 });
 
-                // Стенки
-                if (ball.x < config.ballR || ball.x > canvas.width - config.ballR) ball.vx *= -0.5;
+                // Порталы
+                portals.forEach(p => {
+                    let dist = Math.sqrt((ball.x - p.x)**2 + (ball.y - p.y)**2);
+                    if (dist < 20) {
+                        ball.x = p.targetX;
+                        ball.y = p.targetY;
+                    }
+                });
 
-                // Попадание в лузу
+                // Движущиеся платформы
+                movingPlats.forEach(p => {
+                    if (ball.x > p.x && ball.x < p.x + p.w && ball.y > p.y && ball.y < p.y + 10) {
+                        ball.vy *= -0.8;
+                        ball.vx += p.dir * p.speed;
+                    }
+                });
+
+                // Финиш (лунки)
                 if (ball.y > canvas.height - 30) {
-                    const idx = Math.floor((ball.x / canvas.width) * multipliers.length);
-                    let gain = 10 * multipliers[idx];
-                    if (ball.isFever) gain *= 3;
-                    balance += gain;
-                    
-                    effects.push({ x: ball.x, y: ball.y, v: multipliers[idx], life: 1.0 });
-                    balls.splice(bIdx, 1);
-                    updateUI();
+                    let zone = Math.floor(ball.x / (canvas.width / 5));
+                    let multipliers = [10, 50, 100, 50, 10];
+                    score += multipliers[zone] * ball.multiplier;
+                    scoreElement.innerText = score;
+                    balls.splice(index, 1);
                 }
             });
-
-            pegs.forEach(p => p.active *= 0.9);
-            effects.forEach((e, i) => { e.life -= 0.02; if(e.life <= 0) effects.splice(i, 1); });
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Отрисовка луз
-            const bw = canvas.width / multipliers.length;
-            multipliers.forEach((m, i) => {
-                const color = isFever ? '255, 204, 0' : '0, 242, 255';
-                ctx.fillStyle = `rgba(${color}, ${0.05 + (i % 2) * 0.05})`;
-                ctx.fillRect(i * bw, canvas.height - 50, bw, 50);
-                ctx.fillStyle = m > 1 ? `rgb(${color})` : '#666';
-                ctx.font = "bold 12px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(`x${isFever ? m*3 : m}`, i * bw + bw/2, canvas.height - 20);
+            // Отрисовка порталов
+            portals.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(0, 210, 255, 0.2)';
+                ctx.fill();
             });
 
-            // Колышки
-            pegs.forEach(p => {
+            // Отрисовка гвоздиков
+            ctx.fillStyle = "#fff";
+            pins.forEach(pin => {
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, config.pegR + p.active * 3, 0, Math.PI * 2);
-                ctx.fillStyle = p.active > 0.1 ? `rgba(255,255,255,${p.active})` : '#333';
+                ctx.arc(pin.x, pin.y, pin.r, 0, Math.PI * 2);
                 ctx.fill();
+            });
+
+            // Платформы
+            ctx.fillStyle = "#4ecdc4";
+            movingPlats.forEach(p => {
+                ctx.fillRect(p.x, p.y, p.w, 10);
             });
 
             // Шары
-            balls.forEach(b => {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = b.color;
+            balls.forEach(ball => {
                 ctx.beginPath();
-                ctx.arc(b.x, b.y, config.ballR, 0, Math.PI * 2);
-                ctx.fillStyle = b.color;
+                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+                ctx.fillStyle = ball.color;
                 ctx.fill();
-                ctx.shadowBlur = 0;
+                ctx.closePath();
             });
 
-            // Эффекты текста при выигрыше
-            effects.forEach(e => {
-                ctx.fillStyle = `rgba(255, 255, 255, ${e.life})`;
-                ctx.font = `${20 + (1-e.life)*20}px Arial`;
-                ctx.fillText(`+${e.v}x`, e.x, e.y - (1-e.life)*50);
-            });
+            // Лунки
+            for (let i = 0; i < 5; i++) {
+                ctx.fillStyle = i % 2 === 0 ? "#1f4068" : "#16213e";
+                ctx.fillRect(i * (canvas.width / 5), canvas.height - 50, canvas.width / 5, 50);
+                ctx.fillStyle = "white";
+                ctx.fillText(["10", "50", "100", "50", "10"][i], i * (canvas.width / 5) + 50, canvas.height - 20);
+            }
 
-            requestAnimationFrame(() => { update(); draw(); });
+            // Эффект магнита
+            if (isMouseDown) {
+                ctx.beginPath();
+                ctx.arc(mousePos.x, mousePos.y, 100, 0, Math.PI*2);
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.stroke();
+            }
+
+            update();
+            requestAnimationFrame(draw);
         }
 
-        document.getElementById('dropBtn').onclick = createBall;
-        document.getElementById('multiDrop').onclick = () => { for(let i=0; i<5; i++) setTimeout(createBall, i*100); };
-        window.onresize = resize;
-        resize();
+        initBoard();
         draw();
     </script>
 </body>
