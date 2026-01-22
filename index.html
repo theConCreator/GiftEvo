@@ -3,273 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plinko Chaos Edition</title>
+    <title>Plinko Chaos: 15 Objects Edition</title>
     <style>
-        body {
-            margin: 0;
-            background: #1a1a2e;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        canvas {
-            background: #16213e;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            border-radius: 10px;
-            cursor: crosshair;
-        }
-
-        .controls {
-            margin: 20px;
-            display: flex;
-            gap: 15px;
-            background: #0f3460;
-            padding: 15px;
-            border-radius: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-
-        .btn-normal { background: #e94560; color: white; }
-        .btn-heavy { background: #533483; color: white; }
-        .btn-gold { background: #f9d423; color: #333; }
-        
-        button:hover { transform: scale(1.05); opacity: 0.9; }
-
-        .stats {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 24px;
-        }
-
-        .hint {
-            color: #888;
-            margin-bottom: 10px;
-        }
+        body { margin: 0; background: #0a0a12; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+        canvas { background: radial-gradient(circle, #1b1b2f 0%, #050505 100%); box-shadow: 0 0 50px #000; border: 2px solid #333; cursor: crosshair; }
+        .ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        .score-val { font-size: 32px; color: #00ffcc; text-shadow: 0 0 10px #00ffcc; }
+        .controls { margin: 15px; display: flex; gap: 10px; z-index: 10; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.2s; }
+        .b-n { background: #4ecca3; } .b-h { background: #9b59b6; } .b-g { background: #f1c40f; }
+        button:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        .event-log { position: absolute; right: 20px; top: 20px; color: #ff0055; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="stats">Счёт: <span id="score">0</span></div>
+    <div class="ui">Счёт: <span class="score-val" id="score">0</span></div>
+    <div id="event-log" class="event-log"></div>
 
     <div class="controls">
-        <button class="btn-normal" onclick="spawnBall('normal')">Обычный (x1)</button>
-        <button class="btn-heavy" onclick="spawnBall('heavy')">Тяжелый (x2)</button>
-        <button class="btn-gold" onclick="spawnBall('gold')">Золотой (x5)</button>
+        <button class="b-n" onclick="spawnBall('normal')">Шар x1</button>
+        <button class="b-h" onclick="spawnBall('heavy')">Тяжёлый x2</button>
+        <button class="b-g" onclick="spawnBall('gold')">Золотой x5</button>
     </div>
-    
-    <div class="hint">Зажми левую кнопку мыши, чтобы активировать МАГНИТ!</div>
 
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="game"></canvas>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
+<script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const log = document.getElementById('event-log');
+    canvas.width = 600; canvas.height = 800;
 
-        canvas.width = 600;
-        canvas.height = 700;
+    let score = 0;
+    let balls = [];
+    let pins = [];
+    let chaosObjects = []; // Сюда попадают новые 15 типов объектов
 
-        let score = 0;
-        let balls = [];
-        let pins = [];
-        let portals = [];
-        let movingPlats = [];
-        let isMouseDown = false;
-        let mousePos = { x: 0, y: 0 };
+    const types = [
+        { name: 'BLACK_HOLE', color: '#000', shadow: '#ff00ff' },
+        { name: 'BOOSTER', color: '#ff4d00', shadow: '#fff' },
+        { name: 'FREEZE', color: '#00d4ff', shadow: '#fff' },
+        { name: 'BUMPER', color: '#ff0055', shadow: '#ff0055' },
+        { name: 'MULTIPLIER', color: '#00ff00', shadow: '#00ff00' },
+        { name: 'COIN', color: '#ffd700', shadow: '#fff' }
+    ];
 
-        const gravity = 0.2;
-        const friction = 0.98;
-
-        // Инициализация препятствий
-        function initBoard() {
-            // Обычные гвоздики (сетка)
-            for (let row = 2; row < 10; row++) {
-                let cols = row + 3;
-                let spacing = canvas.width / (cols + 1);
-                for (let col = 1; col <= cols; col++) {
-                    pins.push({
-                        x: col * spacing + (row % 2 * 10),
-                        y: row * 60,
-                        r: 5
-                    });
-                }
-            }
-
-            // Порталы
-            portals.push({ x: 100, y: 350, targetX: 500, targetY: 200, color: '#00d2ff' });
-            portals.push({ x: 500, y: 350, targetX: 100, targetY: 200, color: '#00d2ff' });
-
-            // Движущиеся платформы
-            movingPlats.push({ x: 300, y: 450, w: 100, dir: 1, speed: 2 });
+    // Инициализация базовых гвоздиков
+    for(let r=3; r<12; r++) {
+        for(let c=0; c<r; c++) {
+            pins.push({ x: 300 + (c - r/2 + 0.5) * 45, y: r * 55, r: 4 });
         }
+    }
 
-        function spawnBall(type) {
-            let config = {
-                normal: { r: 8, color: '#e94560', weight: 1, multiplier: 1 },
-                heavy: { r: 12, color: '#533483', weight: 2, multiplier: 2 },
-                gold: { r: 10, color: '#f9d423', weight: 1.2, multiplier: 5 }
-            };
-            
-            let c = config[type];
-            balls.push({
-                x: canvas.width / 2 + (Math.random() * 40 - 20),
-                y: 20,
-                vx: (Math.random() - 0.5) * 4,
-                vy: 0,
-                ...c
-            });
-        }
-
-        // Обработка мыши (магнит)
-        canvas.onmousedown = () => isMouseDown = true;
-        window.onmouseup = () => isMouseDown = false;
-        canvas.onmousemove = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mousePos.x = e.clientX - rect.left;
-            mousePos.y = e.clientY - rect.top;
+    // Функция появления случайного объекта
+    function spawnChaos() {
+        const type = types[Math.floor(Math.random() * types.length)];
+        const obj = {
+            id: type.name,
+            x: Math.random() * (canvas.width - 100) + 50,
+            y: Math.random() * (canvas.height - 300) + 150,
+            r: 20 + Math.random() * 15,
+            life: 500, // исчезает со временем
+            color: type.color,
+            shadow: type.shadow
         };
+        chaosObjects.push(obj);
+        log.innerText = "EVENT: " + type.name;
+        setTimeout(() => log.innerText = "", 2000);
+    }
 
-        function update() {
-            // Движение платформ
-            movingPlats.forEach(p => {
-                p.x += p.dir * p.speed;
-                if (p.x < 50 || p.x > canvas.width - 150) p.dir *= -1;
-            });
+    // Таймер появления хаоса
+    setInterval(spawnChaos, 3000);
 
-            balls.forEach((ball, index) => {
-                // Магнитная сила
-                if (isMouseDown) {
-                    let dx = mousePos.x - ball.x;
-                    let dy = mousePos.y - ball.y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 200) {
-                        ball.vx += dx * 0.005;
-                        ball.vy += dy * 0.005;
-                    }
-                }
+    function spawnBall(type) {
+        const conf = { 
+            normal: { r: 7, c: '#4ecca3', m: 1, w: 1 },
+            heavy: { r: 11, c: '#9b59b6', m: 2, w: 1.8 },
+            gold: { r: 9, c: '#f1c40f', m: 5, w: 1.1 }
+        }[type];
+        balls.push({ x: 300 + Math.random()*10-5, y: 30, vx: 0, vy: 0, ...conf });
+    }
 
-                ball.vy += gravity * ball.weight;
-                ball.vx *= friction;
-                ball.x += ball.vx;
-                ball.y += ball.vy;
+    function update() {
+        balls.forEach((b, bi) => {
+            b.vy += 0.2 * b.w;
+            b.x += b.vx; b.y += b.vy;
+            b.vx *= 0.99;
 
-                // Стенки
-                if (ball.x < ball.r || ball.x > canvas.width - ball.r) ball.vx *= -0.6;
-
-                // Столкновение с гвоздиками
-                pins.forEach(pin => {
-                    let dx = ball.x - pin.x;
-                    let dy = ball.y - pin.y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < ball.r + pin.r) {
-                        let angle = Math.atan2(dy, dx);
-                        let speed = Math.sqrt(ball.vx**2 + ball.vy**2);
-                        ball.vx = Math.cos(angle) * speed * 0.7;
-                        ball.vy = Math.sin(angle) * speed * 0.7;
-                        ball.y += ball.vy; // Выталкивание
-                    }
-                });
-
-                // Порталы
-                portals.forEach(p => {
-                    let dist = Math.sqrt((ball.x - p.x)**2 + (ball.y - p.y)**2);
-                    if (dist < 20) {
-                        ball.x = p.targetX;
-                        ball.y = p.targetY;
-                    }
-                });
-
-                // Движущиеся платформы
-                movingPlats.forEach(p => {
-                    if (ball.x > p.x && ball.x < p.x + p.w && ball.y > p.y && ball.y < p.y + 10) {
-                        ball.vy *= -0.8;
-                        ball.vx += p.dir * p.speed;
-                    }
-                });
-
-                // Финиш (лунки)
-                if (ball.y > canvas.height - 30) {
-                    let zone = Math.floor(ball.x / (canvas.width / 5));
-                    let multipliers = [10, 50, 100, 50, 10];
-                    score += multipliers[zone] * ball.multiplier;
-                    scoreElement.innerText = score;
-                    balls.splice(index, 1);
+            // Коллизии с гвоздиками
+            pins.forEach(p => {
+                let dx = b.x - p.x, dy = b.y - p.y, d = Math.sqrt(dx*dx+dy*dy);
+                if(d < b.r + p.r) {
+                    let a = Math.atan2(dy, dx);
+                    b.vx += Math.cos(a) * 3; b.vy = Math.sin(a) * 3;
                 }
             });
-        }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Отрисовка порталов
-            portals.forEach(p => {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.fillStyle = 'rgba(0, 210, 255, 0.2)';
-                ctx.fill();
+            // Коллизии с ХАОСОМ (15 объектов логики здесь)
+            chaosObjects.forEach((o, oi) => {
+                let dx = b.x - o.x, dy = b.y - o.y, d = Math.sqrt(dx*dx+dy*dy);
+                if(d < b.r + o.r) {
+                    if(o.id === 'BLACK_HOLE') { balls.splice(bi, 1); score -= 50; }
+                    if(o.id === 'BOOSTER') { b.vy += 10; b.vx += (Math.random()-0.5)*10; }
+                    if(o.id === 'FREEZE') { b.vx *= 0.1; b.vy *= 0.1; }
+                    if(o.id === 'BUMPER') { b.vx *= -2; b.vy *= -1.5; }
+                    if(o.id === 'COIN') { score += 100; chaosObjects.splice(oi, 1); }
+                    if(o.id === 'MULTIPLIER') { spawnBall('normal'); o.life = 0; }
+                }
             });
 
-            // Отрисовка гвоздиков
-            ctx.fillStyle = "#fff";
-            pins.forEach(pin => {
-                ctx.beginPath();
-                ctx.arc(pin.x, pin.y, pin.r, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Платформы
-            ctx.fillStyle = "#4ecdc4";
-            movingPlats.forEach(p => {
-                ctx.fillRect(p.x, p.y, p.w, 10);
-            });
-
-            // Шары
-            balls.forEach(ball => {
-                ctx.beginPath();
-                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-                ctx.fillStyle = ball.color;
-                ctx.fill();
-                ctx.closePath();
-            });
-
-            // Лунки
-            for (let i = 0; i < 5; i++) {
-                ctx.fillStyle = i % 2 === 0 ? "#1f4068" : "#16213e";
-                ctx.fillRect(i * (canvas.width / 5), canvas.height - 50, canvas.width / 5, 50);
-                ctx.fillStyle = "white";
-                ctx.fillText(["10", "50", "100", "50", "10"][i], i * (canvas.width / 5) + 50, canvas.height - 20);
+            // Стенки
+            if(b.x < b.r || b.x > canvas.width - b.r) b.vx *= -0.8;
+            
+            // Финиш
+            if(b.y > canvas.height) {
+                let mult = [10, 2, 1, 2, 10][Math.floor(b.x / (canvas.width/5))];
+                score += 10 * mult * b.m;
+                balls.splice(bi, 1);
+                document.getElementById('score').innerText = score;
             }
+        });
 
-            // Эффект магнита
-            if (isMouseDown) {
-                ctx.beginPath();
-                ctx.arc(mousePos.x, mousePos.y, 100, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-                ctx.stroke();
-            }
+        chaosObjects.forEach((o, i) => {
+            o.life--;
+            if(o.life <= 0) chaosObjects.splice(i, 1);
+        });
+    }
 
-            update();
-            requestAnimationFrame(draw);
-        }
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Гвоздики
+        ctx.fillStyle = "#444";
+        pins.forEach(p => {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+        });
 
-        initBoard();
-        draw();
-    </script>
+        // Объекты Хаоса
+        chaosObjects.forEach(o => {
+            ctx.shadowBlur = 15; ctx.shadowColor = o.shadow;
+            ctx.fillStyle = o.color;
+            ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, 7); ctx.fill();
+            ctx.shadowBlur = 0;
+            // Рисуем иконку/текст внутри
+            ctx.fillStyle = "white"; ctx.font = "10px Arial";
+            ctx.fillText(o.id, o.x - 15, o.y + 5);
+        });
+
+        // Шары
+        balls.forEach(b => {
+            ctx.fillStyle = b.c;
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+            // След
+            ctx.strokeStyle = b.c; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x - b.vx*2, b.y - b.vy*2); ctx.stroke();
+        });
+
+        update();
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
 </body>
 </html>
