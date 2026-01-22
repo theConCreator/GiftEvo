@@ -2,105 +2,174 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мини Плинко</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Plinko Deluxe</title>
     <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --accent: #ff007b;
+            --bg: #0a0a12;
+        }
+
         body {
             margin: 0;
-            background-color: #1a1a2e;
+            padding: 0;
+            background-color: var(--bg);
             color: white;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .score-board {
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--primary);
+            color: var(--primary);
         }
 
         canvas {
-            background-color: #16213e;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            display: block;
+            width: 100%; /* Адаптивность */
+            height: auto;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%);
+            border: 2px solid #333;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
 
         .controls {
-            margin-top: 20px;
-            text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
         }
 
         button {
-            padding: 10px 25px;
-            font-size: 18px;
-            background-color: #e94560;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, var(--secondary), var(--accent));
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.1s;
+            box-shadow: 0 5px 15px rgba(112, 0, 255, 0.4);
+            transition: all 0.2s;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 0, 123, 0.6);
         }
 
         button:active {
-            transform: scale(0.95);
+            transform: translateY(1px);
         }
 
-        .score {
-            font-size: 24px;
-            margin-bottom: 10px;
+        .multiplier-info {
+            display: flex;
+            width: 100%;
+            justify-content: space-around;
+            margin-top: -35px; /* Наложение на низ канваса */
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="score">Очки: <span id="balance">100</span></div>
-    <canvas id="plinkoCanvas" width="500" height="600"></canvas>
-    
-    <div class="controls">
-        <button onclick="dropBall()">Запустить шарик (5$)</button>
+    <div class="game-container">
+        <div class="header">
+            <div class="score-board">$<span id="balance">100</span></div>
+        </div>
+
+        <canvas id="plinko"></canvas>
+
+        <div class="controls">
+            <button id="dropBtn">Играть (10$)</button>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('plinkoCanvas');
+        const canvas = document.getElementById('plinko');
         const ctx = canvas.getContext('2d');
         const balanceDisplay = document.getElementById('balance');
+        const dropBtn = document.getElementById('dropBtn');
 
+        // Настройки
         let balance = 100;
-        const rows = 12;
+        const rows = 10;
+        const ballRadius = 11; // Увеличен шарик
         const pegRadius = 4;
-        const ballRadius = 8;
-        const gravity = 0.2;
-        const friction = 0.98;
-        const bounce = 0.5;
+        const gravity = 0.25;
+        const friction = 0.99;
+        const bounce = 0.6;
+        
+        // Масштабирование канваса под экран
+        function resize() {
+            const width = Math.min(window.innerWidth - 20, 500);
+            canvas.width = width;
+            canvas.height = width * 1.2;
+            initPegs();
+        }
 
-        const pegs = [];
-        const balls = [];
-        const buckets = [2, 1.5, 1, 0.5, 0.2, 0.5, 1, 1.5, 2]; // Множители
+        let pegs = [];
+        const multipliers = [5, 2, 0.5, 0.2, 0.5, 2, 5];
 
-        // Создание сетки колышков (треугольник)
-        for (let i = 2; i < rows; i++) {
-            for (let j = 0; j <= i; j++) {
-                const x = canvas.width / 2 + (j - i / 2) * 40;
-                const y = 50 + i * 40;
-                pegs.push({ x, y });
+        function initPegs() {
+            pegs = [];
+            const spacing = canvas.width / (rows + 1);
+            for (let i = 2; i < rows; i++) {
+                const rowWidth = i * spacing;
+                const startX = (canvas.width - rowWidth) / 2;
+                for (let j = 0; j <= i; j++) {
+                    pegs.push({
+                        x: startX + j * spacing,
+                        y: 80 + i * (spacing * 0.8),
+                        active: 0 // Для эффекта вспышки
+                    });
+                }
             }
         }
 
+        let balls = [];
+
         function dropBall() {
-            if (balance >= 5) {
-                balance -= 5;
-                updateUI();
-                
-                // Добавляем новый шарик со случайным небольшим смещением в центре
-                balls.push({
-                    x: canvas.width / 2 + (Math.random() * 4 - 2),
-                    y: 30,
-                    vx: 0,
-                    vy: 0,
-                    color: '#e94560'
-                });
-            } else {
-                alert("Недостаточно очков!");
-            }
+            if (balance < 10) return alert("Пополни баланс!");
+            
+            balance -= 10;
+            updateUI();
+
+            balls.push({
+                x: canvas.width / 2 + (Math.random() * 10 - 5),
+                y: 30,
+                vx: (Math.random() - 0.5) * 2,
+                vy: 0,
+                color: `hsl(${Math.random() * 360}, 80%, 60%)`
+            });
         }
 
         function updateUI() {
@@ -108,87 +177,100 @@
         }
 
         function update() {
-            balls.forEach((ball, bIndex) => {
+            balls.forEach((ball, bIdx) => {
                 ball.vy += gravity;
                 ball.vx *= friction;
                 ball.x += ball.vx;
                 ball.y += ball.vy;
 
-                // Столкновение с колышками
+                // Столкновения с колышками
                 pegs.forEach(peg => {
                     const dx = ball.x - peg.x;
                     const dy = ball.y - peg.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const dist = Math.sqrt(dx*dx + dy*dy);
 
                     if (dist < ballRadius + pegRadius) {
-                        // Простая математика отскока
+                        peg.active = 10; // Подсвечиваем колышек
                         const angle = Math.atan2(dy, dx);
-                        const speed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
+                        const speed = Math.sqrt(ball.vx**2 + ball.vy**2);
                         
                         ball.vx = Math.cos(angle) * speed * bounce + (Math.random() - 0.5);
                         ball.vy = Math.sin(angle) * speed * bounce;
                         
-                        // Выталкиваем шарик, чтобы не застревал
                         ball.x = peg.x + Math.cos(angle) * (ballRadius + pegRadius);
                         ball.y = peg.y + Math.sin(angle) * (ballRadius + pegRadius);
                     }
                 });
 
-                // Проверка попадания в корзину (низ экрана)
-                if (ball.y > canvas.height - 20) {
-                    const bucketWidth = canvas.width / buckets.length;
-                    const index = Math.floor(ball.x / bucketWidth);
-                    const multiplier = buckets[index] || 0;
-                    
-                    balance += Math.floor(5 * multiplier);
-                    updateUI();
-                    balls.splice(bIndex, 1);
-                }
+                // Стенки
+                if (ball.x < ballRadius) { ball.x = ballRadius; ball.vx *= -1; }
+                if (ball.x > canvas.width - ballRadius) { ball.x = canvas.width - ballRadius; ball.vx *= -1; }
 
-                // Ограничение стенок
-                if (ball.x < 0 || ball.x > canvas.width) ball.vx *= -1;
+                // Низ (Лузы)
+                if (ball.y > canvas.height - 40) {
+                    const section = Math.floor((ball.x / canvas.width) * multipliers.length);
+                    const reward = 10 * multipliers[section];
+                    balance += reward;
+                    updateUI();
+                    balls.splice(bIdx, 1);
+                }
             });
+
+            // Затухание подсветки колышков
+            pegs.forEach(p => { if(p.active > 0) p.active--; });
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Рисуем колышки
-            ctx.fillStyle = "#ffffff";
+            // Отрисовка луз
+            const bucketWidth = canvas.width / multipliers.length;
+            multipliers.forEach((m, i) => {
+                ctx.fillStyle = i % 2 === 0 ? '#1a1a2e' : '#252545';
+                ctx.fillRect(i * bucketWidth, canvas.height - 40, bucketWidth, 40);
+                
+                ctx.fillStyle = m >= 1 ? '#00f2ff' : '#ff007b';
+                ctx.font = "bold 14px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(`x${m}`, i * bucketWidth + bucketWidth/2, canvas.height - 15);
+            });
+
+            // Отрисовка колышков
             pegs.forEach(peg => {
                 ctx.beginPath();
                 ctx.arc(peg.x, peg.y, pegRadius, 0, Math.PI * 2);
+                ctx.fillStyle = peg.active > 0 ? '#fff' : '#444';
+                if (peg.active > 0) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = "#fff";
+                }
                 ctx.fill();
+                ctx.shadowBlur = 0;
             });
 
-            // Рисуем шарики
+            // Отрисовка шариков
             balls.forEach(ball => {
                 ctx.beginPath();
                 ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
                 ctx.fillStyle = ball.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ball.color;
                 ctx.fill();
-                ctx.closePath();
-            });
-
-            // Рисуем зоны множителей
-            const bucketWidth = canvas.width / buckets.length;
-            buckets.forEach((mult, i) => {
-                ctx.fillStyle = i % 2 === 0 ? "#0f3460" : "#16213e";
-                ctx.fillRect(i * bucketWidth, canvas.height - 30, bucketWidth, 30);
-                ctx.fillStyle = "white";
-                ctx.font = "12px Arial";
-                ctx.textAlign = "center";
-                ctx.fillText(`x${mult}`, i * bucketWidth + bucketWidth / 2, canvas.height - 10);
+                ctx.shadowBlur = 0;
             });
         }
 
-        function loop() {
+        function main() {
             update();
             draw();
-            requestAnimationFrame(loop);
+            requestAnimationFrame(main);
         }
 
-        loop();
+        window.addEventListener('resize', resize);
+        dropBtn.addEventListener('click', dropBall);
+
+        resize();
+        main();
     </script>
 </body>
 </html>
