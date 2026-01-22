@@ -2,349 +2,193 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Orbit Pro: Zero Bug Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мини Плинко</title>
     <style>
-        :root {
-            --primary: #00ff88;
-            --bg: #020205;
-            --surface: rgba(25, 25, 35, 0.95);
-            --danger: #ff4444;
-            --gold: #ffcc00;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { 
-            background: var(--bg); 
-            color: white; 
-            font-family: -apple-system, system-ui, sans-serif; 
-            overflow: hidden; 
-            height: 100vh; 
-            touch-action: none;
-        }
-        
-        canvas { display: block; width: 100%; height: 100%; }
-
-        /* UI Overlay */
-        #ui-layer {
-            position: fixed; inset: 0;
-            pointer-events: none;
-            padding: 20px;
+        body {
+            margin: 0;
+            background-color: #1a1a2e;
+            color: white;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        .panel { 
-            pointer-events: auto; 
-            background: var(--surface); 
-            backdrop-filter: blur(10px); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 16px; 
-            padding: 12px 20px;
+        canvas {
+            background-color: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
 
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .balance-val { color: var(--primary); font-weight: 900; font-size: 20px; }
-        .history { display: flex; gap: 8px; margin-top: 10px; }
-        .h-item { font-size: 11px; font-weight: 800; opacity: 0.7; }
-
-        .bottom-controls {
-            display: flex; flex-direction: column; gap: 12px;
-            width: 100%; max-width: 400px; margin: 0 auto;
-            transition: transform 0.4s ease;
-        }
-        .bottom-controls.hidden { transform: translateY(150%); }
-
-        .bet-slider-wrap { display: flex; align-items: center; gap: 15px; }
-        input[type="range"] { flex: 1; accent-color: var(--primary); }
-
-        .btn-main {
-            background: var(--primary); color: #000; border: none;
-            padding: 20px; border-radius: 18px; font-weight: 900;
-            font-size: 18px; cursor: pointer; text-transform: uppercase;
+        .controls {
+            margin-top: 20px;
+            text-align: center;
         }
 
-        #result-screen {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100;
+        button {
+            padding: 10px 25px;
+            font-size: 18px;
+            background-color: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.1s;
         }
-        .res-text { font-size: 80px; font-weight: 900; color: var(--primary); }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
-
-<div id="ui-layer">
-    <div class="header">
-        <div class="panel">
-            <div style="font-size: 10px; opacity: 0.6;">CREDITS</div>
-            <div class="balance-val">$<span id="balance">1000</span></div>
-            <div id="history" class="history"></div>
-        </div>
-        <div class="panel" id="camBtn" style="cursor: pointer;">VIEW: FOLLOW</div>
+    <div class="score">Очки: <span id="balance">100</span></div>
+    <canvas id="plinkoCanvas" width="500" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="dropBall()">Запустить шарик (5$)</button>
     </div>
 
-    <div class="bottom-controls" id="controls">
-        <div class="panel bet-slider-wrap">
-            <input type="range" id="betRange" min="10" max="500" step="10" value="100">
-            <div style="width: 50px; font-weight: 900; text-align: right;">$<span id="betText">100</span></div>
-        </div>
-        <button class="btn-main" id="launchBtn">LAUNCH MISSION</button>
-    </div>
-</div>
+    <script>
+        const canvas = document.getElementById('plinkoCanvas');
+        const ctx = canvas.getContext('2d');
+        const balanceDisplay = document.getElementById('balance');
 
-<div id="result-screen">
-    <div style="font-weight: 800; letter-spacing: 5px; opacity: 0.5;">MULTIPLIKATOR</div>
-    <div class="res-text" id="resMult">x2.5</div>
-    <button class="btn-main" onclick="location.reload()" style="padding: 15px 40px; margin-top: 20px;">CONTINUE</button>
-</div>
+        let balance = 100;
+        const rows = 12;
+        const pegRadius = 4;
+        const ballRadius = 8;
+        const gravity = 0.2;
+        const friction = 0.98;
+        const bounce = 0.5;
 
-<script>
-/** GAME CONFIGURATION **/
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const WORLD_SIZE = 12000;
+        const pegs = [];
+        const balls = [];
+        const buckets = [2, 1.5, 1, 0.5, 0.2, 0.5, 1, 1.5, 2]; // Множители
 
-let balance = 1000, currentBet = 100, gameState = 'IDLE';
-let cam = { x: 0, y: 0, zoom: 0.1, tZoom: 0.1, mode: 'follow' };
-let rocket = { x: 0, y: 0, vx: 0, vy: 0, rot: -90, aimAngle: -90, particles: [] };
-let world = { planets: [], stars: [], hazards: [], gold: [] };
-
-function init() {
-    resize();
-    window.addEventListener('resize', resize);
-    generateStars();
-    generateLevel();
-    
-    // UI Events
-    document.getElementById('betRange').oninput = (e) => {
-        currentBet = parseInt(e.target.value);
-        document.getElementById('betText').innerText = currentBet;
-    };
-
-    document.getElementById('launchBtn').onclick = () => {
-        if (balance >= currentBet) {
-            balance -= currentBet;
-            document.getElementById('balance').innerText = balance;
-            startFlight();
-        }
-    };
-
-    document.getElementById('camBtn').onclick = () => {
-        cam.mode = cam.mode === 'follow' ? 'world' : 'follow';
-        document.getElementById('camBtn').innerText = `VIEW: ${cam.mode.toUpperCase()}`;
-    };
-
-    requestAnimationFrame(loop);
-}
-
-function generateStars() {
-    world.stars = Array.from({length: 400}, () => ({
-        x: (Math.random() - 0.5) * WORLD_SIZE * 4,
-        y: (Math.random() - 0.5) * WORLD_SIZE * 4,
-        s: Math.random() * 2
-    }));
-}
-
-function generateLevel() {
-    const colors = ['#00ff88', '#00d4ff', '#ff007b', '#ffcc00', '#9d00ff'];
-    for(let i=0; i<5; i++) {
-        world.planets.push({
-            orbit: 2000 + i * 1600,
-            angle: Math.random() * Math.PI * 2,
-            speed: 0.0004 - (i * 0.00005),
-            r: 300 + Math.random() * 200,
-            color: colors[i],
-            mult: (1.5 + i * 3.2).toFixed(1)
-        });
-    }
-    // Hazard (Black Hole)
-    world.hazards.push({ x: 4000, y: -4000, r: 250, gR: 2500 });
-}
-
-function startFlight() {
-    gameState = 'FLYING';
-    document.getElementById('controls').classList.add('hidden');
-    const rad = rocket.aimAngle * Math.PI / 180;
-    rocket.vx = Math.cos(rad) * 95;
-    rocket.vy = Math.sin(rad) * 95;
-}
-
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
-function update() {
-    // Planets Motion
-    world.planets.forEach(p => {
-        p.angle += p.speed;
-        p.x = Math.cos(p.angle) * p.orbit;
-        p.y = Math.sin(p.angle) * p.orbit;
-    });
-
-    if (gameState === 'IDLE') {
-        rocket.aimAngle = -90 + Math.sin(Date.now() * 0.002) * 60;
-        rocket.rot = rocket.aimAngle;
-    } else if (gameState === 'FLYING') {
-        // Particles
-        if (Math.random() > 0.2) {
-            rocket.particles.push({ x: rocket.x, y: rocket.y, life: 1, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5 });
+        // Создание сетки колышков (треугольник)
+        for (let i = 2; i < rows; i++) {
+            for (let j = 0; j <= i; j++) {
+                const x = canvas.width / 2 + (j - i / 2) * 40;
+                const y = 50 + i * 40;
+                pegs.push({ x, y });
+            }
         }
 
-        // Gravity Logic
-        world.planets.forEach(p => {
-            const dx = p.x - rocket.x, dy = p.y - rocket.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist < p.r * 3) {
-                rocket.vx += (dx / dist) * 5.5;
-                rocket.vy += (dy / dist) * 5.5;
-                if (dist < p.r + 50) finishRound('WIN', p.mult);
+        function dropBall() {
+            if (balance >= 5) {
+                balance -= 5;
+                updateUI();
+                
+                // Добавляем новый шарик со случайным небольшим смещением в центре
+                balls.push({
+                    x: canvas.width / 2 + (Math.random() * 4 - 2),
+                    y: 30,
+                    vx: 0,
+                    vy: 0,
+                    color: '#e94560'
+                });
+            } else {
+                alert("Недостаточно очков!");
             }
-        });
+        }
 
-        // Hazards
-        world.hazards.forEach(h => {
-            const dx = h.x - rocket.x, dy = h.y - rocket.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist < h.gR) {
-                rocket.vx += (dx / dist) * 7;
-                rocket.vy += (dy / dist) * 7;
-                if (dist < h.r) finishRound('LOST', 0);
-            }
-        });
+        function updateUI() {
+            balanceDisplay.innerText = balance;
+        }
 
-        rocket.x += rocket.vx;
-        rocket.y += rocket.vy;
-        rocket.rot = Math.atan2(rocket.vy, rocket.vx) * 180 / Math.PI;
+        function update() {
+            balls.forEach((ball, bIndex) => {
+                ball.vy += gravity;
+                ball.vx *= friction;
+                ball.x += ball.vx;
+                ball.y += ball.vy;
 
-        if (Math.hypot(rocket.x, rocket.y) > WORLD_SIZE) finishRound('LOST', 0);
-    }
+                // Столкновение с колышками
+                pegs.forEach(peg => {
+                    const dx = ball.x - peg.x;
+                    const dy = ball.y - peg.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
 
-    rocket.particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy; p.life -= 0.03;
-        if(p.life <= 0) rocket.particles.splice(i, 1);
-    });
+                    if (dist < ballRadius + pegRadius) {
+                        // Простая математика отскока
+                        const angle = Math.atan2(dy, dx);
+                        const speed = Math.sqrt(ball.vx ** 2 + ball.vy ** 2);
+                        
+                        ball.vx = Math.cos(angle) * speed * bounce + (Math.random() - 0.5);
+                        ball.vy = Math.sin(angle) * speed * bounce;
+                        
+                        // Выталкиваем шарик, чтобы не застревал
+                        ball.x = peg.x + Math.cos(angle) * (ballRadius + pegRadius);
+                        ball.y = peg.y + Math.sin(angle) * (ballRadius + pegRadius);
+                    }
+                });
 
-    // Camera
-    if (cam.mode === 'follow') {
-        cam.x += (rocket.x - cam.x) * 0.1;
-        cam.y += (rocket.y - cam.y) * 0.1;
-        cam.tZoom = 0.6 / (1 + Math.hypot(rocket.vx, rocket.vy) * 0.005);
-    } else {
-        cam.x *= 0.1; cam.y *= 0.1;
-        cam.tZoom = Math.min(canvas.width, canvas.height) / (WORLD_SIZE * 2.2);
-    }
-    cam.zoom += (cam.tZoom - cam.zoom) * 0.05;
-}
+                // Проверка попадания в корзину (низ экрана)
+                if (ball.y > canvas.height - 20) {
+                    const bucketWidth = canvas.width / buckets.length;
+                    const index = Math.floor(ball.x / bucketWidth);
+                    const multiplier = buckets[index] || 0;
+                    
+                    balance += Math.floor(5 * multiplier);
+                    updateUI();
+                    balls.splice(bIndex, 1);
+                }
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.save();
-    ctx.translate(canvas.width/2, canvas.height/2);
-    ctx.scale(cam.zoom, cam.zoom);
-    ctx.translate(-cam.x, -cam.y);
+                // Ограничение стенок
+                if (ball.x < 0 || ball.x > canvas.width) ball.vx *= -1;
+            });
+        }
 
-    // Stars
-    ctx.fillStyle = "#fff";
-    world.stars.forEach(s => ctx.fillRect(s.x, s.y, s.s/cam.zoom, s.s/cam.zoom));
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Orbits
-    world.planets.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(0, 0, p.orbit, 0, Math.PI*2);
-        ctx.strokeStyle = "rgba(255,255,255,0.05)";
-        ctx.lineWidth = 2 / cam.zoom;
-        ctx.stroke();
-    });
+            // Рисуем колышки
+            ctx.fillStyle = "#ffffff";
+            pegs.forEach(peg => {
+                ctx.beginPath();
+                ctx.arc(peg.x, peg.y, pegRadius, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
-    // Aim Line
-    if (gameState === 'IDLE') {
-        ctx.beginPath();
-        ctx.setLineDash([20, 20]);
-        const r = rocket.aimAngle * Math.PI / 180;
-        ctx.moveTo(0,0);
-        ctx.lineTo(Math.cos(r)*5000, Math.sin(r)*5000);
-        ctx.strokeStyle = "rgba(0, 255, 136, 0.3)";
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
+            // Рисуем шарики
+            balls.forEach(ball => {
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
+                ctx.fillStyle = ball.color;
+                ctx.fill();
+                ctx.closePath();
+            });
 
-    // Hazards
-    world.hazards.forEach(h => {
-        const grad = ctx.createRadialGradient(h.x, h.y, h.r, h.x, h.y, h.gR);
-        grad.addColorStop(0, '#000');
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.arc(h.x, h.y, h.gR, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#7000ff'; ctx.lineWidth = 5 / cam.zoom;
-        ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.stroke();
-    });
+            // Рисуем зоны множителей
+            const bucketWidth = canvas.width / buckets.length;
+            buckets.forEach((mult, i) => {
+                ctx.fillStyle = i % 2 === 0 ? "#0f3460" : "#16213e";
+                ctx.fillRect(i * bucketWidth, canvas.height - 30, bucketWidth, 30);
+                ctx.fillStyle = "white";
+                ctx.font = "12px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(`x${mult}`, i * bucketWidth + bucketWidth / 2, canvas.height - 10);
+            });
+        }
 
-    // Particles
-    rocket.particles.forEach(p => {
-        ctx.fillStyle = `rgba(0, 255, 136, ${p.life})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI*2); ctx.fill();
-    });
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
 
-    // Planets
-    world.planets.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#fff";
-        ctx.font = `bold ${100}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.fillText(`x${p.mult}`, p.x, p.y - p.r - 50);
-    });
-
-    // Rocket (Clean Canvas Drawing)
-    ctx.save();
-    ctx.translate(rocket.x, rocket.y);
-    ctx.rotate((rocket.rot + 90) * Math.PI / 180);
-    
-    // Body
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.moveTo(0, -60);
-    ctx.lineTo(30, 40);
-    ctx.lineTo(-30, 40);
-    ctx.closePath();
-    ctx.fill();
-    // Engine Glow
-    if (gameState === 'FLYING') {
-        ctx.fillStyle = varColor('--primary');
-        ctx.beginPath(); ctx.arc(0, 45, 20 * (0.8 + Math.random()*0.4), 0, Math.PI*2); ctx.fill();
-    }
-    ctx.restore();
-
-    ctx.restore();
-}
-
-function finishRound(type, mult) {
-    if (gameState === 'ENDED') return;
-    gameState = 'ENDED';
-    const win = parseFloat(mult);
-    if (win > 0) balance += Math.floor(currentBet * win);
-    
-    document.getElementById('resMult').innerText = `x${win.toFixed(1)}`;
-    document.getElementById('resMult').style.color = win > 0 ? 'var(--primary)' : 'var(--danger)';
-    document.getElementById('result-screen').style.display = 'flex';
-}
-
-function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
-
-function resize() {
-    canvas.width = window.innerWidth * window.devicePixelRatio;
-    canvas.height = window.innerHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-}
-
-init();
-</script>
+        loop();
+    </script>
 </body>
 </html>
