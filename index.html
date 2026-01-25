@@ -2,14 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Infinite Staircase Gamble</title>
+    <title>High-Speed Cube Cascade</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body {
             margin: 0;
-            background: #0f0c29;
+            background: #0a0a12;
             color: white;
-            font-family: 'Courier New', monospace;
+            font-family: 'Arial Black', sans-serif;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -23,23 +23,30 @@
             pointer-events: none;
         }
         .stats {
-            font-size: 24px;
-            background: rgba(0,0,0,0.6);
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #00d2ff;
+            font-size: 28px;
+            background: rgba(233, 69, 96, 0.2);
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 2px solid #e94560;
+            backdrop-filter: blur(5px);
+            text-shadow: 0 0 10px #e94560;
         }
         button {
             margin-top: 15px;
-            padding: 10px 30px;
-            font-size: 18px;
-            background: #00d2ff;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            background: #e94560;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
+            color: white;
             cursor: pointer;
             pointer-events: auto;
+            transition: 0.2s;
+            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
         }
-        button:disabled { background: #555; }
+        button:hover { background: #ff4d6d; transform: translateY(-2px); }
+        button:disabled { background: #444; box-shadow: none; opacity: 0.5; }
         canvas { display: block; }
     </style>
 </head>
@@ -47,10 +54,9 @@
 
 <div id="ui">
     <div class="stats">
-        Множитель: <span id="multiplier">x0.00</span><br>
-        Ступенька: <span id="stepCount">0</span>
+        MULTIPLIER: <span id="multiplier">x0.00</span>
     </div>
-    <button id="dropBtn" onclick="startRound()">ЗАПУСК</button>
+    <button id="dropBtn" onclick="startRound()">LAUNCH CUBE</button>
 </div>
 
 <script>
@@ -58,6 +64,8 @@ const { Engine, Render, Runner, Bodies, Composite, Body, Events } = Matter;
 
 const engine = Engine.create();
 const world = engine.world;
+
+// Настройка рендера с кастомной отрисовкой текста
 const render = Render.create({
     element: document.body,
     engine: engine,
@@ -65,7 +73,7 @@ const render = Render.create({
         width: window.innerWidth,
         height: window.innerHeight,
         wireframes: false,
-        background: '#0f0c29'
+        background: '#0a0a12'
     }
 });
 
@@ -75,94 +83,118 @@ Runner.run(runner, engine);
 
 let cube = null;
 let steps = [];
-let lastStepY = 0;
-let currentStepIndex = 0;
 let isMoving = false;
 
 // Генерация лестницы
 function createStep(index) {
-    const x = index * 80;
-    const y = index * 60;
-    const step = Bodies.rectangle(x, y, 100, 20, {
+    const x = index * 100; // Немного увеличил расстояние для комфорта куба
+    const y = index * 70;
+    
+    const multValue = (0.1 * Math.pow(1.1, index)).toFixed(2);
+    
+    const step = Bodies.rectangle(x, y, 120, 25, {
         isStatic: true,
-        render: { fillStyle: '#3a445d' },
+        friction: 0.2, // Увеличенное трение для ступенек
+        render: { 
+            fillStyle: '#16213e',
+            strokeStyle: '#e94560',
+            lineWidth: 1
+        },
         label: 'step',
-        stepIndex: index
+        stepIndex: index,
+        mult: multValue
     });
-    // Текст с множителем на ступеньке
-    step.mult = (0.1 * Math.pow(1.1, index)).toFixed(2);
+
     Composite.add(world, step);
     steps.push(step);
-    return step;
 }
 
-// Начальная лестница
+// Создаем первые ступеньки
 for (let i = 0; i < 20; i++) {
     createStep(i);
 }
 
+// Кастомная отрисовка текста на ступеньках
+Events.on(render, 'afterRender', () => {
+    const context = render.context;
+    context.font = "bold 14px Arial";
+    context.fillStyle = "#ffffff";
+    context.textAlign = "center";
+
+    steps.forEach(step => {
+        // Отрисовываем только те, что видны на экране (оптимизация)
+        const bounds = render.bounds;
+        if (step.position.x > bounds.min.x - 100 && step.position.x < bounds.max.x + 100) {
+            context.fillText(`x${step.mult}`, step.position.x, step.position.y + 5);
+        }
+    });
+});
+
 function startRound() {
     if (isMoving) return;
     
-    // Очистка старого куба
     if (cube) Composite.remove(world, cube);
     
     document.getElementById('dropBtn').disabled = true;
     isMoving = true;
 
-    // Создаем куб в начале
-    cube = Bodies.rectangle(0, -100, 30, 30, {
-        restitution: 0.3,
-        friction: 0.1,
-        render: { fillStyle: '#ff0055', strokeStyle: '#fff', lineWidth: 2 }
+    // Куб стал в 1.2 раза больше (30 * 1.2 = 36)
+    const cubeSize = 36;
+    cube = Bodies.rectangle(0, -150, cubeSize, cubeSize, {
+        restitution: 0.25,
+        friction: 0.2, // В 2 раза менее скользящий (был 0.1, стал 0.2)
+        render: { 
+            fillStyle: '#e94560', 
+            strokeStyle: '#fff', 
+            lineWidth: 3 
+        }
     });
 
-    // Случайная сила вниз и вправо
-    const forceX = 0.01 + Math.random() * 0.02;
-    const forceY = 0.01 + Math.random() * 0.02;
+    // Начальная скорость в 3 раза больше
+    // Было 0.01-0.03, стало 0.03-0.09
+    const forceX = 0.04 + Math.random() * 0.05;
+    const forceY = 0.04 + Math.random() * 0.05;
+    
     Body.applyForce(cube, cube.position, { x: forceX, y: forceY });
-    Body.setAngularVelocity(cube, Math.random() * 0.2);
+    Body.setAngularVelocity(cube, Math.random() * 0.4);
 
     Composite.add(world, cube);
 }
 
-// Слежение камеры и логика остановки
 Events.on(engine, 'afterUpdate', () => {
     if (!cube) return;
 
-    // Камера следует за кубом
+    // Камера плавно следует за кубом
     Render.lookAt(render, {
-        min: { x: cube.position.x - 400, y: cube.position.y - 300 },
-        max: { x: cube.position.x + 400, y: cube.position.y + 300 }
+        min: { x: cube.position.x - 500, y: cube.position.y - 400 },
+        max: { x: cube.position.x + 500, y: cube.position.y + 400 }
     });
 
-    // Бесконечная генерация ступенек
     if (cube.position.x > steps[steps.length - 10].position.x) {
         createStep(steps.length);
     }
 
-    // Определение текущей ступеньки и множителя
+    // Проверка текущей ступеньки
     const standingOn = steps.find(s => 
-        Math.abs(cube.position.x - s.position.x) < 50 && 
-        Math.abs(cube.position.y - (s.position.y - 25)) < 10
+        Math.abs(cube.position.x - s.position.x) < 65 && 
+        Math.abs(cube.position.y - (s.position.y - 30)) < 15
     );
 
     if (standingOn) {
         document.getElementById('multiplier').innerText = `x${standingOn.mult}`;
-        document.getElementById('stepCount').innerText = standingOn.stepIndex;
     }
 
-    // Проверка остановки (если скорость очень мала)
-    if (cube.speed < 0.1 && cube.position.y > 0) {
+    // Логика остановки
+    if (cube.speed < 0.15 && cube.position.y > 0) {
         isMoving = false;
         document.getElementById('dropBtn').disabled = false;
     }
     
-    // Если куб улетел в бездну мимо лестницы
-    if (cube.position.y > (cube.position.x * 0.75) + 300) {
+    // Провал в бездну
+    if (cube.position.y > (cube.position.x * 0.7) + 500) {
         isMoving = false;
         document.getElementById('dropBtn').disabled = false;
-        document.getElementById('multiplier').innerText = "x0.00 (Мимо!)";
+        document.getElementById('multiplier').innerText = "x0.00 (LOST)";
     }
 });
 
