@@ -2,61 +2,47 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>High-Speed Cube Cascade</title>
+    <title>Staircase Gamble: High Stakes</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body {
-            margin: 0;
-            background: #0a0a12;
-            color: white;
-            font-family: 'Arial Black', sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0; background: #05050a; color: white;
+            font-family: 'Arial Black', sans-serif; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
         }
         #ui {
-            position: absolute;
-            top: 20px;
-            z-index: 10;
-            text-align: center;
-            pointer-events: none;
+            position: absolute; top: 20px; z-index: 10;
+            text-align: center; pointer-events: none; width: 100%;
         }
+        .stats-container { display: flex; justify-content: center; gap: 20px; }
         .stats {
-            font-size: 28px;
-            background: rgba(233, 69, 96, 0.2);
-            padding: 15px 30px;
-            border-radius: 50px;
-            border: 2px solid #e94560;
-            backdrop-filter: blur(5px);
-            text-shadow: 0 0 10px #e94560;
+            font-size: 22px; background: rgba(0,0,0,0.8);
+            padding: 10px 25px; border-radius: 15px;
+            border: 2px solid #e94560; box-shadow: 0 0 15px #e94560;
         }
+        .controls { margin-top: 15px; pointer-events: auto; }
         button {
-            margin-top: 15px;
-            padding: 15px 40px;
-            font-size: 20px;
-            font-weight: bold;
-            background: #e94560;
-            border: none;
-            border-radius: 10px;
-            color: white;
-            cursor: pointer;
-            pointer-events: auto;
-            transition: 0.2s;
-            box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+            padding: 15px 30px; font-size: 18px; font-weight: bold;
+            border: none; border-radius: 8px; color: white;
+            cursor: pointer; transition: 0.2s; margin: 0 5px;
         }
-        button:hover { background: #ff4d6d; transform: translateY(-2px); }
-        button:disabled { background: #444; box-shadow: none; opacity: 0.5; }
+        #dropBtn { background: #22e960; box-shadow: 0 4px 10px rgba(34, 233, 96, 0.3); }
+        #cashBtn { background: #ff9900; display: none; }
+        button:disabled { background: #444 !important; opacity: 0.5; cursor: default; }
         canvas { display: block; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div class="stats">
-        MULTIPLIER: <span id="multiplier">x0.00</span>
+    <div class="stats-container">
+        <div class="stats">BEST: <span id="bestScore">x0.00</span></div>
+        <div class="stats">CURRENT: <span id="multiplier">x0.00</span></div>
     </div>
-    <button id="dropBtn" onclick="startRound()">LAUNCH CUBE</button>
+    <div class="controls">
+        <button id="dropBtn" onclick="startRound()">LAUNCH</button>
+        <button id="cashBtn" onclick="cashOut()">CASH OUT!</button>
+    </div>
 </div>
 
 <script>
@@ -64,139 +50,131 @@ const { Engine, Render, Runner, Bodies, Composite, Body, Events } = Matter;
 
 const engine = Engine.create();
 const world = engine.world;
-
-// Настройка рендера с кастомной отрисовкой текста
 const render = Render.create({
-    element: document.body,
-    engine: engine,
-    options: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        wireframes: false,
-        background: '#0a0a12'
-    }
+    element: document.body, engine: engine,
+    options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: '#05050a' }
 });
 
 Render.run(render);
-const runner = Runner.create();
-Runner.run(runner, engine);
+Runner.run(Runner.create(), engine);
 
-let cube = null;
-let steps = [];
-let isMoving = false;
+let cube = null, steps = [], isMoving = false, isCashOut = false;
+let bestMult = localStorage.getItem('bestStairMult') || 0;
+document.getElementById('bestScore').innerText = `x${parseFloat(bestMult).toFixed(2)}`;
 
-// Генерация лестницы
 function createStep(index) {
-    const x = index * 100; // Немного увеличил расстояние для комфорта куба
-    const y = index * 70;
-    
+    const x = index * 105; 
+    const y = index * 75;
     const multValue = (0.1 * Math.pow(1.1, index)).toFixed(2);
     
-    const step = Bodies.rectangle(x, y, 120, 25, {
-        isStatic: true,
-        friction: 0.2, // Увеличенное трение для ступенек
-        render: { 
-            fillStyle: '#16213e',
-            strokeStyle: '#e94560',
-            lineWidth: 1
-        },
-        label: 'step',
-        stepIndex: index,
-        mult: multValue
+    const step = Bodies.rectangle(x, y, 130, 25, {
+        isStatic: true, friction: 0.3,
+        render: { fillStyle: '#1a1a2e', strokeStyle: '#e94560', lineWidth: 2 },
+        stepIndex: index, mult: multValue
     });
 
     Composite.add(world, step);
     steps.push(step);
 }
 
-// Создаем первые ступеньки
-for (let i = 0; i < 20; i++) {
-    createStep(i);
-}
+for (let i = 0; i < 20; i++) createStep(i);
 
-// Кастомная отрисовка текста на ступеньках
 Events.on(render, 'afterRender', () => {
     const context = render.context;
-    context.font = "bold 14px Arial";
-    context.fillStyle = "#ffffff";
+    context.font = "bold 16px Arial";
+    context.fillStyle = "#00d2ff";
     context.textAlign = "center";
-
-    steps.forEach(step => {
-        // Отрисовываем только те, что видны на экране (оптимизация)
-        const bounds = render.bounds;
-        if (step.position.x > bounds.min.x - 100 && step.position.x < bounds.max.x + 100) {
-            context.fillText(`x${step.mult}`, step.position.x, step.position.y + 5);
+    steps.forEach(s => {
+        const b = render.bounds;
+        if (s.position.x > b.min.x - 100 && s.position.x < b.max.x + 100) {
+            context.fillText(`x${s.mult}`, s.position.x, s.position.y - 25);
         }
     });
 });
 
 function startRound() {
     if (isMoving) return;
-    
     if (cube) Composite.remove(world, cube);
     
+    isMoving = true; isCashOut = false;
     document.getElementById('dropBtn').disabled = true;
-    isMoving = true;
+    document.getElementById('cashBtn').style.display = 'inline-block';
 
-    // Куб стал в 1.2 раза больше (30 * 1.2 = 36)
-    const cubeSize = 36;
-    cube = Bodies.rectangle(0, -150, cubeSize, cubeSize, {
-        restitution: 0.25,
-        friction: 0.2, // В 2 раза менее скользящий (был 0.1, стал 0.2)
-        render: { 
-            fillStyle: '#e94560', 
-            strokeStyle: '#fff', 
-            lineWidth: 3 
-        }
+    cube = Bodies.rectangle(0, -150, 36, 36, {
+        restitution: 0.25, friction: 0.2, density: 0.001,
+        render: { fillStyle: '#e94560', strokeStyle: '#fff', lineWidth: 2 }
     });
 
-    // Начальная скорость в 3 раза больше
-    // Было 0.01-0.03, стало 0.03-0.09
-    const forceX = 0.04 + Math.random() * 0.05;
-    const forceY = 0.04 + Math.random() * 0.05;
-    
-    Body.applyForce(cube, cube.position, { x: forceX, y: forceY });
-    Body.setAngularVelocity(cube, Math.random() * 0.4);
-
+    const fX = 0.05 + Math.random() * 0.06;
+    const fY = 0.05 + Math.random() * 0.06;
+    Body.applyForce(cube, cube.position, { x: fX, y: fY });
+    Body.setAngularVelocity(cube, Math.random() * 0.5);
     Composite.add(world, cube);
+}
+
+function cashOut() {
+    if (!cube || isCashOut) return;
+    isCashOut = true;
+    document.getElementById('cashBtn').disabled = true;
+    // Делаем куб сверхтяжелым и липким
+    Body.setMass(cube, 50);
+    cube.friction = 1;
+    cube.render.fillStyle = "#22e960";
 }
 
 Events.on(engine, 'afterUpdate', () => {
     if (!cube) return;
 
-    // Камера плавно следует за кубом
     Render.lookAt(render, {
         min: { x: cube.position.x - 500, y: cube.position.y - 400 },
         max: { x: cube.position.x + 500, y: cube.position.y + 400 }
     });
 
-    if (cube.position.x > steps[steps.length - 10].position.x) {
-        createStep(steps.length);
-    }
+    if (cube.position.x > steps[steps.length - 10].position.x) createStep(steps.length);
 
-    // Проверка текущей ступеньки
+    // Логика множителя
     const standingOn = steps.find(s => 
-        Math.abs(cube.position.x - s.position.x) < 65 && 
-        Math.abs(cube.position.y - (s.position.y - 30)) < 15
+        Math.abs(cube.position.x - s.position.x) < 70 && 
+        Math.abs(cube.position.y - (s.position.y - 30)) < 20
     );
 
     if (standingOn) {
-        document.getElementById('multiplier').innerText = `x${standingOn.mult}`;
+        let currentMult = parseFloat(standingOn.mult);
+        document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
+        
+        // Цвет куба от прогресса
+        if (!isCashOut) {
+            const hue = Math.min(60, currentMult * 2); 
+            cube.render.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        }
     }
 
-    // Логика остановки
+    // Остановка
     if (cube.speed < 0.15 && cube.position.y > 0) {
-        isMoving = false;
-        document.getElementById('dropBtn').disabled = false;
+        if (standingOn) {
+            const finalMult = parseFloat(standingOn.mult);
+            if (finalMult > bestMult) {
+                bestMult = finalMult;
+                localStorage.setItem('bestStairMult', bestMult);
+                document.getElementById('bestScore').innerText = `x${bestMult.toFixed(2)}`;
+            }
+        }
+        endRound();
     }
     
-    // Провал в бездну
-    if (cube.position.y > (cube.position.x * 0.7) + 500) {
-        isMoving = false;
-        document.getElementById('dropBtn').disabled = false;
-        document.getElementById('multiplier').innerText = "x0.00 (LOST)";
+    // LOST
+    if (cube.position.y > (cube.position.x * 0.7) + 600) {
+        document.getElementById('multiplier').innerText = "LOST!";
+        endRound();
     }
 });
+
+function endRound() {
+    isMoving = false;
+    document.getElementById('dropBtn').disabled = false;
+    document.getElementById('cashBtn').style.display = 'none';
+    document.getElementById('cashBtn').disabled = false;
+}
 
 window.addEventListener('resize', () => {
     render.canvas.width = window.innerWidth;
