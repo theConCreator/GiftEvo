@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Staircase Gamble: High Stakes</title>
+    <title>Staircase Gamble: Evolution</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body {
@@ -26,10 +26,9 @@
             border: none; border-radius: 8px; color: white;
             cursor: pointer; transition: 0.2s; margin: 0 5px;
         }
-        #dropBtn { background: #22e960; box-shadow: 0 4px 10px rgba(34, 233, 96, 0.3); }
+        #dropBtn { background: #22e960; }
         #cashBtn { background: #ff9900; display: none; }
-        button:disabled { background: #444 !important; opacity: 0.5; cursor: default; }
-        canvas { display: block; }
+        button:disabled { background: #444 !important; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -67,10 +66,21 @@ function createStep(index) {
     const y = index * 75;
     const multValue = (0.1 * Math.pow(1.1, index)).toFixed(2);
     
+    let type = 'normal';
+    let color = '#1a1a2e';
+    let friction = 0.3;
+    let bounciness = 0.1;
+
+    if (index > 0) {
+        if (index % 20 === 0) { type = 'jump'; color = '#f9d423'; bounciness = 1.2; }
+        else if (index % 12 === 0) { type = 'ice'; color = '#00d2ff'; friction = 0.01; }
+        else if (index % 7 === 0) { type = 'boost'; color = '#22e960'; }
+    }
+
     const step = Bodies.rectangle(x, y, 130, 25, {
-        isStatic: true, friction: 0.3,
-        render: { fillStyle: '#1a1a2e', strokeStyle: '#e94560', lineWidth: 2 },
-        stepIndex: index, mult: multValue
+        isStatic: true, friction: friction, restitution: bounciness,
+        render: { fillStyle: color, strokeStyle: '#fff', lineWidth: 1 },
+        stepType: type, mult: multValue, stepIndex: index
     });
 
     Composite.add(world, step);
@@ -81,13 +91,16 @@ for (let i = 0; i < 20; i++) createStep(i);
 
 Events.on(render, 'afterRender', () => {
     const context = render.context;
-    context.font = "bold 16px Arial";
-    context.fillStyle = "#00d2ff";
+    context.font = "bold 14px Arial";
+    context.fillStyle = "#ffffff";
     context.textAlign = "center";
     steps.forEach(s => {
         const b = render.bounds;
         if (s.position.x > b.min.x - 100 && s.position.x < b.max.x + 100) {
-            context.fillText(`x${s.mult}`, s.position.x, s.position.y - 25);
+            let label = `x${s.mult}`;
+            if (s.stepType === 'boost') label = "BOOST " + label;
+            if (s.stepType === 'jump') label = "JUMP " + label;
+            context.fillText(label, s.position.x, s.position.y - 20);
         }
     });
 });
@@ -100,15 +113,16 @@ function startRound() {
     document.getElementById('dropBtn').disabled = true;
     document.getElementById('cashBtn').style.display = 'inline-block';
 
-    cube = Bodies.rectangle(0, -150, 36, 36, {
+    // Спавн выше: y = -300 вместо -150
+    cube = Bodies.rectangle(0, -400, 36, 36, {
         restitution: 0.25, friction: 0.2, density: 0.001,
         render: { fillStyle: '#e94560', strokeStyle: '#fff', lineWidth: 2 }
     });
 
     const fX = 0.05 + Math.random() * 0.06;
-    const fY = 0.05 + Math.random() * 0.06;
+    const fY = 0.06 + Math.random() * 0.06;
     Body.applyForce(cube, cube.position, { x: fX, y: fY });
-    Body.setAngularVelocity(cube, Math.random() * 0.5);
+    Body.setAngularVelocity(cube, (Math.random() - 0.5) * 0.6);
     Composite.add(world, cube);
 }
 
@@ -116,14 +130,19 @@ function cashOut() {
     if (!cube || isCashOut) return;
     isCashOut = true;
     document.getElementById('cashBtn').disabled = true;
-    // Делаем куб сверхтяжелым и липким
-    Body.setMass(cube, 50);
-    cube.friction = 1;
-    cube.render.fillStyle = "#22e960";
+    Body.setMass(cube, 100);
+    cube.friction = 1.5;
+    cube.render.fillStyle = "#ffffff";
 }
 
 Events.on(engine, 'afterUpdate', () => {
     if (!cube) return;
+
+    // Динамическая прыгучесть от вращения
+    if (!isCashOut) {
+        const rotSpeed = Math.abs(cube.angularVelocity);
+        cube.restitution = 0.2 + Math.min(0.6, rotSpeed * 0.8);
+    }
 
     Render.lookAt(render, {
         min: { x: cube.position.x - 500, y: cube.position.y - 400 },
@@ -132,24 +151,20 @@ Events.on(engine, 'afterUpdate', () => {
 
     if (cube.position.x > steps[steps.length - 10].position.x) createStep(steps.length);
 
-    // Логика множителя
     const standingOn = steps.find(s => 
         Math.abs(cube.position.x - s.position.x) < 70 && 
-        Math.abs(cube.position.y - (s.position.y - 30)) < 20
+        Math.abs(cube.position.y - (s.position.y - 30)) < 25
     );
 
     if (standingOn) {
-        let currentMult = parseFloat(standingOn.mult);
-        document.getElementById('multiplier').innerText = `x${currentMult.toFixed(2)}`;
+        document.getElementById('multiplier').innerText = `x${parseFloat(standingOn.mult).toFixed(2)}`;
         
-        // Цвет куба от прогресса
-        if (!isCashOut) {
-            const hue = Math.min(60, currentMult * 2); 
-            cube.render.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        // Логика спец-ступенек
+        if (standingOn.stepType === 'boost' && cube.speed < 5 && !isCashOut) {
+            Body.applyForce(cube, cube.position, { x: 0.005, y: 0.005 });
         }
     }
 
-    // Остановка
     if (cube.speed < 0.15 && cube.position.y > 0) {
         if (standingOn) {
             const finalMult = parseFloat(standingOn.mult);
@@ -162,7 +177,6 @@ Events.on(engine, 'afterUpdate', () => {
         endRound();
     }
     
-    // LOST
     if (cube.position.y > (cube.position.x * 0.7) + 600) {
         document.getElementById('multiplier').innerText = "LOST!";
         endRound();
