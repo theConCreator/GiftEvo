@@ -3,241 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameBox: 4-в-1</title>
+    <title>Mega GameBox 8-in-1</title>
     <style>
         :root {
-            --bg: #1a1a1a;
-            --card: #2d2d2d;
-            --accent: #ff4757;
-            --text: #ffffff;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text: #f8fafc;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding-bottom: 50px;
         }
+
+        .header {
+            background: #1e293b;
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        #balance-display { font-weight: bold; color: var(--success); font-size: 1.2rem; }
 
         nav {
-            background: #000;
-            width: 100%;
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 15px;
+            max-width: 800px;
         }
 
-        button.nav-btn {
-            background: var(--card);
+        button {
+            padding: 10px 15px;
             border: none;
-            color: white;
-            padding: 10px 20px;
+            border-radius: 8px;
             cursor: pointer;
-            border-radius: 5px;
-            transition: 0.3s;
-        }
-
-        button.nav-btn.active {
-            background: var(--accent);
-        }
-
-        .game-container {
-            margin: 20px;
-            padding: 20px;
             background: var(--card);
-            border-radius: 15px;
+            color: white;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+
+        button:hover { background: #334155; }
+        button.active { background: var(--accent); }
+        button.primary { background: var(--success); margin-top: 10px; width: 100%; font-weight: bold; }
+        button.danger { background: var(--danger); }
+
+        .game-area {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
             width: 90%;
-            max-width: 600px;
-            min-height: 400px;
-            text-align: center;
+            max-width: 500px;
             display: none;
+            text-align: center;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
         }
 
-        .game-container.active {
-            display: block;
-        }
+        .game-area.active { display: block; }
 
-        /* Styles for specific games */
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 20px; }
-        .cell { width: 100%; aspect-ratio: 1; background: #444; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .cell.open { background: #666; }
-        .cell.bomb { background: var(--accent); }
-        .cell.gem { background: #2ed573; }
+        /* Специфические стили для игр */
+        canvas { background: #000; border-radius: 8px; width: 100%; height: auto; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; }
+        .cell { aspect-ratio: 1; background: #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; }
+        .cell.win { background: var(--success); }
+        .cell.lost { background: var(--danger); }
 
-        #crash-display { font-size: 48px; margin: 20px; color: #2ed573; }
-        
-        canvas { background: #000; border-radius: 10px; max-width: 100%; }
-
-        .controls { margin-top: 20px; }
-        input { padding: 8px; border-radius: 5px; border: none; width: 80px; }
+        #dice-slider { width: 100%; margin: 20px 0; }
+        .tower-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 5px; opacity: 0.5; }
+        .tower-row.active { opacity: 1; border: 1px solid var(--accent); }
     </style>
 </head>
 <body>
 
-<nav>
-    <button class="nav-btn active" onclick="showGame('plinko')">Plinko</button>
-    <button class="nav-btn" onclick="showGame('crash')">Crash</button>
-    <button class="nav-btn" onclick="showGame('mines')">Mines</button>
-    <button class="nav-btn" onclick="showGame('roulette')">Roulette</button>
+<div class="header">
+    Баланс: <span id="balance-display">1000</span> $
+</div>
+
+<nav id="menu">
+    <button onclick="switchGame('plinko')">Plinko</button>
+    <button onclick="switchGame('mines')">Mines</button>
+    <button onclick="switchGame('crash')">Crash</button>
+    <button onclick="switchGame('dice')">Dice</button>
+    <button onclick="switchGame('tower')">Tower</button>
+    <button onclick="switchGame('coin')">Coin</button>
+    <button onclick="switchGame('wheel')">Wheel</button>
+    <button onclick="switchGame('roulette')">Roulette</button>
 </nav>
 
-<div id="plinko" class="game-container active">
-    <h2>Plinko</h2>
-    <canvas id="plinkoCanvas" width="400" height="400"></canvas>
-    <div class="controls">
-        <button onclick="dropBall()">Сбросить шарик</button>
-    </div>
+<div id="plinko" class="game-area active">
+    <h3>Plinko (Физика)</h3>
+    <canvas id="plinkoCanvas" width="400" height="500"></canvas>
+    <button class="primary" onclick="playPlinko()">Ставка 10$</button>
 </div>
 
-<div id="crash" class="game-container">
-    <h2>Crash</h2>
-    <div id="crash-display">1.00x</div>
-    <div class="controls">
-        <button id="crash-btn" onclick="startCrash()">Ставка</button>
-    </div>
-</div>
-
-<div id="mines" class="game-container">
-    <h2>Mines</h2>
+<div id="mines" class="game-area">
+    <h3>Mines (Cash Out)</h3>
+    <div id="mines-multiplier">Множитель: 1.00x</div>
     <div class="grid" id="mines-grid"></div>
-    <div class="controls">
-        <button onclick="initMines()">Новая игра</button>
+    <button id="mines-cashout" class="primary" onclick="minesCashOut()" disabled>CASH OUT</button>
+    <button id="mines-start" class="primary" onclick="startMines()">Играть (20$)</button>
+</div>
+
+<div id="dice" class="game-area">
+    <h3>Dice</h3>
+    <p>Число меньше чем: <span id="dice-target">50</span></p>
+    <input type="range" id="dice-slider" min="2" max="98" value="50" oninput="updateDiceTarget(this.value)">
+    <div id="dice-res" style="font-size: 2rem; margin: 10px;">--</div>
+    <button class="primary" onclick="playDice()">Бросить (10$)</button>
+</div>
+
+<div id="tower" class="game-area">
+    <h3>Tower</h3>
+    <div id="tower-container"></div>
+    <button id="tower-start" class="primary" onclick="startTower()">Начать (25$)</button>
+</div>
+
+<div id="coin" class="game-area">
+    <h3>Coin Flip</h3>
+    <div style="font-size: 4rem; margin: 20px;" id="coin-icon">❓</div>
+    <div style="display: flex; gap: 10px;">
+        <button class="primary" onclick="playCoin('Орел')">Орел</button>
+        <button class="primary" style="background:orange" onclick="playCoin('Решка')">Решка</button>
     </div>
 </div>
 
-<div id="roulette" class="game-container">
-    <h2>Roulette</h2>
-    <div id="roulette-wheel" style="font-size: 30px; margin: 20px;">🎡</div>
-    <div id="roulette-result">-</div>
-    <div class="controls">
-        <button onclick="spinRoulette()">Крутить</button>
-    </div>
+<div id="wheel" class="game-area">
+    <h3>Wheel</h3>
+    <div id="wheel-obj" style="font-size: 4rem; transition: 3s cubic-bezier(0.1, 0, 0.1, 1); margin: 20px;">🎡</div>
+    <button class="primary" onclick="playWheel()">Крутить (15$)</button>
 </div>
 
 <script>
-    // --- Общая навигация ---
-    function showGame(gameId) {
-        document.querySelectorAll('.game-container').forEach(g => g.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(gameId).classList.add('active');
-        event.currentTarget.classList.add('active');
+    let balance = 1000;
+    const balEl = document.getElementById('balance-display');
+
+    function updateBal(amount) {
+        balance += amount;
+        balEl.innerText = balance.toFixed(2);
     }
 
-    // --- PLINKO LOGIC ---
+    function switchGame(id) {
+        document.querySelectorAll('.game-area').forEach(g => g.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // --- УЛУЧШЕННЫЙ PLINKO (ФИЗИКА) ---
     const pCanvas = document.getElementById('plinkoCanvas');
     const pCtx = pCanvas.getContext('2d');
-    function dropBall() {
-        let x = 200, y = 20;
-        const interval = setInterval(() => {
-            pCtx.clearRect(0, 0, 400, 400);
-            // Отрисовка колышков (упрощенно)
-            pCtx.fillStyle = "white";
-            for(let i=0; i<8; i++) {
-                for(let j=0; j<=i; j++) {
-                    pCtx.beginPath();
-                    pCtx.arc(200 - (i*15) + (j*30), 50 + i*40, 3, 0, Math.PI*2);
-                    pCtx.fill();
-                }
-            }
-            // Движение шарика
-            y += 5;
-            x += (Math.random() - 0.5) * 10;
-            pCtx.fillStyle = "red";
-            pCtx.beginPath();
-            pCtx.arc(x, y, 8, 0, Math.PI*2);
-            pCtx.fill();
-            if (y > 380) clearInterval(interval);
-        }, 30);
-    }
-
-    // --- CRASH LOGIC ---
-    let crashInterval;
-    let multiplier = 1.0;
-    let isRacing = false;
-
-    function startCrash() {
-        if(isRacing) {
-            alert("Вы забрали выигрыш на " + multiplier.toFixed(2) + "x");
-            resetCrash();
-            return;
+    const pins = [];
+    for(let r=0; r<10; r++) {
+        for(let c=0; c<=r; c++) {
+            pins.push({ x: 200 - (r*18) + (c*36), y: 80 + r*40 });
         }
-        isRacing = true;
-        multiplier = 1.0;
-        document.getElementById('crash-btn').innerText = "CASH OUT";
-        const crashPoint = Math.random() * 5 + 1; // Случайный момент взрыва
-        
-        crashInterval = setInterval(() => {
-            multiplier += 0.01;
-            document.getElementById('crash-display').innerText = multiplier.toFixed(2) + "x";
-            if (multiplier >= crashPoint) {
-                document.getElementById('crash-display').innerText = "BOOM!";
-                document.getElementById('crash-display').style.color = "red";
-                resetCrash();
+    }
+
+    function playPlinko() {
+        if(balance < 10) return;
+        updateBal(-10);
+        let x = 200 + (Math.random()*4 - 2), y = 30, vx = 0, vy = 2;
+        const interval = setInterval(() => {
+            vy += 0.2; // Гравитация
+            x += vx; y += vy;
+            vx *= 0.98; // Трение воздуха
+
+            pins.forEach(p => {
+                const dx = x - p.x, dy = y - p.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if(dist < 10) { // Коллизия
+                    const angle = Math.atan2(dy, dx);
+                    vx = Math.cos(angle) * 3;
+                    vy = Math.abs(Math.sin(angle) * 3);
+                }
+            });
+
+            pCtx.clearRect(0,0,400,500);
+            pCtx.fillStyle = "white";
+            pins.forEach(p => { pCtx.beginPath(); pCtx.arc(p.x, p.y, 3, 0, Math.PI*2); pCtx.fill(); });
+            pCtx.fillStyle = "#ff4757";
+            pCtx.beginPath(); pCtx.arc(x, y, 8, 0, Math.PI*2); pCtx.fill();
+
+            if(y > 480) {
+                clearInterval(interval);
+                let win = (x > 150 && x < 250) ? 5 : 20; // Упрощенно зоны
+                updateBal(win);
             }
-        }, 50);
+        }, 20);
     }
 
-    function resetCrash() {
-        clearInterval(crashInterval);
-        isRacing = false;
-        document.getElementById('crash-btn').innerText = "Ставка";
-        setTimeout(() => {
-            document.getElementById('crash-display').style.color = "#2ed573";
-        }, 1000);
-    }
-
-    // --- MINES LOGIC ---
-    let mines = [];
-    function initMines() {
-        const grid = document.getElementById('mines-grid');
-        grid.innerHTML = '';
-        mines = Array(25).fill(false);
-        for(let i=0; i<3; i++) mines[Math.floor(Math.random()*25)] = true; // 3 мины
-
+    // --- MINES С CASH OUT ---
+    let minePositions = [], openedTiles = 0, isMinesActive = false;
+    function startMines() {
+        if(balance < 20) return;
+        updateBal(-20);
+        isMinesActive = true;
+        openedTiles = 0;
+        minePositions = Array(25).fill(false).map((_, i) => i < 4).sort(() => Math.random() - 0.5);
+        document.getElementById('mines-grid').innerHTML = '';
+        document.getElementById('mines-cashout').disabled = true;
+        document.getElementById('mines-multiplier').innerText = "Множитель: 1.00x";
+        
         for(let i=0; i<25; i++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
             cell.onclick = () => {
-                if(mines[i]) {
-                    cell.classList.add('bomb');
-                    cell.innerText = '💣';
-                    alert('Game Over!');
-                    initMines();
+                if(!isMinesActive || cell.innerText !== '') return;
+                if(minePositions[i]) {
+                    cell.innerText = '💣'; cell.classList.add('lost');
+                    isMinesActive = false;
+                    alert("Бум! Вы проиграли.");
                 } else {
-                    cell.classList.add('gem');
-                    cell.innerText = '💎';
+                    cell.innerText = '💎'; cell.classList.add('win');
+                    openedTiles++;
+                    let mult = (1 + openedTiles * 0.5).toFixed(2);
+                    document.getElementById('mines-multiplier').innerText = `Множитель: ${mult}x`;
+                    document.getElementById('mines-cashout').disabled = false;
                 }
             };
-            grid.appendChild(cell);
+            document.getElementById('mines-grid').appendChild(cell);
         }
     }
-    initMines();
+    function minesCashOut() {
+        let mult = 1 + openedTiles * 0.5;
+        updateBal(20 * mult);
+        isMinesActive = false;
+        alert(`Вывод: ${(20*mult).toFixed(2)}$`);
+    }
 
-    // --- ROULETTE LOGIC ---
-    function spinRoulette() {
-        const res = document.getElementById('roulette-result');
-        const wheel = document.getElementById('roulette-wheel');
-        res.innerText = "Крутим...";
-        let count = 0;
-        const spin = setInterval(() => {
-            const colors = ['🔴 Красный', '⚫ Черный', '🟢 Зеро'];
-            const rand = colors[Math.floor(Math.random()*colors.length)];
-            wheel.style.transform = `rotate(${count * 20}deg)`;
-            count++;
-            if(count > 20) {
-                clearInterval(spin);
-                res.innerText = "Выпало: " + rand;
+    // --- DICE ---
+    let diceTarget = 50;
+    function updateDiceTarget(v) { document.getElementById('dice-target').innerText = v; diceTarget = v; }
+    function playDice() {
+        if(balance < 10) return;
+        updateBal(-10);
+        let roll = Math.floor(Math.random()*101);
+        document.getElementById('dice-res').innerText = roll;
+        if(roll < diceTarget) {
+            let win = 10 * (95/diceTarget);
+            updateBal(win);
+        }
+    }
+
+    // --- TOWER ---
+    let towerLevel = 0;
+    function startTower() {
+        if(balance < 25) return;
+        updateBal(-25);
+        towerLevel = 0;
+        const container = document.getElementById('tower-container');
+        container.innerHTML = '';
+        for(let i=0; i<6; i++) {
+            const row = document.createElement('div');
+            row.className = 'tower-row' + (i===0 ? ' active' : '');
+            row.id = 'row-'+i;
+            for(let j=0; j<3; j++) {
+                const btn = document.createElement('div');
+                btn.className = 'cell';
+                btn.onclick = () => {
+                    if(towerLevel !== i) return;
+                    if(Math.random() > 0.3) {
+                        btn.classList.add('win');
+                        towerLevel++;
+                        if(towerLevel < 6) document.getElementById('row-'+towerLevel).classList.add('active');
+                        else { alert("Башня покорена!"); updateBal(150); }
+                    } else {
+                        btn.classList.add('lost');
+                        towerLevel = -1;
+                        alert("Падение!");
+                    }
+                };
+                row.appendChild(btn);
             }
-        }, 50);
+            container.prepend(row);
+        }
+    }
+
+    // --- COIN FLIP ---
+    function playCoin(choice) {
+        if(balance < 10) return;
+        updateBal(-10);
+        const res = Math.random() > 0.5 ? 'Орел' : 'Решка';
+        document.getElementById('coin-icon').innerText = res === 'Орел' ? '🪙' : '💰';
+        if(choice === res) updateBal(20);
+    }
+
+    // --- WHEEL ---
+    function playWheel() {
+        if(balance < 15) return;
+        updateBal(-15);
+        const wheel = document.getElementById('wheel-obj');
+        const deg = Math.floor(Math.random() * 360) + 1080;
+        wheel.style.transform = `rotate(${deg}deg)`;
+        setTimeout(() => {
+            const realDeg = deg % 360;
+            if(realDeg > 180) updateBal(30); // Упрощенная логика: половина колеса выигрышная
+        }, 3000);
     }
 </script>
-
 </body>
 </html>
